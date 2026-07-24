@@ -12,6 +12,22 @@ updated: 2026-07-24
 
 ---
 
+## [0.6.0] — 2026-07-24
+
+### Agregado
+
+**Streaming con Suspense en pantallas lentas**
+- `nuevo/page.tsx` y `disponibles/page.tsx` refactorizados: el shell estático (título, botones) renderiza instantáneamente; los datos de Supabase streaman en segundo plano dentro de `<Suspense>`
+- Skeleton animado aparece donde irán los datos mientras cargan, en lugar de pantalla en blanco
+- `loading.tsx` agregados en `nuevo/`, `disponibles/` y `enrutar/` (faltaban) para navegación dura
+
+**Préstamos nativos (sin recarga)**
+- Filtros y búsqueda: `useState` en cliente, sin URL params ni viaje al servidor
+- Registro de pago y "Sin pago hoy": `router.refresh()` en lugar de `redirect()`, la página actualiza en segundo plano sin mover la pantalla
+- `prefetch={true}` en links del menú del bottom nav para precargar pantallas secundarias
+
+---
+
 ## [0.5.0] — 2026-07-24
 
 ### Agregado
