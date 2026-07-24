@@ -13,7 +13,7 @@ updated: 2026-07-24
 ## Objetivo
 Es la pantalla principal de trabajo de la unidad. Aquí se listan todos los préstamos activos y se registran los pagos del día. Es el corazón de la operación diaria.
 
-Estado de implementación: 🔄 lista inicial conectada a préstamos activos y formulario base de pago implementado. Acciones avanzadas pendientes.
+Estado de implementación: 🔄 lista conectada a préstamos activos, formulario base de pago y totalizador diario implementados. Filtros, buscador y acciones avanzadas pendientes.
 
 ## Problema que Resuelve
 El cobrador necesita ver rápidamente quién debe pagar hoy, cuánto lleva cobrado, y registrar pagos con el menor número de toques posible.

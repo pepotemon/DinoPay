@@ -38,6 +38,11 @@ type RawLoanRow = Omit<LoanRow, "clients"> & {
     | null;
 };
 
+type PaymentRow = {
+  loan_id: string;
+  monto: number;
+};
+
 export default async function PrestamosPage({
   searchParams
 }: {
@@ -63,13 +68,28 @@ export default async function PrestamosPage({
         .eq("estado", "activo")
         .order("posicion", { ascending: true })
     : { data: [] };
+  const today = new Date().toISOString().slice(0, 10);
+  const { data: paymentsToday } = user
+    ? await adminClient
+        .from("payments")
+        .select("loan_id, monto")
+        .eq("unit_id", user.id)
+        .eq("fecha_pago", today)
+        .eq("eliminado", false)
+    : { data: [] };
 
   const activeLoans = ((loans ?? []) as unknown as RawLoanRow[]).map((loan) => ({
     ...loan,
     clients: Array.isArray(loan.clients) ? loan.clients[0] ?? null : loan.clients
   }));
+  const todayPayments = (paymentsToday ?? []) as PaymentRow[];
+  const paidLoanIds = new Set(todayPayments.map((payment) => payment.loan_id));
+  const cobradoHoy = todayPayments.reduce((sum, payment) => sum + Number(payment.monto), 0);
   const meta = activeLoans.reduce((sum, loan) => sum + Number(loan.valor_cuota), 0);
+  const faltante = Math.max(meta - cobradoHoy, 0);
+  const progreso = meta > 0 ? Math.min(Math.round((cobradoHoy / meta) * 100), 100) : 0;
   const totalSaldo = activeLoans.reduce((sum, loan) => sum + Number(loan.saldo), 0);
+  const visitados = paidLoanIds.size;
 
   return (
     <div className="space-y-6">
@@ -92,18 +112,39 @@ export default async function PrestamosPage({
         <CardHeader>
           <CardTitle>Totalizador del dia</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-3">
-          <div>
-            <p className="text-sm text-muted-foreground">Meta del dia</p>
-            <p className="text-2xl font-semibold">{formatCurrency(meta)}</p>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-5">
+            <div>
+              <p className="text-sm text-muted-foreground">Recaudado hoy</p>
+              <p className="text-2xl font-semibold">{formatCurrency(cobradoHoy)}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Meta del dia</p>
+              <p className="text-2xl font-semibold">{formatCurrency(meta)}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Faltante</p>
+              <p className="text-2xl font-semibold">{formatCurrency(faltante)}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Visitados</p>
+              <p className="text-2xl font-semibold">
+                {visitados}/{activeLoans.length}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Saldo total</p>
+              <p className="text-2xl font-semibold">{formatCurrency(totalSaldo)}</p>
+            </div>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Saldo total</p>
-            <p className="text-2xl font-semibold">{formatCurrency(totalSaldo)}</p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Clientes</p>
-            <p className="text-2xl font-semibold">{activeLoans.length}</p>
+            <div className="h-2 rounded-full bg-muted">
+              <div
+                className="h-2 rounded-full bg-primary"
+                style={{ width: `${progreso}%` }}
+              />
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">{progreso}% completado</p>
           </div>
         </CardContent>
       </Card>
@@ -125,6 +166,11 @@ export default async function PrestamosPage({
                     Posicion {loan.posicion ?? "-"} - Cuota {loan.cuotas_pagadas + 1}/
                     {loan.numero_cuotas}
                   </p>
+                  {paidLoanIds.has(loan.id) ? (
+                    <p className="mt-1 inline-flex rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+                      Pago registrado hoy
+                    </p>
+                  ) : null}
                   {loan.clients?.barrio ? (
                     <p className="text-sm text-muted-foreground">{loan.clients.barrio}</p>
                   ) : null}

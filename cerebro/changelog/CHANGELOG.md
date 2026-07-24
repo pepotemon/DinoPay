@@ -58,6 +58,7 @@ updated: 2026-07-24
 - Registro de pago base implementado en `/unidad/prestamos` con RPC `register_payment`.
 - Migracion local `006_register_payment.sql` agregada para registrar pagos, actualizar saldo/cuotas y completar prestamos automaticamente.
 - Formulario de pago ajustado para recalcular monto al cambiar cuotas, aceptar decimales y refrescar la lista tras registrar.
+- Totalizador diario de `/unidad/prestamos` conectado a pagos reales del dia: recaudado, meta, faltante, progreso y visitados.
 
 ### Verificado
 - `npm.cmd run build` pasa correctamente.
