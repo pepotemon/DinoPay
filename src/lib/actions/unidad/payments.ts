@@ -83,7 +83,7 @@ export async function registerPaymentFormAction(formData: FormData) {
   );
 
   if (!result.ok) {
-    throw new Error(result.message);
+    redirect(`/unidad/prestamos?payment_error=${encodeURIComponent(result.message)}`);
   }
 
   redirect("/unidad/prestamos");

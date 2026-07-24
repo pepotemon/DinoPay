@@ -38,7 +38,15 @@ type RawLoanRow = Omit<LoanRow, "clients"> & {
     | null;
 };
 
-export default async function PrestamosPage() {
+export default async function PrestamosPage({
+  searchParams
+}: {
+  searchParams?: Promise<{
+    payment_error?: string;
+  }>;
+}) {
+  const params = await searchParams;
+  const paymentError = params?.payment_error;
   const supabase = await createClient();
   const {
     data: { user }
@@ -99,6 +107,12 @@ export default async function PrestamosPage() {
           </div>
         </CardContent>
       </Card>
+
+      {paymentError ? (
+        <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+          {paymentError}
+        </div>
+      ) : null}
 
       <div className="space-y-3">
         {activeLoans.map((loan) => (
