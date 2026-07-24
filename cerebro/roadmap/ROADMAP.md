@@ -37,7 +37,7 @@ updated: 2026-07-24
 
 | Tarea | Estado | Prioridad |
 |-------|--------|-----------|
-| Pantalla CLIENTES DISPONIBLES | ⏳ Pendiente | 🔴 Alta |
+| Pantalla CLIENTES DISPONIBLES | 🔄 Listado inicial conectado | 🔴 Alta |
 | Nuevo préstamo para cliente existente | ⏳ Pendiente | 🔴 Alta |
 | Pantalla ENRUTAR (drag & drop) | ⏳ Pendiente | 🔴 Alta |
 | Modal "Ver Detalles" del préstamo | ⏳ Pendiente | 🟡 Media |

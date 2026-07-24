@@ -61,6 +61,7 @@ updated: 2026-07-24
 - Totalizador diario de `/unidad/prestamos` conectado a pagos reales del dia: recaudado, meta, faltante, progreso y visitados.
 - Filtros `Todos / Pendientes / Visitados` y buscador por cliente/barrio/telefono agregados en `/unidad/prestamos`.
 - Boton `No pago` agregado con tabla `loan_visits` y RPC `mark_no_pay_visit` para marcar visitados sin afectar caja.
+- Pantalla `/unidad/disponibles` conectada a clientes activos sin prestamo activo, con resumen y ultimo prestamo completado.
 
 ### Verificado
 - `npm.cmd run build` pasa correctamente.
