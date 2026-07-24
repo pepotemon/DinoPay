@@ -108,6 +108,11 @@ Muestra para cada unidad (tarjetas):
 
 Desde `/admin/gastos` el admin ve todos los gastos `pendiente` de todas las unidades.
 
+Estado actual:
+- Ruta `/admin/gastos` creada con listado de gastos pendientes.
+- El admin puede aprobar o rechazar cada gasto.
+- El dashboard admin muestra unidades activas y gastos pendientes desde Supabase.
+
 ```
 ┌─────────────────────────────────────┐
 │ Unidad: Norte | Gasolina | $45,000  │

@@ -68,6 +68,8 @@ updated: 2026-07-24
 - Migracion local `009_update_route_positions.sql` agregada para guardar posiciones de ruta.
 - Pantalla `/unidad/gastos` agregada con resumen, formulario de nuevo gasto y listado de gastos recientes.
 - Registro de gastos conectado a Supabase usando la tabla `expenses`; los gastos nacen en estado `pendiente`.
+- Pantalla `/admin/gastos` agregada para aprobar o rechazar gastos pendientes por unidad.
+- Dashboard admin conectado a metricas reales de unidades activas y gastos.
 
 ### Verificado
 - `npm.cmd run build` pasa correctamente.

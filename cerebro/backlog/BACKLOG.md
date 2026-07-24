@@ -70,7 +70,7 @@ updated: 2026-07-24
 ### Módulo Admin — Completo
 - [ ] Ver detalle de una unidad
 - [ ] Editar configuración de unidad
-- [ ] Aprobar/rechazar gastos
+- [x] Aprobar/rechazar gastos
 - [ ] Inyectar/retirar capital
 - [ ] Ver reportes de cualquier unidad
 
