@@ -1,7 +1,8 @@
-import { Banknote, PlusCircle } from "lucide-react";
+import { PlusCircle } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PaymentInputs } from "@/components/unidad/payment-inputs";
 import { registerPaymentFormAction } from "@/lib/actions/unidad/payments";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -134,45 +135,10 @@ export default async function PrestamosPage() {
                 className="space-y-3 rounded-md border bg-muted/40 p-3"
               >
                 <input name="loanId" type="hidden" value={loan.id} />
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <label className="space-y-1">
-                    <span className="text-xs font-medium text-muted-foreground">Cuotas</span>
-                    <input
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      defaultValue="1"
-                      max={Math.max(loan.numero_cuotas - loan.cuotas_pagadas, 1)}
-                      min="1"
-                      name="numeroCuotas"
-                      type="number"
-                    />
-                  </label>
-                  <label className="space-y-1">
-                    <span className="text-xs font-medium text-muted-foreground">Monto</span>
-                    <input
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      defaultValue={Number(loan.valor_cuota)}
-                      min="1"
-                      name="monto"
-                      type="number"
-                    />
-                  </label>
-                  <label className="space-y-1">
-                    <span className="text-xs font-medium text-muted-foreground">Metodo</span>
-                    <select
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      name="metodoPago"
-                    >
-                      <option value="efectivo">Efectivo</option>
-                      <option value="transferencia">Transferencia</option>
-                    </select>
-                  </label>
-                </div>
-                <div className="flex justify-end">
-                  <Button size="sm" type="submit">
-                    <Banknote className="h-4 w-4" />
-                    Registrar pago
-                  </Button>
-                </div>
+                <PaymentInputs
+                  maxCuotas={Math.max(loan.numero_cuotas - loan.cuotas_pagadas, 1)}
+                  valorCuota={Number(loan.valor_cuota)}
+                />
               </form>
             </CardContent>
           </Card>

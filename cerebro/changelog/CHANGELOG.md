@@ -57,6 +57,7 @@ updated: 2026-07-24
 - Migracion local `005_create_client_with_loan.sql` agregada para crear cliente + prestamo en una funcion transaccional.
 - Registro de pago base implementado en `/unidad/prestamos` con RPC `register_payment`.
 - Migracion local `006_register_payment.sql` agregada para registrar pagos, actualizar saldo/cuotas y completar prestamos automaticamente.
+- Formulario de pago ajustado para recalcular monto al cambiar cuotas, aceptar decimales y refrescar la lista tras registrar.
 
 ### Verificado
 - `npm.cmd run build` pasa correctamente.

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -73,11 +74,17 @@ export async function registerPaymentAction(
 }
 
 export async function registerPaymentFormAction(formData: FormData) {
-  await registerPaymentAction(
+  const result = await registerPaymentAction(
     {
       ok: false,
       message: ""
     },
     formData
   );
+
+  if (!result.ok) {
+    throw new Error(result.message);
+  }
+
+  redirect("/unidad/prestamos");
 }
