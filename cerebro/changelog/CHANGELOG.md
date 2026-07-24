@@ -12,6 +12,21 @@ updated: 2026-07-24
 
 ---
 
+## [0.5.0] — 2026-07-24
+
+### Agregado
+
+**Navegación móvil (bottom nav)**
+- Nuevo componente cliente `src/components/unidad/bottom-nav.tsx`
+- Barra fija en la parte inferior con 4 accesos: Préstamos, Nuevo, Disponibles, Menú
+- Botón "Menú" abre overlay con: Enrutar clientes, Gastos, Reportes, Caja, Flujo semanal
+- Botón "Cerrar sesión" en rojo al final del menú (lógica de logout inline)
+- Estado activo resaltado en color primario en barra y dentro del menú
+- Header reducido a logo únicamente; nav horizontal eliminada
+- `pb-24` en `<main>` para que el contenido no quede tapado por la barra
+
+---
+
 ## [0.4.0] — 2026-07-24
 
 ### Agregado

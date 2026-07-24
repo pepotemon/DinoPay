@@ -1,44 +1,18 @@
 import Link from "next/link";
-import { LogoutButton } from "@/components/auth/logout-button";
+import { BottomNav } from "@/components/unidad/bottom-nav";
 
 export default function UnidadLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-10 border-b bg-background">
-        <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mx-auto flex max-w-5xl items-center px-4 py-3">
           <Link className="font-semibold text-primary" href="/unidad/prestamos">
-            DinoPay Unidad
+            DinoPay
           </Link>
-          <nav className="flex items-center gap-2 overflow-x-auto pb-1 text-sm">
-            <Link className="rounded-md bg-muted px-3 py-2" href="/unidad/prestamos">
-              Prestamos
-            </Link>
-            <Link className="rounded-md bg-muted px-3 py-2" href="/unidad/nuevo">
-              Nuevo
-            </Link>
-            <Link className="rounded-md bg-muted px-3 py-2" href="/unidad/disponibles">
-              Disponibles
-            </Link>
-            <Link className="rounded-md bg-muted px-3 py-2" href="/unidad/enrutar">
-              Enrutar
-            </Link>
-            <Link className="rounded-md bg-muted px-3 py-2" href="/unidad/gastos">
-              Gastos
-            </Link>
-            <Link className="rounded-md bg-muted px-3 py-2" href="/unidad/reportes">
-              Reportes
-            </Link>
-            <Link className="rounded-md bg-muted px-3 py-2" href="/unidad/flujo-semanal">
-              Semanal
-            </Link>
-            <Link className="rounded-md bg-muted px-3 py-2" href="/unidad/reporte-diario">
-              Caja
-            </Link>
-            <LogoutButton />
-          </nav>
         </div>
       </header>
-      <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
+      <main className="mx-auto max-w-5xl px-4 py-6 pb-24">{children}</main>
+      <BottomNav />
     </div>
   );
 }

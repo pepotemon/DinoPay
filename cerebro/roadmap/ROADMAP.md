@@ -89,6 +89,7 @@ updated: 2026-07-24
 | Tarea | Estado | Prioridad |
 |-------|--------|-----------|
 | Responsive design móvil (tarjetas compactas) | ✅ Implementado | 🔴 Alta |
+| Navegación móvil (bottom nav + menú overlay) | ✅ Implementado | 🔴 Alta |
 | Manejo de errores global (error.tsx) | ✅ Implementado | 🔴 Alta |
 | Loading states en pantallas principales | ✅ Implementado (prestamos, gastos, reporte) | 🔴 Alta |
 | Toasts con Sonner (AutoToast) | ✅ Implementado | 🟡 Media |

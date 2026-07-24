@@ -82,6 +82,7 @@ updated: 2026-07-24
 ## Baja Prioridad 🟢
 
 ### UX / Polish
+- [x] Navegación móvil: bottom nav con 4 accesos + menú overlay
 - [ ] Animaciones de transición entre pantallas
 - [ ] Empty states con ilustraciones
 - [x] Toasts con Sonner (AutoToast, funciona con ?ok= y ?error= existentes)
