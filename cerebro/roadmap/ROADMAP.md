@@ -25,7 +25,7 @@ updated: 2026-07-24
 | Middleware de rutas por rol | 🔄 Base creada | 🔴 Alta |
 | Panel Admin: crear unidad | ✅ Implementado | 🔴 Alta |
 | Unidad: pantalla NUEVO (cliente + préstamo) | 🔄 Formulario implementado, requiere migración 005 | 🔴 Alta |
-| Unidad: pantalla PRÉSTAMOS (lista + cobros) | 🔄 Lista, cobros y totalizador conectados | 🔴 Alta |
+| Unidad: pantalla PRÉSTAMOS (lista + cobros) | 🔄 Lista, cobros, No pagó, totalizador y filtros conectados | 🔴 Alta |
 | Unidad: modal registro de pago | 🔄 Formulario base implementado | 🔴 Alta |
 | Completar préstamo automáticamente | ✅ Implementado en RPC | 🔴 Alta |
 | Cálculo de caja en tiempo real | ⏳ Pendiente | 🔴 Alta |

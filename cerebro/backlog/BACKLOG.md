@@ -47,8 +47,9 @@ updated: 2026-07-24
 ## Media Prioridad 🟡
 
 ### Módulo Unidad — Completo
-- [ ] Filtros (Todos / Pendientes / Visitados)
-- [ ] Buscador de clientes en pantalla préstamos
+- [x] Filtros (Todos / Pendientes / Visitados)
+- [x] Buscador de clientes en pantalla préstamos
+- [x] Botón No pagó en pantalla préstamos
 - [ ] Modal "Ver Detalles" del préstamo
 - [ ] Editar datos del cliente
 - [ ] Historial de pagos (préstamo actual)

@@ -13,7 +13,7 @@ updated: 2026-07-24
 ## Objetivo
 Es la pantalla principal de trabajo de la unidad. Aquí se listan todos los préstamos activos y se registran los pagos del día. Es el corazón de la operación diaria.
 
-Estado de implementación: 🔄 lista conectada a préstamos activos, formulario base de pago y totalizador diario implementados. Filtros, buscador y acciones avanzadas pendientes.
+Estado de implementación: 🔄 lista conectada a préstamos activos, formulario base de pago, botón No pagó, totalizador diario, filtros y buscador implementados. Acciones avanzadas pendientes.
 
 ## Problema que Resuelve
 El cobrador necesita ver rápidamente quién debe pagar hoy, cuánto lleva cobrado, y registrar pagos con el menor número de toques posible.
@@ -109,6 +109,8 @@ El cobrador necesita ver rápidamente quién debe pagar hoy, cuánto lleva cobra
 - (Si el cliente tiene pagos del día también aparece "Eliminar pago")
 
 **[No Pagó]** — Marca al cliente como "visitado sin pago". No registra movimiento de caja. El cliente pasa al filtro "Visitados".
+
+Implementación: se registra en `loan_visits` con `tipo = 'no_pago'`, no en `payments`, para no afectar la caja.
 
 **[Pagar]** — Abre el modal de registro de pago.
 

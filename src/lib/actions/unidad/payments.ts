@@ -18,6 +18,10 @@ const registerPaymentSchema = z.object({
   metodoPago: z.enum(["efectivo", "transferencia"])
 });
 
+const noPayVisitSchema = z.object({
+  loanId: z.string().uuid()
+});
+
 export async function registerPaymentAction(
   _previousState: RegisterPaymentState,
   formData: FormData
@@ -86,5 +90,38 @@ export async function registerPaymentFormAction(formData: FormData) {
     redirect(`/unidad/prestamos?payment_error=${encodeURIComponent(result.message)}`);
   }
 
+  redirect("/unidad/prestamos");
+}
+
+export async function markNoPayVisitAction(formData: FormData) {
+  const parsed = noPayVisitSchema.safeParse({
+    loanId: formData.get("loanId")
+  });
+
+  if (!parsed.success) {
+    redirect("/unidad/prestamos?payment_error=Prestamo invalido");
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const adminClient = createAdminClient();
+  const { error } = await adminClient.rpc("mark_no_pay_visit", {
+    p_loan_id: parsed.data.loanId,
+    p_unit_id: user.id,
+    p_nota: ""
+  });
+
+  if (error) {
+    redirect(`/unidad/prestamos?payment_error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/unidad/prestamos");
   redirect("/unidad/prestamos");
 }
