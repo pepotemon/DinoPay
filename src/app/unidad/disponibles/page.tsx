@@ -148,8 +148,11 @@ export default async function ClientesDisponiblesPage() {
                   </p>
                 )}
 
-                <Button className="w-full" disabled variant="secondary">
-                  Nuevo prestamo pronto
+                <Button asChild className="h-12 w-full">
+                  <Link href={`/unidad/disponibles/${client.id}/nuevo`}>
+                    <PlusCircle className="h-4 w-4" />
+                    Nuevo prestamo
+                  </Link>
                 </Button>
               </CardContent>
             </Card>

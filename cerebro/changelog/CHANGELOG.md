@@ -62,6 +62,8 @@ updated: 2026-07-24
 - Filtros `Todos / Pendientes / Visitados` y buscador por cliente/barrio/telefono agregados en `/unidad/prestamos`.
 - Boton `No pago` agregado con tabla `loan_visits` y RPC `mark_no_pay_visit` para marcar visitados sin afectar caja.
 - Pantalla `/unidad/disponibles` conectada a clientes activos sin prestamo activo, con resumen y ultimo prestamo completado.
+- Flujo `/unidad/disponibles/[id]/nuevo` agregado para crear nuevo prestamo a cliente existente con datos prellenados del ultimo prestamo.
+- Migracion local `008_create_loan_for_existing_client.sql` agregada para crear prestamos recurrentes y restaurar posicion de ruta.
 
 ### Verificado
 - `npm.cmd run build` pasa correctamente.

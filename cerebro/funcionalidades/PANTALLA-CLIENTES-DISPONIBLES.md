@@ -13,7 +13,7 @@ updated: 2026-07-24
 ## Objetivo
 Listar clientes que terminaron su préstamo y están disponibles para recibir uno nuevo. Desde aquí se puede activar un nuevo préstamo con datos pre-llenados del préstamo anterior.
 
-Estado de implementación: 🔄 listado inicial conectado a clientes sin préstamo activo. Nuevo préstamo para cliente existente pendiente.
+Estado de implementación: 🔄 listado conectado a clientes sin préstamo activo y nuevo préstamo para cliente existente implementado. Indicador de calidad avanzado pendiente.
 
 ## Problema que Resuelve
 Los clientes recurrentes (que ya pagaron completamente) necesitan poder recibir un nuevo préstamo rápidamente sin re-ingresar todos sus datos. Esta pantalla hace ese proceso fluido y en 1-2 toques.

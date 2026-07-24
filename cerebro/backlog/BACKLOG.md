@@ -55,7 +55,7 @@ updated: 2026-07-24
 - [ ] Historial de pagos (préstamo actual)
 - [ ] Historial de préstamos (cliente)
 - [x] Base de pantalla Clientes Disponibles
-- [ ] Formulario nuevo préstamo para cliente existente
+- [x] Formulario nuevo préstamo para cliente existente
 - [ ] Indicador de calidad del cliente
 - [ ] Pantalla Enrutar (drag & drop con dnd kit)
 - [ ] Guardar orden de ruta

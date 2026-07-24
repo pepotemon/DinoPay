@@ -25,6 +25,14 @@ const createClientLoanSchema = z.object({
   numeroCuotas: z.coerce.number().int().min(1, "Debe haber al menos una cuota.")
 });
 
+const createExistingClientLoanSchema = z.object({
+  clientId: z.string().uuid(),
+  modalidad: z.enum(["diaria", "semanal", "quincenal", "mensual"]),
+  interes: z.coerce.number().min(0).max(100),
+  valorNeto: z.coerce.number().positive("El valor neto debe ser mayor a 0."),
+  numeroCuotas: z.coerce.number().int().min(1, "Debe haber al menos una cuota.")
+});
+
 export async function createClientLoanAction(
   _previousState: CreateClientLoanState,
   formData: FormData
@@ -98,6 +106,81 @@ export async function createClientLoanAction(
     p_telefono1: input.telefono1 ?? "",
     p_telefono2: input.telefono2 ?? "",
     p_genero: input.genero,
+    p_modalidad: input.modalidad,
+    p_interes: input.interes,
+    p_valor_neto: input.valorNeto,
+    p_numero_cuotas: input.numeroCuotas
+  });
+
+  if (error) {
+    return {
+      ok: false,
+      message: error.message
+    };
+  }
+
+  redirect("/unidad/prestamos");
+}
+
+export async function createExistingClientLoanAction(
+  _previousState: CreateClientLoanState,
+  formData: FormData
+): Promise<CreateClientLoanState> {
+  const parsed = createExistingClientLoanSchema.safeParse({
+    clientId: formData.get("clientId"),
+    modalidad: formData.get("modalidad"),
+    interes: formData.get("interes"),
+    valorNeto: formData.get("valorNeto"),
+    numeroCuotas: formData.get("numeroCuotas")
+  });
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      message: parsed.error.issues[0]?.message ?? "Revisa los datos del formulario."
+    };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      ok: false,
+      message: "Tu sesion expiro. Inicia sesion de nuevo."
+    };
+  }
+
+  const adminClient = createAdminClient();
+  const { data: unit } = await adminClient
+    .from("units")
+    .select("id, intereses")
+    .eq("id", user.id)
+    .eq("activo", true)
+    .maybeSingle();
+
+  if (!unit) {
+    return {
+      ok: false,
+      message: "Solo una unidad activa puede crear prestamos."
+    };
+  }
+
+  const input = parsed.data;
+  const allowedInterests = Array.isArray(unit.intereses) ? unit.intereses : [];
+
+  if (!allowedInterests.includes(input.interes)) {
+    return {
+      ok: false,
+      message: "Ese interes no esta habilitado para esta unidad."
+    };
+  }
+
+  const { error } = await adminClient.rpc("create_loan_for_existing_client", {
+    p_unit_id: user.id,
+    p_client_id: input.clientId,
     p_modalidad: input.modalidad,
     p_interes: input.interes,
     p_valor_neto: input.valorNeto,
