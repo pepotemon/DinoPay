@@ -158,3 +158,28 @@ export async function markNoPayVisitAction(formData: FormData) {
   revalidatePath("/unidad/prestamos");
   redirect("/unidad/prestamos");
 }
+
+export async function markNoPayVisitResult(
+  loanId: string
+): Promise<{ ok: boolean; message: string }> {
+  const parsed = noPayVisitSchema.safeParse({ loanId });
+  if (!parsed.success) return { ok: false, message: "Préstamo inválido." };
+
+  const supabase = await createClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Sesión expirada." };
+
+  const adminClient = createAdminClient();
+  const { error } = await adminClient.rpc("mark_no_pay_visit", {
+    p_loan_id: parsed.data.loanId,
+    p_unit_id: user.id,
+    p_nota: ""
+  });
+
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath("/unidad/prestamos");
+  return { ok: true, message: "" };
+}

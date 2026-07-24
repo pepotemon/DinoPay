@@ -7,10 +7,12 @@ import { formatCurrency } from "@/lib/utils";
 
 export function PaymentInputs({
   maxCuotas,
-  valorCuota
+  valorCuota,
+  isPending = false
 }: {
   maxCuotas: number;
   valorCuota: number;
+  isPending?: boolean;
 }) {
   const [cuotas, setCuotas] = useState(1);
   const [monto, setMonto] = useState(Number(valorCuota.toFixed(2)));
@@ -62,9 +64,9 @@ export function PaymentInputs({
         <p className="text-xs text-muted-foreground">
           Cuota base: {formatCurrency(valorCuota)}
         </p>
-        <Button size="sm" type="submit">
+        <Button disabled={isPending} size="sm" type="submit">
           <Banknote className="h-4 w-4" />
-          Registrar pago
+          {isPending ? "Registrando..." : "Registrar pago"}
         </Button>
       </div>
     </>

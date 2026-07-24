@@ -73,6 +73,7 @@ export function BottomNav() {
                     key={href}
                     href={href}
                     onClick={() => setOpen(false)}
+                    prefetch={true}
                     className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
                       active ? "bg-primary/10 text-primary" : "text-foreground hover:bg-muted"
                     }`}
