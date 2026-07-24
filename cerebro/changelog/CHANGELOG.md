@@ -215,6 +215,7 @@ updated: 2026-07-24
 - Dashboard admin conectado a metricas reales de unidades activas y gastos.
 - Página `/unidad/prestamos/[id]` agregada con detalle del préstamo, contacto, dirección, historial de pagos y visitas sin pago.
 - Tarjetas de `/unidad/prestamos` actualizadas con acciones rápidas: Ver, Llamar y WhatsApp.
+- Pantalla `/unidad/prestamos` rediseñada con experiencia móvil tipo app: totalizador destacado, búsqueda grande, tabs, tarjetas compactas y pago en modal.
 
 ### Verificado
 - `npm run build` pasa correctamente.

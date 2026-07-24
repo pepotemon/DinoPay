@@ -6,9 +6,12 @@ import { createClient } from "@/lib/supabase/server";
 type RawLoanRow = {
   id: string;
   valor_cuota: number;
+  valor_neto: number;
+  total_a_cobrar: number;
   saldo: number;
   cuotas_pagadas: number;
   numero_cuotas: number;
+  modalidad: string;
   posicion: number | null;
   clients:
     | { alias: string; barrio: string | null; telefono1: string | null; telefono2: string | null }
@@ -30,7 +33,7 @@ export default async function PrestamosPage() {
     adminClient
       .from("loans")
       .select(
-        "id, valor_cuota, saldo, cuotas_pagadas, numero_cuotas, posicion, clients(alias, barrio, telefono1, telefono2)"
+        "id, valor_cuota, valor_neto, total_a_cobrar, saldo, cuotas_pagadas, numero_cuotas, modalidad, posicion, clients(alias, barrio, telefono1, telefono2)"
       )
       .eq("unit_id", user.id)
       .eq("estado", "activo")
