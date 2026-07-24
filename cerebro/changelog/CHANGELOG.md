@@ -216,6 +216,7 @@ updated: 2026-07-24
 - Página `/unidad/prestamos/[id]` agregada con detalle del préstamo, contacto, dirección, historial de pagos y visitas sin pago.
 - Tarjetas de `/unidad/prestamos` actualizadas con acciones rápidas: Ver, Llamar y WhatsApp.
 - Pantalla `/unidad/prestamos` rediseñada con experiencia móvil tipo app: totalizador destacado, búsqueda grande, tabs, tarjetas compactas y pago en modal.
+- Menú `...` de préstamo agregado con WhatsApp, llamada, detalles, historial de pagos, historial de préstamos y editar cliente; los accesos informativos abren modales.
 
 ### Verificado
 - `npm run build` pasa correctamente.

@@ -2,11 +2,14 @@
 
 import {
   CircleSlash,
+  FileText,
+  History,
   MapPinned,
   MessageCircle,
   MoreVertical,
   Phone,
   Search,
+  UserPen,
   WalletCards,
   X
 } from "lucide-react";
@@ -25,6 +28,7 @@ import { cn, formatCurrency } from "@/lib/utils";
 
 export type ClientLoan = {
   id: string;
+  client_id: string;
   valor_cuota: number;
   valor_neto: number;
   total_a_cobrar: number;
@@ -35,20 +39,54 @@ export type ClientLoan = {
   posicion: number | null;
   clients: {
     alias: string;
+    nit: string | null;
+    direccion1: string | null;
+    direccion2: string | null;
     barrio: string | null;
     telefono1: string | null;
     telefono2: string | null;
   } | null;
 };
 
+type PaymentHistory = {
+  id: string;
+  loan_id: string;
+  monto: number;
+  numero_cuotas: number;
+  metodo_pago: string;
+  fecha_pago: string;
+  hora_registro: string;
+};
+
+type LoanHistory = {
+  id: string;
+  client_id: string;
+  valor_neto: number;
+  total_a_cobrar: number;
+  saldo: number;
+  cuotas_pagadas: number;
+  numero_cuotas: number;
+  estado: string;
+  fecha_inicio: string | null;
+  created_at: string;
+};
+
 type Props = {
   loans: ClientLoan[];
   paidLoanIds: string[];
   noPayLoanIds: string[];
+  paymentHistoryByLoan: Record<string, PaymentHistory[]>;
+  loanHistoryByClient: Record<string, LoanHistory[]>;
   cobradoHoy: number;
   meta: number;
   totalSaldo: number;
 };
+
+type InfoModal =
+  | { type: "details"; loan: ClientLoan }
+  | { type: "payments"; loan: ClientLoan }
+  | { type: "loans"; loan: ClientLoan }
+  | null;
 
 function digitsOnly(value: string | null | undefined) {
   return value?.replace(/\D/g, "") ?? "";
@@ -73,6 +111,8 @@ export function PrestamosClient({
   loans,
   paidLoanIds,
   noPayLoanIds,
+  paymentHistoryByLoan,
+  loanHistoryByClient,
   cobradoHoy,
   meta,
   totalSaldo
@@ -81,6 +121,8 @@ export function PrestamosClient({
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"pendientes" | "visitados">("pendientes");
   const [selectedLoan, setSelectedLoan] = useState<ClientLoan | null>(null);
+  const [menuLoan, setMenuLoan] = useState<ClientLoan | null>(null);
+  const [infoModal, setInfoModal] = useState<InfoModal>(null);
   const [, startTransition] = useTransition();
   const [submittingId, setSubmittingId] = useState<string | null>(null);
 
@@ -225,8 +267,6 @@ export function PrestamosClient({
       <section className="space-y-4">
         {filtered.map((loan) => {
           const clientName = loan.clients?.alias ?? "Cliente sin nombre";
-          const phone = loan.clients?.telefono1 || loan.clients?.telefono2 || "";
-          const hasPhone = digitsOnly(phone).length > 0;
           const isPaid = paidSet.has(loan.id);
           const isNoPay = noPaySet.has(loan.id) && !isPaid;
           const isVisited = visitedSet.has(loan.id);
@@ -263,20 +303,13 @@ export function PrestamosClient({
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <IconLink
-                    disabled={!hasPhone}
-                    href={hasPhone ? `tel:${digitsOnly(phone)}` : "#"}
-                    icon={<Phone className="h-5 w-5" />}
-                  />
-                  <IconLink
-                    disabled={!hasPhone}
-                    href={hasPhone ? whatsappHref(phone, clientName) : "#"}
-                    icon={<MessageCircle className="h-5 w-5" />}
-                    newTab
-                  />
-                  <IconLink href={`/unidad/prestamos/${loan.id}`} icon={<MoreVertical className="h-5 w-5" />} />
-                </div>
+                <button
+                  className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-muted text-foreground transition-colors hover:bg-muted/80"
+                  onClick={() => setMenuLoan(loan)}
+                  type="button"
+                >
+                  <MoreVertical className="h-6 w-6" />
+                </button>
               </div>
 
               <div className="mt-5 rounded-2xl bg-muted p-4">
@@ -353,6 +386,20 @@ export function PrestamosClient({
         onClose={() => setSelectedLoan(null)}
         onSubmit={handlePayment}
       />
+      <LoanActionsMenu
+        loan={menuLoan}
+        onClose={() => setMenuLoan(null)}
+        onOpenInfo={(modal) => {
+          setInfoModal(modal);
+          setMenuLoan(null);
+        }}
+      />
+      <LoanInfoModal
+        modal={infoModal}
+        loanHistoryByClient={loanHistoryByClient}
+        onClose={() => setInfoModal(null)}
+        paymentHistoryByLoan={paymentHistoryByLoan}
+      />
     </div>
   );
 }
@@ -385,34 +432,306 @@ function MiniStat({
   );
 }
 
-function IconLink({
+function LoanActionsMenu({
+  loan,
+  onClose,
+  onOpenInfo
+}: {
+  loan: ClientLoan | null;
+  onClose: () => void;
+  onOpenInfo: (modal: Exclude<InfoModal, null>) => void;
+}) {
+  if (!loan) {
+    return null;
+  }
+
+  const clientName = loan.clients?.alias ?? "Cliente sin nombre";
+  const phone = loan.clients?.telefono1 || loan.clients?.telefono2 || "";
+  const hasPhone = digitsOnly(phone).length > 0;
+
+  return (
+    <div className="fixed inset-0 z-50">
+      <button
+        aria-label="Cerrar menu"
+        className="absolute inset-0 bg-foreground/10"
+        onClick={onClose}
+        type="button"
+      />
+      <div className="absolute right-5 top-36 w-[min(22rem,calc(100vw-2.5rem))] rounded-[2rem] bg-background p-5 shadow-2xl">
+        <div className="mb-2 flex items-center justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">
+              Acciones
+            </p>
+            <p className="font-black">{clientName}</p>
+          </div>
+          <button
+            className="grid h-9 w-9 place-items-center rounded-xl bg-muted text-muted-foreground"
+            onClick={onClose}
+            type="button"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="space-y-1">
+          <ActionItem
+            disabled={!hasPhone}
+            href={hasPhone ? whatsappHref(phone, clientName) : "#"}
+            icon={<MessageCircle className="h-6 w-6 text-primary" />}
+            label="Whatsapp"
+            newTab
+            onClick={onClose}
+          />
+          <ActionItem
+            disabled={!hasPhone}
+            href={hasPhone ? `tel:${digitsOnly(phone)}` : "#"}
+            icon={<Phone className="h-6 w-6" />}
+            label="Llamar"
+            onClick={onClose}
+          />
+          <ActionItem
+            icon={<FileText className="h-6 w-6" />}
+            label="Ver Detalles"
+            onClick={() => onOpenInfo({ type: "details", loan })}
+          />
+          <ActionItem
+            icon={<WalletCards className="h-6 w-6" />}
+            label="Historial de Pagos"
+            onClick={() => onOpenInfo({ type: "payments", loan })}
+          />
+          <ActionItem
+            icon={<History className="h-6 w-6" />}
+            label="Historial de Prestamos"
+            onClick={() => onOpenInfo({ type: "loans", loan })}
+          />
+          <ActionItem
+            href={`/unidad/prestamos/${loan.id}/editar-cliente`}
+            icon={<UserPen className="h-6 w-6" />}
+            label="Editar Cliente"
+            onClick={onClose}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ActionItem({
   disabled,
   href,
   icon,
-  newTab
+  label,
+  newTab,
+  onClick
 }: {
   disabled?: boolean;
-  href: string;
+  href?: string;
   icon: ReactNode;
+  label: string;
   newTab?: boolean;
+  onClick: () => void;
 }) {
-  if (disabled) {
+  const className = cn(
+    "flex h-14 w-full items-center gap-4 rounded-2xl px-3 text-left text-base font-black text-muted-foreground transition-colors hover:bg-muted",
+    disabled && "pointer-events-none opacity-40"
+  );
+
+  if (href) {
     return (
-      <span className="grid h-9 w-9 place-items-center rounded-xl text-muted-foreground opacity-40">
+      <Link
+        className={className}
+        href={href}
+        onClick={onClick}
+        rel={newTab ? "noreferrer" : undefined}
+        target={newTab ? "_blank" : undefined}
+      >
         {icon}
-      </span>
+        {label}
+      </Link>
     );
   }
 
   return (
-    <Link
-      className="grid h-9 w-9 place-items-center rounded-xl text-foreground transition-colors hover:bg-muted"
-      href={href}
-      rel={newTab ? "noreferrer" : undefined}
-      target={newTab ? "_blank" : undefined}
-    >
+    <button className={className} onClick={onClick} type="button">
       {icon}
-    </Link>
+      {label}
+    </button>
+  );
+}
+
+function LoanInfoModal({
+  loanHistoryByClient,
+  modal,
+  onClose,
+  paymentHistoryByLoan
+}: {
+  loanHistoryByClient: Record<string, LoanHistory[]>;
+  modal: InfoModal;
+  onClose: () => void;
+  paymentHistoryByLoan: Record<string, PaymentHistory[]>;
+}) {
+  if (!modal) {
+    return null;
+  }
+
+  const { loan } = modal;
+  const client = loan.clients;
+  const title =
+    modal.type === "details"
+      ? "Detalles del cliente"
+      : modal.type === "payments"
+        ? "Historial de pagos"
+        : "Historial de prestamos";
+
+  return (
+    <div className="fixed inset-0 z-50">
+      <button
+        aria-label="Cerrar informacion"
+        className="absolute inset-0 bg-foreground/55"
+        onClick={onClose}
+        type="button"
+      />
+      <div className="absolute bottom-0 left-0 right-0 max-h-[82vh] overflow-y-auto rounded-t-3xl bg-background p-5 shadow-2xl">
+        <div className="mx-auto max-w-md space-y-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-bold text-primary">{title}</p>
+              <h2 className="mt-1 text-2xl font-black">
+                {client?.alias ?? "Cliente sin nombre"}
+              </h2>
+            </div>
+            <button
+              className="grid h-10 w-10 place-items-center rounded-xl bg-muted text-muted-foreground"
+              onClick={onClose}
+              type="button"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          {modal.type === "details" ? <LoanDetailsContent loan={loan} /> : null}
+          {modal.type === "payments" ? (
+            <PaymentHistoryContent payments={paymentHistoryByLoan[loan.id] ?? []} />
+          ) : null}
+          {modal.type === "loans" ? (
+            <LoanHistoryContent activeLoanId={loan.id} loans={loanHistoryByClient[loan.client_id] ?? []} />
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LoanDetailsContent({ loan }: { loan: ClientLoan }) {
+  const client = loan.clients;
+  const address = [client?.direccion1, client?.direccion2, client?.barrio]
+    .filter(Boolean)
+    .join(", ");
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3 rounded-2xl bg-muted p-4">
+        <InfoLine label="Saldo" value={formatCurrency(Number(loan.saldo))} />
+        <InfoLine label="Cuota" value={formatCurrency(Number(loan.valor_cuota))} />
+        <InfoLine label="Prestamo" value={formatCurrency(Number(loan.valor_neto))} />
+        <InfoLine label="Total" value={formatCurrency(Number(loan.total_a_cobrar))} />
+        <InfoLine label="Cuotas" value={`${loan.cuotas_pagadas}/${loan.numero_cuotas}`} />
+        <InfoLine label="Modalidad" value={loan.modalidad} />
+      </div>
+      <div className="space-y-3 rounded-2xl border p-4">
+        {client?.nit ? <InfoLine label="NIT" value={client.nit} /> : null}
+        {client?.telefono1 ? <InfoLine label="Telefono 1" value={client.telefono1} /> : null}
+        {client?.telefono2 ? <InfoLine label="Telefono 2" value={client.telefono2} /> : null}
+        {address ? <InfoLine label="Direccion" value={address} /> : null}
+        {!client?.nit && !client?.telefono1 && !client?.telefono2 && !address ? (
+          <p className="text-sm text-muted-foreground">No hay datos adicionales registrados.</p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function PaymentHistoryContent({ payments }: { payments: PaymentHistory[] }) {
+  if (payments.length === 0) {
+    return (
+      <div className="rounded-2xl border p-5 text-sm text-muted-foreground">
+        Este prestamo todavia no tiene pagos registrados.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {payments.map((payment) => (
+        <div
+          className="flex items-center justify-between rounded-2xl border bg-muted/40 p-4"
+          key={payment.id}
+        >
+          <div>
+            <p className="font-black">{payment.fecha_pago}</p>
+            <p className="text-sm text-muted-foreground">
+              {payment.numero_cuotas} cuota(s) - {payment.metodo_pago}
+            </p>
+          </div>
+          <p className="font-black text-primary">{formatCurrency(Number(payment.monto))}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function LoanHistoryContent({
+  activeLoanId,
+  loans
+}: {
+  activeLoanId: string;
+  loans: LoanHistory[];
+}) {
+  if (loans.length === 0) {
+    return (
+      <div className="rounded-2xl border p-5 text-sm text-muted-foreground">
+        Este cliente todavia no tiene historial de prestamos.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {loans.map((loan) => (
+        <div className="rounded-2xl border bg-muted/40 p-4" key={loan.id}>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="font-black">
+                {loan.id === activeLoanId ? "Prestamo activo" : "Prestamo anterior"}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {loan.fecha_inicio ?? loan.created_at.slice(0, 10)}
+              </p>
+            </div>
+            <span className="rounded-full bg-background px-3 py-1 text-xs font-black text-primary">
+              {loan.estado}
+            </span>
+          </div>
+          <div className="mt-3 grid grid-cols-3 gap-3 text-center">
+            <MiniStat label="Prestamo" value={formatCurrency(Number(loan.valor_neto))} />
+            <MiniStat label="Total" value={formatCurrency(Number(loan.total_a_cobrar))} />
+            <MiniStat label="Saldo" value={formatCurrency(Number(loan.saldo))} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function InfoLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-1 font-black">{value}</p>
+    </div>
   );
 }
 
