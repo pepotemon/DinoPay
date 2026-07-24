@@ -13,6 +13,8 @@ updated: 2026-07-24
 ## Objetivo
 Permitir al cobrador ordenar su ruta de cobro del día arrastrando y soltando las tarjetas de clientes. El orden aquí se refleja directamente en la pantalla de Préstamos.
 
+Estado de implementación: 🔄 pantalla mobile-first con drag & drop implementada. Requiere ejecutar migración `009_update_route_positions.sql`.
+
 ## Problema que Resuelve
 Cada día el cobrador tiene una ruta óptima según su recorrido geográfico. Sin esta pantalla, los clientes aparecerían en orden de creación (inútil para un cobrador en campo).
 

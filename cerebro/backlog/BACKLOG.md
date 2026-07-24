@@ -57,8 +57,8 @@ updated: 2026-07-24
 - [x] Base de pantalla Clientes Disponibles
 - [x] Formulario nuevo préstamo para cliente existente
 - [ ] Indicador de calidad del cliente
-- [ ] Pantalla Enrutar (drag & drop con dnd kit)
-- [ ] Guardar orden de ruta
+- [x] Pantalla Enrutar (drag & drop con dnd kit)
+- [x] Guardar orden de ruta
 - [ ] Pantalla Gastos
 - [ ] Crear/editar/eliminar gasto
 - [ ] Pantalla Reportes (préstamos y pagos)

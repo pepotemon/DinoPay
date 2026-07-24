@@ -64,6 +64,8 @@ updated: 2026-07-24
 - Pantalla `/unidad/disponibles` conectada a clientes activos sin prestamo activo, con resumen y ultimo prestamo completado.
 - Flujo `/unidad/disponibles/[id]/nuevo` agregado para crear nuevo prestamo a cliente existente con datos prellenados del ultimo prestamo.
 - Migracion local `008_create_loan_for_existing_client.sql` agregada para crear prestamos recurrentes y restaurar posicion de ruta.
+- Pantalla `/unidad/enrutar` agregada con drag & drop mobile-first usando dnd kit.
+- Migracion local `009_update_route_positions.sql` agregada para guardar posiciones de ruta.
 
 ### Verificado
 - `npm.cmd run build` pasa correctamente.

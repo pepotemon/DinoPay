@@ -39,7 +39,7 @@ updated: 2026-07-24
 |-------|--------|-----------|
 | Pantalla CLIENTES DISPONIBLES | 🔄 Listado y nuevo préstamo conectados | 🔴 Alta |
 | Nuevo préstamo para cliente existente | ✅ Implementado | 🔴 Alta |
-| Pantalla ENRUTAR (drag & drop) | ⏳ Pendiente | 🔴 Alta |
+| Pantalla ENRUTAR (drag & drop) | 🔄 Implementada, requiere migración 009 | 🔴 Alta |
 | Modal "Ver Detalles" del préstamo | ⏳ Pendiente | 🟡 Media |
 | Historial de pagos por préstamo | ⏳ Pendiente | 🟡 Media |
 | Historial de préstamos por cliente | ⏳ Pendiente | 🟡 Media |
