@@ -17,7 +17,7 @@ import {
 } from "@/lib/actions/unidad/payments";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 
 type LoanRow = {
   id: string;
@@ -102,7 +102,9 @@ export default async function PrestamosPage({
         .eq("estado", "activo")
         .order("posicion", { ascending: true })
     : { data: [] };
+
   const today = new Date().toISOString().slice(0, 10);
+
   const { data: paymentsToday } = user
     ? await adminClient
         .from("payments")
@@ -111,6 +113,7 @@ export default async function PrestamosPage({
         .eq("fecha_pago", today)
         .eq("eliminado", false)
     : { data: [] };
+
   const { data: visitsToday } = user
     ? await adminClient
         .from("loan_visits")
@@ -124,52 +127,45 @@ export default async function PrestamosPage({
     ...loan,
     clients: Array.isArray(loan.clients) ? loan.clients[0] ?? null : loan.clients
   }));
+
   const todayPayments = (paymentsToday ?? []) as PaymentRow[];
   const todayVisits = (visitsToday ?? []) as VisitRow[];
-  const paidLoanIds = new Set(todayPayments.map((payment) => payment.loan_id));
-  const noPayLoanIds = new Set(todayVisits.map((visit) => visit.loan_id));
+  const paidLoanIds = new Set(todayPayments.map((p) => p.loan_id));
+  const noPayLoanIds = new Set(todayVisits.map((v) => v.loan_id));
   const visitedLoanIds = new Set([...paidLoanIds, ...noPayLoanIds]);
-  const cobradoHoy = todayPayments.reduce((sum, payment) => sum + Number(payment.monto), 0);
-  const meta = activeLoans.reduce((sum, loan) => sum + Number(loan.valor_cuota), 0);
+
+  const cobradoHoy = todayPayments.reduce((sum, p) => sum + Number(p.monto), 0);
+  const meta = activeLoans.reduce((sum, l) => sum + Number(l.valor_cuota), 0);
   const faltante = Math.max(meta - cobradoHoy, 0);
   const progreso = meta > 0 ? Math.min(Math.round((cobradoHoy / meta) * 100), 100) : 0;
-  const totalSaldo = activeLoans.reduce((sum, loan) => sum + Number(loan.saldo), 0);
+  const totalSaldo = activeLoans.reduce((sum, l) => sum + Number(l.saldo), 0);
   const visitados = visitedLoanIds.size;
+
   const filteredLoans = activeLoans.filter((loan) => {
     const matchesStatus =
       statusFilter === "todos" ||
       (statusFilter === "pendientes" && !visitedLoanIds.has(loan.id)) ||
       (statusFilter === "visitados" && visitedLoanIds.has(loan.id));
-    const searchable = [
-      loan.clients?.alias,
-      loan.clients?.barrio,
-      loan.clients?.telefono1
-    ]
+    const searchable = [loan.clients?.alias, loan.clients?.barrio, loan.clients?.telefono1]
       .filter(Boolean)
       .join(" ")
       .toLowerCase();
-    const matchesQuery = !query || searchable.includes(query);
-
-    return matchesStatus && matchesQuery;
+    return matchesStatus && (!query || searchable.includes(query));
   });
 
   function filterHref(nextStatus: string) {
     const urlParams = new URLSearchParams();
     urlParams.set("estado", nextStatus);
-    if (query) {
-      urlParams.set("q", query);
-    }
+    if (query) urlParams.set("q", query);
     return `/unidad/prestamos?${urlParams.toString()}`;
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Prestamos de hoy</h1>
-          <p className="text-sm text-muted-foreground">
-            Lista principal de trabajo, ordenada por posicion de ruta.
-          </p>
+          <p className="text-sm text-muted-foreground">Ruta ordenada por posicion.</p>
         </div>
         <Button asChild>
           <Link href="/unidad/nuevo">
@@ -179,58 +175,42 @@ export default async function PrestamosPage({
         </Button>
       </div>
 
+      {/* Totalizador */}
       <Card>
         <CardHeader>
           <CardTitle>Totalizador del dia</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-5">
-            <div>
-              <p className="text-sm text-muted-foreground">Recaudado hoy</p>
-              <p className="text-2xl font-semibold">{formatCurrency(cobradoHoy)}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Meta del dia</p>
-              <p className="text-2xl font-semibold">{formatCurrency(meta)}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Faltante</p>
-              <p className="text-2xl font-semibold">{formatCurrency(faltante)}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Visitados</p>
-              <p className="text-2xl font-semibold">
-                {visitados}/{activeLoans.length}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Saldo total</p>
-              <p className="text-2xl font-semibold">{formatCurrency(totalSaldo)}</p>
-            </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Stat label="Recaudado" value={formatCurrency(cobradoHoy)} highlight />
+            <Stat label="Meta" value={formatCurrency(meta)} />
+            <Stat label="Faltante" value={formatCurrency(faltante)} />
+            <Stat label="Visitados" value={`${visitados}/${activeLoans.length}`} />
           </div>
           <div>
             <div className="h-2 rounded-full bg-muted">
-              <div
-                className="h-2 rounded-full bg-primary"
-                style={{ width: `${progreso}%` }}
-              />
+              <div className="h-2 rounded-full bg-primary" style={{ width: `${progreso}%` }} />
             </div>
-            <p className="mt-2 text-xs text-muted-foreground">{progreso}% completado</p>
+            <p className="mt-1.5 text-xs text-muted-foreground">{progreso}% completado</p>
           </div>
+          <p className="text-xs text-muted-foreground">
+            Cartera total: {formatCurrency(totalSaldo)}
+          </p>
         </CardContent>
       </Card>
 
       {paymentError ? (
-        <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+        <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
           {paymentError}
         </div>
       ) : null}
 
-      <div className="space-y-3">
+      {/* Filtros */}
+      <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
           <Button asChild size="sm" variant={statusFilter === "todos" ? "default" : "secondary"}>
             <Link href={filterHref("todos")}>
-              <SlidersHorizontal className="h-4 w-4" />
+              <SlidersHorizontal className="h-3.5 w-3.5" />
               Todos
             </Link>
           </Button>
@@ -258,108 +238,144 @@ export default async function PrestamosPage({
               className="h-10 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
               defaultValue={params?.q ?? ""}
               name="q"
-              placeholder="Buscar cliente, barrio o telefono"
+              placeholder="Buscar cliente o barrio"
               type="search"
             />
           </div>
           <Button type="submit" variant="secondary">
-            Buscar
+            <Search className="h-4 w-4" />
           </Button>
         </form>
       </div>
 
-      <div className="space-y-3">
+      {/* Lista de préstamos */}
+      <div className="space-y-3 pb-8">
         {filteredLoans.map((loan) => {
           const phone = loan.clients?.telefono1 || loan.clients?.telefono2 || "";
           const hasPhone = digitsOnly(phone).length > 0;
+          const isPaid = paidLoanIds.has(loan.id);
+          const isNoPay = noPayLoanIds.has(loan.id) && !isPaid;
+          const isVisited = visitedLoanIds.has(loan.id);
 
           return (
-          <Card key={loan.id}>
-            <CardContent className="space-y-4 p-4">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="font-semibold">{loan.clients?.alias ?? "Cliente sin nombre"}</p>
-                  <p className="text-sm text-muted-foreground">
-                    Posicion {loan.posicion ?? "-"} - Cuota {loan.cuotas_pagadas + 1}/
-                    {loan.numero_cuotas}
-                  </p>
-                  {paidLoanIds.has(loan.id) ? (
-                    <p className="mt-1 inline-flex rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
-                      Pago registrado hoy
+            <Card
+              className={cn(
+                "overflow-hidden border-l-4",
+                isPaid && "border-l-green-500",
+                isNoPay && "border-l-orange-400",
+                !isVisited && "border-l-transparent"
+              )}
+              key={loan.id}
+            >
+              <CardContent className="space-y-3 p-4">
+                {/* Nombre + estado */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold leading-tight">
+                      {loan.clients?.alias ?? "Cliente sin nombre"}
                     </p>
-                  ) : null}
-                  {noPayLoanIds.has(loan.id) ? (
-                    <p className="mt-1 inline-flex rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
-                      Visitado sin pago
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      #{loan.posicion ?? "-"}
+                      {loan.clients?.barrio ? ` · ${loan.clients.barrio}` : ""}
+                      {" · "}
+                      Cuota {loan.cuotas_pagadas + 1}/{loan.numero_cuotas}
                     </p>
-                  ) : null}
-                  {loan.clients?.barrio ? (
-                    <p className="text-sm text-muted-foreground">{loan.clients.barrio}</p>
-                  ) : null}
-                </div>
-                <div className="grid grid-cols-3 gap-4 text-right text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Cuota</p>
-                    <p className="font-semibold">{formatCurrency(Number(loan.valor_cuota))}</p>
                   </div>
-                  <div>
-                    <p className="text-muted-foreground">Prestamo</p>
-                    <p className="font-semibold">{formatCurrency(Number(loan.valor_neto))}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Saldo</p>
-                    <p className="font-semibold">{formatCurrency(Number(loan.saldo))}</p>
+                  <div className="shrink-0">
+                    {isPaid ? (
+                      <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+                        Cobrado
+                      </span>
+                    ) : isNoPay ? (
+                      <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-800">
+                        Sin pago
+                      </span>
+                    ) : null}
                   </div>
                 </div>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <Button asChild className="px-2" size="sm" variant="secondary">
-                  <Link href={`/unidad/prestamos/${loan.id}`}>
-                    <Eye className="h-4 w-4" />
-                    Ver
-                  </Link>
-                </Button>
-                <Button asChild className="px-2" disabled={!hasPhone} size="sm" variant="secondary">
-                  <a href={hasPhone ? `tel:${digitsOnly(phone)}` : undefined}>
-                    <Phone className="h-4 w-4" />
-                    Llamar
-                  </a>
-                </Button>
-                <Button asChild className="px-2" disabled={!hasPhone} size="sm" variant="secondary">
-                  <a
-                    href={
-                      hasPhone
-                        ? whatsappHref(phone, loan.clients?.alias ?? "cliente")
-                        : undefined
-                    }
-                    rel="noreferrer"
-                    target="_blank"
+
+                {/* Cuota + saldo */}
+                <div className="flex items-end justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Cuota</p>
+                    <p className="text-2xl font-bold text-primary">
+                      {formatCurrency(Number(loan.valor_cuota))}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">Saldo</p>
+                    <p className="text-sm font-medium">{formatCurrency(Number(loan.saldo))}</p>
+                  </div>
+                </div>
+
+                {/* Acciones rápidas */}
+                <div className="flex gap-1.5">
+                  <Button asChild className="flex-1" size="sm" variant="secondary">
+                    <Link href={`/unidad/prestamos/${loan.id}`}>
+                      <Eye className="h-4 w-4" />
+                      Ver
+                    </Link>
+                  </Button>
+                  <Button
+                    asChild
+                    className="w-10 shrink-0 px-0"
+                    disabled={!hasPhone}
+                    size="sm"
+                    variant="secondary"
                   >
-                    <MessageCircle className="h-4 w-4" />
-                    WhatsApp
-                  </a>
-                </Button>
-              </div>
-              <div className="space-y-3 rounded-md border bg-muted/40 p-3">
-                {!visitedLoanIds.has(loan.id) ? (
-                  <form action={markNoPayVisitAction}>
+                    <a href={hasPhone ? `tel:${digitsOnly(phone)}` : undefined}>
+                      <Phone className="h-4 w-4" />
+                    </a>
+                  </Button>
+                  <Button
+                    asChild
+                    className="w-10 shrink-0 px-0"
+                    disabled={!hasPhone}
+                    size="sm"
+                    variant="secondary"
+                  >
+                    <a
+                      href={
+                        hasPhone
+                          ? whatsappHref(phone, loan.clients?.alias ?? "cliente")
+                          : undefined
+                      }
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                    </a>
+                  </Button>
+                </div>
+
+                {/* Zona de cobro */}
+                <div className="space-y-2 rounded-md border bg-muted/30 p-3">
+                  {!isVisited ? (
+                    <form action={markNoPayVisitAction}>
+                      <input name="loanId" type="hidden" value={loan.id} />
+                      <Button className="w-full" size="sm" type="submit" variant="secondary">
+                        <CircleSlash className="h-3.5 w-3.5" />
+                        Sin pago hoy
+                      </Button>
+                    </form>
+                  ) : null}
+
+                  {isPaid ? (
+                    <p className="py-1 text-center text-xs font-medium text-green-700">
+                      ✓ Pago del dia registrado
+                    </p>
+                  ) : null}
+
+                  <form action={registerPaymentFormAction} className="space-y-2">
                     <input name="loanId" type="hidden" value={loan.id} />
-                    <Button className="w-full" type="submit" variant="secondary">
-                      <CircleSlash className="h-4 w-4" />
-                      No pago
-                    </Button>
+                    <PaymentInputs
+                      maxCuotas={Math.max(loan.numero_cuotas - loan.cuotas_pagadas, 1)}
+                      valorCuota={Number(loan.valor_cuota)}
+                    />
                   </form>
-                ) : null}
-                <form action={registerPaymentFormAction} className="space-y-3">
-                  <input name="loanId" type="hidden" value={loan.id} />
-                  <PaymentInputs
-                    maxCuotas={Math.max(loan.numero_cuotas - loan.cuotas_pagadas, 1)}
-                    valorCuota={Number(loan.valor_cuota)}
-                  />
-                </form>
-              </div>
-            </CardContent>
-          </Card>
+                </div>
+              </CardContent>
+            </Card>
           );
         })}
 
@@ -379,6 +395,23 @@ export default async function PrestamosPage({
           </Card>
         ) : null}
       </div>
+    </div>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  highlight
+}: {
+  label: string;
+  value: string;
+  highlight?: boolean;
+}) {
+  return (
+    <div>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className={cn("text-xl font-semibold", highlight && "text-primary")}>{value}</p>
     </div>
   );
 }

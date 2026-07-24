@@ -28,57 +28,54 @@ updated: 2026-07-24
 - [x] Base de protección de rutas con middleware
 
 ### Módulo Unidad — Core
-- [x] Base de pantalla de préstamos (lista principal de trabajo)
-- [x] Base de totalizador del día
-- [ ] Tarjeta de préstamo con botones de acción
-- [x] Formulario base de registro de pago
-- [x] Lógica de completar préstamo automáticamente
-- [x] Pantalla nueva (crear cliente + préstamo)
-- [x] Formulario de nuevo cliente
-- [x] Formulario de nuevo préstamo con preview
+- [x] Pantalla PRÉSTAMOS rediseñada (tarjetas compactas, colores de estado, UX móvil)
+- [x] Totalizador del día conectado a datos reales
+- [x] Formulario de registro de pago con recálculo automático
+- [x] Lógica de completar préstamo automáticamente (RPC)
+- [x] Pantalla NUEVO (crear cliente + préstamo con preview)
+- [x] Pantalla CLIENTES DISPONIBLES
+- [x] Nuevo préstamo para cliente existente
+- [x] Pantalla ENRUTAR (drag & drop, guarda posiciones)
+- [x] Pantalla GASTOS (crear, editar, eliminar pendientes)
+- [x] Pantalla REPORTE DIARIO (caja estimada en tiempo real)
+- [x] Pantalla FLUJO SEMANAL (cuaderno personal, ajustes, nav por semanas)
+- [x] Pantalla REPORTES (préstamos y abonos, filtro por fecha, tabs)
+- [x] Eliminar pago con recálculo de saldo y cuotas
 
 ### Módulo Admin — Core
-- [ ] Dashboard global
+- [x] Dashboard global con métricas reales
 - [x] Formulario crear nueva unidad
 - [x] Crear usuario de unidad en Supabase Auth desde admin
+- [x] Aprobar/rechazar gastos de cualquier unidad
+- [x] Ver detalle completo de una unidad
+- [x] Inyectar/retirar capital de una unidad
 
 ---
 
 ## Media Prioridad 🟡
 
-### Módulo Unidad — Completo
-- [x] Filtros (Todos / Pendientes / Visitados)
-- [x] Buscador de clientes en pantalla préstamos
-- [x] Botón No pagó en pantalla préstamos
-- [x] Página "Ver Detalles" del préstamo
-- [ ] Editar datos del cliente
-- [x] Historial de pagos (préstamo actual)
-- [ ] Historial de préstamos (cliente)
-- [x] Base de pantalla Clientes Disponibles
-- [x] Formulario nuevo préstamo para cliente existente
-- [ ] Indicador de calidad del cliente
-- [x] Pantalla Enrutar (drag & drop con dnd kit)
-- [x] Guardar orden de ruta
-- [x] Pantalla Gastos
-- [ ] Crear/editar/eliminar gasto (crear implementado; falta editar/eliminar)
-- [ ] Pantalla Reportes (préstamos y pagos)
-- [ ] Pantalla Reporte Diario
-- [ ] Cuadres de caja automáticos al eliminar pago
-- [ ] Pantalla Flujo Semanal
-- [ ] Ajustes del flujo semanal
+### Módulo Unidad — Detalle y Calidad
+- [x] Página de detalle del préstamo
+- [x] Botón "Editar datos del cliente" desde detalle
+- [x] Formulario editar cliente (alias, NIT, teléfonos, dirección, barrio)
+- [x] Historial de pagos en detalle del préstamo
+- [x] Historial de préstamos anteriores del cliente en detalle
+- [x] Badge de calidad del cliente (Bueno/Regular/Riesgoso)
+- [x] Visitas sin pago en detalle del préstamo
+- [x] Llamar / WhatsApp desde tarjeta y detalle
+- [x] Abrir Google Maps desde detalle del préstamo
+- [ ] Integración Google Maps al crear cliente (ubicar en mapa)
 
 ### Módulo Admin — Completo
-- [ ] Ver detalle de una unidad
-- [ ] Editar configuración de unidad
-- [x] Aprobar/rechazar gastos
-- [ ] Inyectar/retirar capital
+- [ ] Editar configuración de unidad (intereses, capital, etc.)
 - [ ] Ver reportes de cualquier unidad
+- [ ] Cancelar préstamos activos
 
-### Integraciones
-- [ ] Google Maps en formulario de cliente
-- [x] Abrir Maps desde detalle de préstamo
-- [x] Botón WhatsApp desde tarjeta
-- [x] Botón llamar desde tarjeta
+### Loading / Error States
+- [x] `loading.tsx` en préstamos, gastos y reporte diario
+- [x] `error.tsx` en layout de unidad (auto-contenido sin imports UI)
+- [ ] `loading.tsx` en disponibles, enrutar, flujo semanal, reportes
+- [x] `loading.tsx` en flujo semanal y reportes
 
 ---
 
@@ -86,31 +83,33 @@ updated: 2026-07-24
 
 ### UX / Polish
 - [ ] Animaciones de transición entre pantallas
-- [ ] Skeletons de carga para todas las listas
 - [ ] Empty states con ilustraciones
-- [ ] Toasts/notificaciones de éxito y error
+- [x] Toasts con Sonner (AutoToast, funciona con ?ok= y ?error= existentes)
+- [ ] Editar ajuste semanal (actualmente solo crear/eliminar)
+- [ ] Copiar resumen del día como texto para WhatsApp
+- [x] Paginación en reportes (20 por página, Anterior/Siguiente)
+
+### PWA
+- [x] Configurar manifest.json
+- [x] Meta tags PWA en layout (theme-color, apple-mobile-web-app-capable)
+- [ ] Íconos reales: `public/icons/icon-192.png` e `icon-512.png`
+- [ ] Service Worker para funcionamiento offline básico
 
 ### Performance
 - [ ] Paginación en lista de préstamos (si hay 100+)
-- [ ] Virtualización de listas largas
-- [ ] Prefetch de datos frecuentes
-
-### PWA
-- [ ] Configurar manifest.json
-- [ ] Service Worker para offline básico
-- [ ] Ícono de la app (dinosaurio verde)
+- [ ] Paginación en reportes para fechas con muchos registros
 
 ---
 
 ## Refactor
 - [ ] Separar componentes grandes cuando superen 200 líneas
-- [ ] Centralizar formateo de moneda en una sola función
+- [ ] Extraer tipos de Supabase a un archivo centralizado (`src/types/database.ts`)
 
 ---
 
 ## Testing
 - [ ] Tests unitarios para cálculos de préstamo (cuota, total, saldo)
-- [ ] Tests unitarios para cálculo de caja
+- [ ] Tests unitarios para cálculo de caja y recaudado semanal
 - [ ] Tests E2E para flujo: crear cliente → crear préstamo → registrar pago → completar
 
 ---
@@ -119,15 +118,19 @@ updated: 2026-07-24
 - [ ] Audit de todas las RLS policies
 - [ ] Verificar que service role key nunca llegue al cliente
 - [ ] Rate limiting en Server Actions críticos (registro de pagos)
+- [ ] Rotar la secret key de Supabase (fue compartida en sesión de setup)
 
 ---
 
-## Escalabilidad
-- [ ] Índices DB para queries frecuentes (ya diseñados en [[base-de-datos/SCHEMA]])
-- [ ] Análisis de queries con EXPLAIN ANALYZE tras primeros 1000 registros
+## Bugs Conocidos / Notas Técnicas
+- `error.tsx` no puede importar componentes de `@/components/ui` en Next.js 15 (ChunkLoadError del bundler). Siempre hacerlo auto-contenido.
+- `Viewport` export nombrado en `layout.tsx` causa ChunkLoadError en Next.js 15.5.x con Webpack. Usar `<meta>` directo en `<head>` en su lugar.
+- `reverse_payment` RPC en `010_reverse_payment.sql` debe ejecutarse en Supabase antes de usar la función de anular pago.
+- Tipos TypeScript pendientes de generar: `npx supabase gen types typescript --project-id <ID> > src/types/database.ts`
 
 ---
 
 ## Ver También
 - [[roadmap/ROADMAP]] — Vista por fases
+- [[changelog/CHANGELOG]] — Historial de versiones
 - [[ideas/IDEAS]] — Ideas para el futuro

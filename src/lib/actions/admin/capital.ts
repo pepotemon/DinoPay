@@ -1,0 +1,55 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { z } from "zod";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
+
+const capitalSchema = z.object({
+  unitId: z.string().uuid(),
+  tipo: z.enum(["ingreso", "retiro"]),
+  monto: z.coerce.number().positive("El monto debe ser mayor a cero."),
+  nota: z.string().optional()
+});
+
+export async function createCapitalMovementAction(formData: FormData) {
+  const parsed = capitalSchema.safeParse({
+    unitId: formData.get("unitId"),
+    tipo: formData.get("tipo"),
+    monto: formData.get("monto"),
+    nota: formData.get("nota")
+  });
+
+  if (!parsed.success) {
+    const unitId = formData.get("unitId") as string;
+    redirect(
+      `/admin/unidades/${unitId}?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Revisa los datos.")}`
+    );
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const adminClient = createAdminClient();
+  const { error } = await adminClient.from("capital_movements").insert({
+    unit_id: parsed.data.unitId,
+    admin_id: user.id,
+    tipo: parsed.data.tipo,
+    monto: parsed.data.monto,
+    nota: parsed.data.nota?.trim() || null,
+    fecha: new Date().toISOString().slice(0, 10)
+  });
+
+  if (error) {
+    redirect(
+      `/admin/unidades/${parsed.data.unitId}?error=${encodeURIComponent(error.message)}`
+    );
+  }
+
+  revalidatePath(`/admin/unidades/${parsed.data.unitId}`);
+  redirect(`/admin/unidades/${parsed.data.unitId}?ok=Movimiento registrado`);
+}

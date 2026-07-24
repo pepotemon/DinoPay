@@ -25,6 +25,15 @@ export default function UnidadLayout({ children }: { children: React.ReactNode }
             <Link className="rounded-md bg-muted px-3 py-2" href="/unidad/gastos">
               Gastos
             </Link>
+            <Link className="rounded-md bg-muted px-3 py-2" href="/unidad/reportes">
+              Reportes
+            </Link>
+            <Link className="rounded-md bg-muted px-3 py-2" href="/unidad/flujo-semanal">
+              Semanal
+            </Link>
+            <Link className="rounded-md bg-muted px-3 py-2" href="/unidad/reporte-diario">
+              Caja
+            </Link>
             <LogoutButton />
           </nav>
         </div>

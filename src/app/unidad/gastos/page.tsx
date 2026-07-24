@@ -1,5 +1,6 @@
-import { ClipboardList, PlusCircle, ReceiptText } from "lucide-react";
-import { createExpenseAction } from "@/lib/actions/unidad/gastos";
+import { ClipboardList, Pencil, PlusCircle, ReceiptText, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { createExpenseAction, deleteExpenseAction } from "@/lib/actions/unidad/gastos";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -27,14 +28,8 @@ type ExpenseRow = {
 };
 
 function statusLabel(status: ExpenseRow["estado"]) {
-  if (status === "aprobado") {
-    return "Aprobado";
-  }
-
-  if (status === "rechazado") {
-    return "Rechazado";
-  }
-
+  if (status === "aprobado") return "Aprobado";
+  if (status === "rechazado") return "Rechazado";
   return "Pendiente";
 }
 
@@ -50,10 +45,7 @@ function statusClassName(status: ExpenseRow["estado"]) {
 export default async function GastosPage({
   searchParams
 }: {
-  searchParams?: Promise<{
-    ok?: string;
-    error?: string;
-  }>;
+  searchParams?: Promise<{ ok?: string; error?: string }>;
 }) {
   const params = await searchParams;
   const supabase = await createClient();
@@ -73,10 +65,10 @@ export default async function GastosPage({
     : { data: [] };
 
   const rows = (expenses ?? []) as ExpenseRow[];
-  const pendingRows = rows.filter((expense) => expense.estado === "pendiente");
-  const approvedRows = rows.filter((expense) => expense.estado === "aprobado");
-  const pendingTotal = pendingRows.reduce((sum, expense) => sum + Number(expense.monto), 0);
-  const approvedTotal = approvedRows.reduce((sum, expense) => sum + Number(expense.monto), 0);
+  const pendingRows = rows.filter((e) => e.estado === "pendiente");
+  const approvedRows = rows.filter((e) => e.estado === "aprobado");
+  const pendingTotal = pendingRows.reduce((sum, e) => sum + Number(e.monto), 0);
+  const approvedTotal = approvedRows.reduce((sum, e) => sum + Number(e.monto), 0);
 
   return (
     <div className="space-y-5 pb-8">
@@ -204,6 +196,29 @@ export default async function GastosPage({
                 <p className="rounded-md bg-muted/60 p-3 text-sm text-muted-foreground">
                   {expense.nota}
                 </p>
+              ) : null}
+
+              {expense.estado === "pendiente" ? (
+                <div className="flex gap-2">
+                  <Button asChild className="flex-1" size="sm" variant="secondary">
+                    <Link href={`/unidad/gastos/${expense.id}/editar`}>
+                      <Pencil className="h-3.5 w-3.5" />
+                      Editar
+                    </Link>
+                  </Button>
+                  <form action={deleteExpenseAction} className="flex-1">
+                    <input name="expenseId" type="hidden" value={expense.id} />
+                    <Button
+                      className="w-full"
+                      size="sm"
+                      type="submit"
+                      variant="secondary"
+                    >
+                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                      <span className="text-destructive">Eliminar</span>
+                    </Button>
+                  </form>
+                </div>
               ) : null}
             </CardContent>
           </Card>

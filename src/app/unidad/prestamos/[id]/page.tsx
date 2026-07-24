@@ -1,13 +1,15 @@
-import { ArrowLeft, MapPin, MessageCircle, Phone } from "lucide-react";
+import { ArrowLeft, MapPin, MessageCircle, Pencil, Phone, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { deletePaymentAction } from "@/lib/actions/unidad/payments";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 
 type ClientInfo = {
+  id: string;
   alias: string;
   nit: string | null;
   barrio: string | null;
@@ -19,6 +21,7 @@ type ClientInfo = {
 
 type LoanDetailRow = {
   id: string;
+  client_id: string;
   modalidad: string;
   interes: number;
   valor_neto: number;
@@ -47,6 +50,16 @@ type VisitRow = {
   nota: string | null;
 };
 
+type PastLoanRow = {
+  id: string;
+  modalidad: string;
+  valor_neto: number;
+  numero_cuotas: number;
+  cuotas_pagadas: number;
+  estado: string;
+  fecha_inicio: string | null;
+};
+
 function digitsOnly(value: string | null | undefined) {
   return value?.replace(/\D/g, "") ?? "";
 }
@@ -54,6 +67,15 @@ function digitsOnly(value: string | null | undefined) {
 function whatsappHref(phone: string, alias: string) {
   const message = encodeURIComponent(`Hola ${alias}, te escribo de DinoPay sobre tu prestamo.`);
   return `https://wa.me/${digitsOnly(phone)}?text=${message}`;
+}
+
+function clientQuality(cuotasPagadas: number, noPayCount: number) {
+  const total = cuotasPagadas + noPayCount;
+  if (total === 0) return null;
+  const ratio = cuotasPagadas / total;
+  if (ratio >= 0.8) return { label: "Bueno", className: "bg-green-100 text-green-800" };
+  if (ratio >= 0.5) return { label: "Regular", className: "bg-amber-100 text-amber-800" };
+  return { label: "Riesgoso", className: "bg-red-100 text-red-800" };
 }
 
 export default async function PrestamoDetallePage({
@@ -67,16 +89,14 @@ export default async function PrestamoDetallePage({
     data: { user }
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    redirect("/login");
-  }
+  if (!user) redirect("/login");
 
   const adminClient = createAdminClient();
   const [{ data: loan }, { data: payments }, { data: visits }] = await Promise.all([
     adminClient
       .from("loans")
       .select(
-        "id, modalidad, interes, valor_neto, valor_cuota, total_a_cobrar, saldo, cuotas_pagadas, numero_cuotas, posicion, estado, clients(alias, nit, barrio, direccion1, direccion2, telefono1, telefono2)"
+        "id, client_id, modalidad, interes, valor_neto, valor_cuota, total_a_cobrar, saldo, cuotas_pagadas, numero_cuotas, posicion, estado, clients(id, alias, nit, barrio, direccion1, direccion2, telefono1, telefono2)"
       )
       .eq("id", id)
       .eq("unit_id", user.id)
@@ -98,9 +118,7 @@ export default async function PrestamoDetallePage({
       .order("fecha", { ascending: false })
   ]);
 
-  if (!loan) {
-    notFound();
-  }
+  if (!loan) notFound();
 
   const loanRow = loan as unknown as LoanDetailRow;
   const client = Array.isArray(loanRow.clients)
@@ -108,6 +126,55 @@ export default async function PrestamoDetallePage({
     : loanRow.clients;
   const paymentRows = (payments ?? []) as PaymentRow[];
   const visitRows = (visits ?? []) as VisitRow[];
+
+  // Fetch: historial de préstamos anteriores + quality data
+  const clientId = loanRow.client_id;
+  const [{ data: pastLoans }, { data: allVisits }, { data: allLoansForClient }] =
+    await Promise.all([
+      adminClient
+        .from("loans")
+        .select("id, modalidad, valor_neto, numero_cuotas, cuotas_pagadas, estado, fecha_inicio")
+        .eq("client_id", clientId)
+        .eq("unit_id", user.id)
+        .neq("estado", "activo")
+        .order("fecha_inicio", { ascending: false }),
+      adminClient
+        .from("loan_visits")
+        .select("id")
+        .eq("unit_id", user.id)
+        .eq("tipo", "no_pago")
+        .in(
+          "loan_id",
+          // We need all loan ids for this client — use a subquery approach via separate query
+          [id]
+        ),
+      adminClient
+        .from("loans")
+        .select("id, cuotas_pagadas")
+        .eq("client_id", clientId)
+        .eq("unit_id", user.id)
+    ]);
+
+  // Compute quality across all loans of this client
+  const allClientLoanIds = (allLoansForClient ?? []).map((l) => l.id);
+  const totalCuotasPagadas = (allLoansForClient ?? []).reduce(
+    (s, l) => s + Number(l.cuotas_pagadas),
+    0
+  );
+
+  // Fetch no-pay visits for ALL loans of this client
+  const { data: allNoPayVisits } = allClientLoanIds.length
+    ? await adminClient
+        .from("loan_visits")
+        .select("id")
+        .eq("unit_id", user.id)
+        .eq("tipo", "no_pago")
+        .in("loan_id", allClientLoanIds)
+    : { data: [] };
+
+  const totalNoPayVisits = (allNoPayVisits ?? []).length;
+  const quality = clientQuality(totalCuotasPagadas, totalNoPayVisits);
+
   const phone = client?.telefono1 || client?.telefono2 || "";
   const hasPhone = digitsOnly(phone).length > 0;
   const address = [client?.direccion1, client?.direccion2, client?.barrio]
@@ -125,6 +192,8 @@ export default async function PrestamoDetallePage({
         )
       : 0;
 
+  const pastLoanRows = (pastLoans ?? []) as PastLoanRow[];
+
   return (
     <div className="space-y-5 pb-8">
       <Button asChild size="sm" variant="secondary">
@@ -134,8 +203,15 @@ export default async function PrestamoDetallePage({
         </Link>
       </Button>
 
-      <section className="space-y-2">
-        <p className="text-sm text-muted-foreground">Posicion {loanRow.posicion ?? "-"}</p>
+      <section className="space-y-1">
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className="text-sm text-muted-foreground">Posicion {loanRow.posicion ?? "-"}</p>
+          {quality ? (
+            <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", quality.className)}>
+              {quality.label}
+            </span>
+          ) : null}
+        </div>
         <h1 className="text-2xl font-semibold">{client?.alias ?? "Cliente sin nombre"}</h1>
         <p className="text-sm text-muted-foreground">
           Cuota {loanRow.cuotas_pagadas}/{loanRow.numero_cuotas} - {loanRow.modalidad}
@@ -170,7 +246,6 @@ export default async function PrestamoDetallePage({
             </div>
             <p className="mt-2 text-xs text-muted-foreground">{paidPercentage}% pagado</p>
           </div>
-
           <div className="grid grid-cols-2 gap-3 text-sm">
             <Info label="Prestamo" value={formatCurrency(Number(loanRow.valor_neto))} />
             <Info label="Total" value={formatCurrency(Number(loanRow.total_a_cobrar))} />
@@ -181,8 +256,14 @@ export default async function PrestamoDetallePage({
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Contacto</CardTitle>
+          <Button asChild size="sm" variant="secondary">
+            <Link href={`/unidad/prestamos/${id}/editar-cliente`}>
+              <Pencil className="h-4 w-4" />
+              Editar
+            </Link>
+          </Button>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2 text-sm">
@@ -242,10 +323,22 @@ export default async function PrestamoDetallePage({
                   {payment.numero_cuotas} cuota(s) - {payment.metodo_pago}
                 </p>
               </div>
-              <p className="font-semibold">{formatCurrency(Number(payment.monto))}</p>
+              <div className="flex items-center gap-2">
+                <p className="font-semibold">{formatCurrency(Number(payment.monto))}</p>
+                <form action={deletePaymentAction}>
+                  <input name="paymentId" type="hidden" value={payment.id} />
+                  <input name="loanId" type="hidden" value={id} />
+                  <button
+                    className="rounded p-1 text-muted-foreground hover:text-destructive"
+                    title="Anular pago"
+                    type="submit"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </form>
+              </div>
             </div>
           ))}
-
           {paymentRows.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               Este prestamo todavia no tiene pagos registrados.
@@ -264,6 +357,42 @@ export default async function PrestamoDetallePage({
               <div className="rounded-md border bg-muted/30 p-3 text-sm" key={visit.id}>
                 <p className="font-medium">{visit.fecha}</p>
                 {visit.nota ? <p className="text-muted-foreground">{visit.nota}</p> : null}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {pastLoanRows.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Prestamos anteriores</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {pastLoanRows.map((pl) => (
+              <div
+                className="flex items-center justify-between rounded-md border bg-muted/30 p-3 text-sm"
+                key={pl.id}
+              >
+                <div>
+                  <p className="font-medium capitalize">{pl.modalidad}</p>
+                  <p className="text-muted-foreground">
+                    {pl.fecha_inicio ?? "—"} · {pl.cuotas_pagadas}/{pl.numero_cuotas} cuotas
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold">{formatCurrency(Number(pl.valor_neto))}</p>
+                  <span
+                    className={cn(
+                      "rounded-full px-2 py-0.5 text-xs font-medium",
+                      pl.estado === "completado"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-muted text-muted-foreground"
+                    )}
+                  >
+                    {pl.estado}
+                  </span>
+                </div>
               </div>
             ))}
           </CardContent>

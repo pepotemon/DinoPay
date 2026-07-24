@@ -93,6 +93,39 @@ export async function registerPaymentFormAction(formData: FormData) {
   redirect("/unidad/prestamos");
 }
 
+export async function deletePaymentAction(formData: FormData) {
+  const paymentId = formData.get("paymentId");
+  const loanId = formData.get("loanId");
+
+  if (!paymentId || typeof paymentId !== "string") {
+    redirect("/unidad/prestamos?payment_error=ID de pago invalido.");
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) redirect("/login");
+
+  const adminClient = createAdminClient();
+  const { error } = await adminClient.rpc("reverse_payment", {
+    p_payment_id: paymentId,
+    p_unit_id: user.id
+  });
+
+  if (error) {
+    const dest = loanId ? `/unidad/prestamos/${loanId}` : "/unidad/prestamos";
+    redirect(`${dest}?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath("/unidad/prestamos");
+  if (loanId && typeof loanId === "string") {
+    redirect(`/unidad/prestamos/${loanId}?ok=Pago anulado`);
+  }
+  redirect("/unidad/prestamos");
+}
+
 export async function markNoPayVisitAction(formData: FormData) {
   const parsed = noPayVisitSchema.safeParse({
     loanId: formData.get("loanId")

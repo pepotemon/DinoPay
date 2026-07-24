@@ -10,7 +10,7 @@ updated: 2026-07-24
 
 ---
 
-## Estado General: 🔄 Setup Inicial / Fundamentos en progreso
+## Estado General: 🔄 Módulo Unidad casi completo — Fase 3 en progreso
 
 ---
 
@@ -21,14 +21,14 @@ updated: 2026-07-24
 |-------|--------|-----------|
 | Configurar proyecto Next.js | ✅ Completado | 🔴 Alta |
 | Configurar Supabase (proyecto + schema inicial) | ✅ Completado | 🔴 Alta |
-| Sistema de autenticación (login admin/unidad) | 🔄 Login admin verificado | 🔴 Alta |
-| Middleware de rutas por rol | 🔄 Base creada | 🔴 Alta |
+| Sistema de autenticación (login admin/unidad) | ✅ Completado | 🔴 Alta |
+| Middleware de rutas por rol | ✅ Completado | 🔴 Alta |
 | Panel Admin: crear unidad | ✅ Implementado | 🔴 Alta |
-| Unidad: pantalla NUEVO (cliente + préstamo) | 🔄 Formulario implementado, requiere migración 005 | 🔴 Alta |
-| Unidad: pantalla PRÉSTAMOS (lista + cobros) | 🔄 Lista, cobros, No pagó, totalizador y filtros conectados | 🔴 Alta |
-| Unidad: modal registro de pago | 🔄 Formulario base implementado | 🔴 Alta |
+| Unidad: pantalla NUEVO (cliente + préstamo) | ✅ Implementado | 🔴 Alta |
+| Unidad: pantalla PRÉSTAMOS (lista + cobros) | ✅ Implementado y mejorado | 🔴 Alta |
+| Unidad: registro de pago | ✅ Implementado | 🔴 Alta |
 | Completar préstamo automáticamente | ✅ Implementado en RPC | 🔴 Alta |
-| Cálculo de caja en tiempo real | ⏳ Pendiente | 🔴 Alta |
+| Cálculo de caja en tiempo real | ✅ Implementado en Reporte Diario | 🔴 Alta |
 
 ---
 
@@ -37,17 +37,18 @@ updated: 2026-07-24
 
 | Tarea | Estado | Prioridad |
 |-------|--------|-----------|
-| Pantalla CLIENTES DISPONIBLES | 🔄 Listado y nuevo préstamo conectados | 🔴 Alta |
+| Pantalla CLIENTES DISPONIBLES | ✅ Implementado | 🔴 Alta |
 | Nuevo préstamo para cliente existente | ✅ Implementado | 🔴 Alta |
-| Pantalla ENRUTAR (drag & drop) | 🔄 Implementada, requiere migración 009 | 🔴 Alta |
-| Modal "Ver Detalles" del préstamo | 🔄 Reemplazado por página de detalle móvil | 🟡 Media |
-| Historial de pagos por préstamo | ✅ Implementado en detalle | 🟡 Media |
-| Historial de préstamos por cliente | ⏳ Pendiente | 🟡 Media |
-| Editar datos del cliente | ⏳ Pendiente | 🟡 Media |
+| Pantalla ENRUTAR (drag & drop) | ✅ Implementado | 🔴 Alta |
+| Página de detalle del préstamo | ✅ Implementado | 🟡 Media |
+| Historial de pagos por préstamo | ✅ Implementado | 🟡 Media |
+| Historial de préstamos por cliente | ✅ Implementado | 🟡 Media |
+| Editar datos del cliente | ✅ Implementado | 🟡 Media |
+| Indicador de calidad del cliente | ✅ Implementado (Bueno/Regular/Riesgoso) | 🟡 Media |
 | Botón WhatsApp desde tarjeta | ✅ Implementado | 🟡 Media |
 | Botón llamar desde tarjeta | ✅ Implementado | 🟡 Media |
-| Integración Google Maps (ubicar cliente) | ⏳ Pendiente | 🟡 Media |
-| Abrir Maps desde tarjeta de préstamo | 🔄 Implementado en detalle | 🟡 Media |
+| Abrir Maps desde detalle de préstamo | ✅ Implementado | 🟡 Media |
+| Integración Google Maps (ubicar cliente al crear) | ⏳ Pendiente | 🟢 Baja |
 
 ---
 
@@ -56,14 +57,15 @@ updated: 2026-07-24
 
 | Tarea | Estado | Prioridad |
 |-------|--------|-----------|
-| Pantalla GASTOS (unidad) | 🔄 Formulario y listado conectados | 🔴 Alta |
-| Aprobación de gastos (admin) | 🔄 Pantalla base conectada | 🔴 Alta |
-| Pantalla REPORTES (préstamos y pagos) | ⏳ Pendiente | 🟡 Media |
-| Pantalla REPORTE DIARIO | ⏳ Pendiente | 🟡 Media |
-| Cuadres de caja automáticos | ⏳ Pendiente | 🔴 Alta |
-| Eliminar pago (con cuadre) | ⏳ Pendiente | 🔴 Alta |
-| Pantalla FLUJO SEMANAL | ⏳ Pendiente | 🟡 Media |
-| Ajustes del flujo semanal | ⏳ Pendiente | 🟡 Media |
+| Pantalla GASTOS (unidad) | ✅ Implementado | 🔴 Alta |
+| Editar/eliminar gastos pendientes | ✅ Implementado | 🔴 Alta |
+| Aprobación de gastos (admin) | ✅ Implementado | 🔴 Alta |
+| Pantalla REPORTES (préstamos y abonos por fecha) | ✅ Implementado | 🟡 Media |
+| Pantalla REPORTE DIARIO (caja estimada) | ✅ Implementado | 🟡 Media |
+| Pantalla FLUJO SEMANAL | ✅ Implementado | 🟡 Media |
+| Ajustes del flujo semanal (crear/eliminar) | ✅ Implementado | 🟡 Media |
+| Eliminar pago (con cuadre de saldo) | ✅ Implementado (migración 010 + deletePaymentAction) | 🔴 Alta |
+| Cuadres de caja automáticos al eliminar pago | ✅ Implementado en reverse_payment RPC | 🔴 Alta |
 
 ---
 
@@ -72,9 +74,9 @@ updated: 2026-07-24
 
 | Tarea | Estado | Prioridad |
 |-------|--------|-----------|
-| Dashboard global del admin | ⏳ Pendiente | 🔴 Alta |
-| Ver detalles de cualquier unidad | ⏳ Pendiente | 🔴 Alta |
-| Inyectar/retirar capital | ⏳ Pendiente | 🔴 Alta |
+| Dashboard global del admin | ✅ Implementado | 🔴 Alta |
+| Ver detalles de cualquier unidad | ✅ Implementado (/admin/unidades/[id]) | 🔴 Alta |
+| Inyectar/retirar capital | ✅ Implementado | 🔴 Alta |
 | Editar configuración de unidad | ⏳ Pendiente | 🟡 Media |
 | Ver reportes de cualquier unidad | ⏳ Pendiente | 🟡 Media |
 | Cancelar préstamos (admin) | ⏳ Pendiente | 🟡 Media |
@@ -86,11 +88,13 @@ updated: 2026-07-24
 
 | Tarea | Estado | Prioridad |
 |-------|--------|-----------|
-| Responsive design móvil completo | ⏳ Pendiente | 🔴 Alta |
-| Manejo de errores global | ⏳ Pendiente | 🔴 Alta |
-| Loading states en todas las pantallas | ⏳ Pendiente | 🔴 Alta |
-| Copiar estado del préstamo (imagen/texto) | ⏳ Pendiente | 🟡 Media |
-| PWA (instalable en móvil) | ⏳ Pendiente | 🟢 Baja |
+| Responsive design móvil (tarjetas compactas) | ✅ Implementado | 🔴 Alta |
+| Manejo de errores global (error.tsx) | ✅ Implementado | 🔴 Alta |
+| Loading states en pantallas principales | ✅ Implementado (prestamos, gastos, reporte) | 🔴 Alta |
+| Toasts con Sonner (AutoToast) | ✅ Implementado | 🟡 Media |
+| Paginación en reportes | ✅ Implementado | 🟡 Media |
+| PWA básica (manifest + meta tags) | ✅ Implementado | 🟢 Baja |
+| Íconos PWA reales (192px y 512px) | ⏳ Pendiente — requiere diseño | 🟢 Baja |
 | Notificaciones push (gastos pendientes) | ⏳ Pendiente | 🟢 Baja |
 | Deploy en Vercel | ⏳ Pendiente | 🔴 Alta |
 | Variables de entorno en producción | ⏳ Pendiente | 🔴 Alta |
@@ -105,6 +109,8 @@ updated: 2026-07-24
 - Dashboard de analytics avanzado para el admin
 - Sistema de referidos entre unidades
 - Integración con sistemas de pago electrónico
+- Editar ajuste semanal (actualmente solo crear/eliminar)
+- Copiar resumen del día como texto para compartir por WhatsApp
 
 ---
 
