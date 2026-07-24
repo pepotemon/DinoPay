@@ -1,4 +1,12 @@
-import { CircleSlash, PlusCircle, Search, SlidersHorizontal } from "lucide-react";
+import {
+  CircleSlash,
+  Eye,
+  MessageCircle,
+  Phone,
+  PlusCircle,
+  Search,
+  SlidersHorizontal
+} from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +31,7 @@ type LoanRow = {
     alias: string;
     barrio: string | null;
     telefono1: string | null;
+    telefono2: string | null;
   } | null;
 };
 
@@ -32,11 +41,13 @@ type RawLoanRow = Omit<LoanRow, "clients"> & {
         alias: string;
         barrio: string | null;
         telefono1: string | null;
+        telefono2: string | null;
       }
     | {
         alias: string;
         barrio: string | null;
         telefono1: string | null;
+        telefono2: string | null;
       }[]
     | null;
 };
@@ -49,6 +60,15 @@ type PaymentRow = {
 type VisitRow = {
   loan_id: string;
 };
+
+function digitsOnly(value: string | null | undefined) {
+  return value?.replace(/\D/g, "") ?? "";
+}
+
+function whatsappHref(phone: string, alias: string) {
+  const message = encodeURIComponent(`Hola ${alias}, te escribo de DinoPay sobre tu prestamo.`);
+  return `https://wa.me/${digitsOnly(phone)}?text=${message}`;
+}
 
 export default async function PrestamosPage({
   searchParams
@@ -76,7 +96,7 @@ export default async function PrestamosPage({
     ? await adminClient
         .from("loans")
         .select(
-          "id, valor_cuota, valor_neto, saldo, cuotas_pagadas, numero_cuotas, posicion, clients(alias, barrio, telefono1)"
+          "id, valor_cuota, valor_neto, saldo, cuotas_pagadas, numero_cuotas, posicion, clients(alias, barrio, telefono1, telefono2)"
         )
         .eq("unit_id", user.id)
         .eq("estado", "activo")
@@ -249,7 +269,11 @@ export default async function PrestamosPage({
       </div>
 
       <div className="space-y-3">
-        {filteredLoans.map((loan) => (
+        {filteredLoans.map((loan) => {
+          const phone = loan.clients?.telefono1 || loan.clients?.telefono2 || "";
+          const hasPhone = digitsOnly(phone).length > 0;
+
+          return (
           <Card key={loan.id}>
             <CardContent className="space-y-4 p-4">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -288,6 +312,34 @@ export default async function PrestamosPage({
                   </div>
                 </div>
               </div>
+              <div className="grid grid-cols-3 gap-2">
+                <Button asChild className="px-2" size="sm" variant="secondary">
+                  <Link href={`/unidad/prestamos/${loan.id}`}>
+                    <Eye className="h-4 w-4" />
+                    Ver
+                  </Link>
+                </Button>
+                <Button asChild className="px-2" disabled={!hasPhone} size="sm" variant="secondary">
+                  <a href={hasPhone ? `tel:${digitsOnly(phone)}` : undefined}>
+                    <Phone className="h-4 w-4" />
+                    Llamar
+                  </a>
+                </Button>
+                <Button asChild className="px-2" disabled={!hasPhone} size="sm" variant="secondary">
+                  <a
+                    href={
+                      hasPhone
+                        ? whatsappHref(phone, loan.clients?.alias ?? "cliente")
+                        : undefined
+                    }
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    WhatsApp
+                  </a>
+                </Button>
+              </div>
               <div className="space-y-3 rounded-md border bg-muted/40 p-3">
                 {!visitedLoanIds.has(loan.id) ? (
                   <form action={markNoPayVisitAction}>
@@ -308,7 +360,8 @@ export default async function PrestamosPage({
               </div>
             </CardContent>
           </Card>
-        ))}
+          );
+        })}
 
         {activeLoans.length === 0 ? (
           <Card>

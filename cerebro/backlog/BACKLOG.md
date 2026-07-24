@@ -50,9 +50,9 @@ updated: 2026-07-24
 - [x] Filtros (Todos / Pendientes / Visitados)
 - [x] Buscador de clientes en pantalla préstamos
 - [x] Botón No pagó en pantalla préstamos
-- [ ] Modal "Ver Detalles" del préstamo
+- [x] Página "Ver Detalles" del préstamo
 - [ ] Editar datos del cliente
-- [ ] Historial de pagos (préstamo actual)
+- [x] Historial de pagos (préstamo actual)
 - [ ] Historial de préstamos (cliente)
 - [x] Base de pantalla Clientes Disponibles
 - [x] Formulario nuevo préstamo para cliente existente
@@ -76,9 +76,9 @@ updated: 2026-07-24
 
 ### Integraciones
 - [ ] Google Maps en formulario de cliente
-- [ ] Abrir Maps desde tarjeta de préstamo
-- [ ] Botón WhatsApp desde tarjeta
-- [ ] Botón llamar desde tarjeta
+- [x] Abrir Maps desde detalle de préstamo
+- [x] Botón WhatsApp desde tarjeta
+- [x] Botón llamar desde tarjeta
 
 ---
 

@@ -70,6 +70,8 @@ updated: 2026-07-24
 - Registro de gastos conectado a Supabase usando la tabla `expenses`; los gastos nacen en estado `pendiente`.
 - Pantalla `/admin/gastos` agregada para aprobar o rechazar gastos pendientes por unidad.
 - Dashboard admin conectado a metricas reales de unidades activas y gastos.
+- Página `/unidad/prestamos/[id]` agregada con detalle del préstamo, contacto, dirección, historial de pagos y visitas sin pago.
+- Tarjetas de `/unidad/prestamos` actualizadas con acciones rápidas: Ver, Llamar y WhatsApp.
 
 ### Verificado
 - `npm.cmd run build` pasa correctamente.

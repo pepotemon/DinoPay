@@ -40,14 +40,14 @@ updated: 2026-07-24
 | Pantalla CLIENTES DISPONIBLES | 🔄 Listado y nuevo préstamo conectados | 🔴 Alta |
 | Nuevo préstamo para cliente existente | ✅ Implementado | 🔴 Alta |
 | Pantalla ENRUTAR (drag & drop) | 🔄 Implementada, requiere migración 009 | 🔴 Alta |
-| Modal "Ver Detalles" del préstamo | ⏳ Pendiente | 🟡 Media |
-| Historial de pagos por préstamo | ⏳ Pendiente | 🟡 Media |
+| Modal "Ver Detalles" del préstamo | 🔄 Reemplazado por página de detalle móvil | 🟡 Media |
+| Historial de pagos por préstamo | ✅ Implementado en detalle | 🟡 Media |
 | Historial de préstamos por cliente | ⏳ Pendiente | 🟡 Media |
 | Editar datos del cliente | ⏳ Pendiente | 🟡 Media |
-| Botón WhatsApp desde tarjeta | ⏳ Pendiente | 🟡 Media |
-| Botón llamar desde tarjeta | ⏳ Pendiente | 🟡 Media |
+| Botón WhatsApp desde tarjeta | ✅ Implementado | 🟡 Media |
+| Botón llamar desde tarjeta | ✅ Implementado | 🟡 Media |
 | Integración Google Maps (ubicar cliente) | ⏳ Pendiente | 🟡 Media |
-| Abrir Maps desde tarjeta de préstamo | ⏳ Pendiente | 🟡 Media |
+| Abrir Maps desde tarjeta de préstamo | 🔄 Implementado en detalle | 🟡 Media |
 
 ---
 
