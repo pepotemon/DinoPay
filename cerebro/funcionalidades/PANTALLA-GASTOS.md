@@ -10,6 +10,13 @@ updated: 2026-07-24
 
 ---
 
+## Estado de Implementacion
+- Ruta `/unidad/gastos` creada con resumen, formulario de registro y listado de gastos recientes.
+- Los gastos se insertan en `expenses` con estado inicial `pendiente`.
+- Queda pendiente editar/eliminar gastos desde unidad y aprobacion/rechazo desde admin.
+
+---
+
 ## Objetivo
 Registrar los gastos operativos de la unidad. Cada gasto queda pendiente de aprobación por el administrador antes de afectar la caja real.
 

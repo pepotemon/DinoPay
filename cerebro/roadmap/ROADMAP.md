@@ -56,7 +56,7 @@ updated: 2026-07-24
 
 | Tarea | Estado | Prioridad |
 |-------|--------|-----------|
-| Pantalla GASTOS (unidad) | ⏳ Pendiente | 🔴 Alta |
+| Pantalla GASTOS (unidad) | 🔄 Formulario y listado conectados | 🔴 Alta |
 | Aprobación de gastos (admin) | ⏳ Pendiente | 🔴 Alta |
 | Pantalla REPORTES (préstamos y pagos) | ⏳ Pendiente | 🟡 Media |
 | Pantalla REPORTE DIARIO | ⏳ Pendiente | 🟡 Media |

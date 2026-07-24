@@ -66,6 +66,8 @@ updated: 2026-07-24
 - Migracion local `008_create_loan_for_existing_client.sql` agregada para crear prestamos recurrentes y restaurar posicion de ruta.
 - Pantalla `/unidad/enrutar` agregada con drag & drop mobile-first usando dnd kit.
 - Migracion local `009_update_route_positions.sql` agregada para guardar posiciones de ruta.
+- Pantalla `/unidad/gastos` agregada con resumen, formulario de nuevo gasto y listado de gastos recientes.
+- Registro de gastos conectado a Supabase usando la tabla `expenses`; los gastos nacen en estado `pendiente`.
 
 ### Verificado
 - `npm.cmd run build` pasa correctamente.

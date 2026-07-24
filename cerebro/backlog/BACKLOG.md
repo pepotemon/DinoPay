@@ -59,8 +59,8 @@ updated: 2026-07-24
 - [ ] Indicador de calidad del cliente
 - [x] Pantalla Enrutar (drag & drop con dnd kit)
 - [x] Guardar orden de ruta
-- [ ] Pantalla Gastos
-- [ ] Crear/editar/eliminar gasto
+- [x] Pantalla Gastos
+- [ ] Crear/editar/eliminar gasto (crear implementado; falta editar/eliminar)
 - [ ] Pantalla Reportes (préstamos y pagos)
 - [ ] Pantalla Reporte Diario
 - [ ] Cuadres de caja automáticos al eliminar pago
