@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ChevronDown,
   CircleSlash,
   FileText,
   History,
@@ -121,6 +122,7 @@ export function PrestamosClient({
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"pendientes" | "visitados">("pendientes");
   const [selectedLoan, setSelectedLoan] = useState<ClientLoan | null>(null);
+  const [noPayLoan, setNoPayLoan] = useState<ClientLoan | null>(null);
   const [menuLoan, setMenuLoan] = useState<ClientLoan | null>(null);
   const [infoModal, setInfoModal] = useState<InfoModal>(null);
   const [, startTransition] = useTransition();
@@ -172,12 +174,13 @@ export function PrestamosClient({
     });
   }
 
-  function handleNoPay(loanId: string) {
+  function handleNoPay(loanId: string, nota: string) {
     setSubmittingId(loanId);
     startTransition(async () => {
-      const result = await markNoPayVisitResult(loanId);
+      const result = await markNoPayVisitResult(loanId, nota);
       setSubmittingId(null);
       if (result.ok) {
+        setNoPayLoan(null);
         toast.success("Cliente marcado sin pago");
         router.refresh();
       } else {
@@ -346,7 +349,7 @@ export function PrestamosClient({
                 <Button
                   className="h-12 rounded-2xl border border-destructive/20 bg-destructive/10 font-black text-destructive hover:bg-destructive/15"
                   disabled={isSubmitting || isVisited}
-                  onClick={() => handleNoPay(loan.id)}
+                  onClick={() => setNoPayLoan(loan)}
                   type="button"
                   variant="secondary"
                 >
@@ -385,6 +388,12 @@ export function PrestamosClient({
         loan={selectedLoan}
         onClose={() => setSelectedLoan(null)}
         onSubmit={handlePayment}
+      />
+      <NoPayModal
+        isPending={noPayLoan ? submittingId === noPayLoan.id : false}
+        loan={noPayLoan}
+        onClose={() => setNoPayLoan(null)}
+        onSubmit={handleNoPay}
       />
       <LoanActionsMenu
         loan={menuLoan}
@@ -761,17 +770,14 @@ function PaymentModal({
         type="button"
       />
       <div className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-background p-5 shadow-2xl">
-        <div className="mx-auto max-w-md space-y-5">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-sm font-bold text-primary">Registrar pago</p>
-              <h2 className="mt-1 text-2xl font-black">{clientName}</h2>
-              <p className="text-sm text-muted-foreground">
-                Cuota base {formatCurrency(Number(loan.valor_cuota))}
-              </p>
-            </div>
+        <div className="mx-auto max-w-md space-y-6">
+          <div className="relative px-10 text-center">
+            <h2 className="text-3xl font-black leading-tight">
+              Registrar Pago a
+              <span className="block text-primary">{clientName}</span>
+            </h2>
             <button
-              className="grid h-10 w-10 place-items-center rounded-xl bg-muted text-muted-foreground"
+              className="absolute right-0 top-0 grid h-10 w-10 place-items-center rounded-xl text-muted-foreground"
               onClick={onClose}
               type="button"
             >
@@ -793,6 +799,93 @@ function PaymentModal({
               valorCuota={Number(loan.valor_cuota)}
             />
           </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const noPayReasons = [
+  "No estaba en casa",
+  "No contesta",
+  "Dice que paga manana",
+  "Sin dinero",
+  "Direccion incorrecta",
+  "Otro"
+];
+
+function NoPayModal({
+  isPending,
+  loan,
+  onClose,
+  onSubmit
+}: {
+  isPending: boolean;
+  loan: ClientLoan | null;
+  onClose: () => void;
+  onSubmit: (loanId: string, nota: string) => void;
+}) {
+  const [reason, setReason] = useState(noPayReasons[0]);
+
+  if (!loan) {
+    return null;
+  }
+
+  const clientName = loan.clients?.alias ?? "Cliente sin nombre";
+
+  return (
+    <div className="fixed inset-0 z-50">
+      <button
+        aria-label="Cerrar no pago"
+        className="absolute inset-0 bg-foreground/55"
+        onClick={onClose}
+        type="button"
+      />
+      <div className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-background p-5 shadow-2xl">
+        <div className="mx-auto max-w-md space-y-6">
+          <div className="relative px-10 text-center">
+            <h2 className="text-3xl font-black leading-tight">
+              Marcar como no pagado a
+              <span className="block text-primary">{clientName} ?</span>
+            </h2>
+            <button
+              className="absolute right-0 top-0 grid h-10 w-10 place-items-center rounded-xl text-muted-foreground"
+              onClick={onClose}
+              type="button"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <label className="block space-y-3">
+            <span className="text-base font-medium">
+              Razon <span className="text-destructive">*</span>
+            </span>
+            <div className="relative">
+              <select
+                className="h-14 w-full appearance-none rounded-xl bg-primary/10 px-4 pr-11 text-base font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                name="nota"
+                onChange={(event) => setReason(event.target.value)}
+                value={reason}
+              >
+                {noPayReasons.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-4 top-4 h-6 w-6 text-muted-foreground" />
+            </div>
+          </label>
+
+          <Button
+            className="h-14 w-full rounded-2xl text-base font-black shadow-lg shadow-primary/20"
+            disabled={isPending}
+            onClick={() => onSubmit(loan.id, reason)}
+            type="button"
+          >
+            {isPending ? "Guardando..." : "Confirmar"}
+          </Button>
         </div>
       </div>
     </div>

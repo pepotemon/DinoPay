@@ -217,6 +217,7 @@ updated: 2026-07-24
 - Tarjetas de `/unidad/prestamos` actualizadas con acciones rápidas: Ver, Llamar y WhatsApp.
 - Pantalla `/unidad/prestamos` rediseñada con experiencia móvil tipo app: totalizador destacado, búsqueda grande, tabs, tarjetas compactas y pago en modal.
 - Menú `...` de préstamo agregado con WhatsApp, llamada, detalles, historial de pagos, historial de préstamos y editar cliente; los accesos informativos abren modales.
+- Modal de pago rediseñado con stepper de cuotas, monto y selector de método; `No Pago` ahora abre modal con razón obligatoria guardada en `loan_visits.nota`.
 
 ### Verificado
 - `npm run build` pasa correctamente.

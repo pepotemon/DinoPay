@@ -19,7 +19,8 @@ const registerPaymentSchema = z.object({
 });
 
 const noPayVisitSchema = z.object({
-  loanId: z.string().uuid()
+  loanId: z.string().uuid(),
+  nota: z.string().min(2, "Selecciona una razon.")
 });
 
 export async function registerPaymentAction(
@@ -128,7 +129,8 @@ export async function deletePaymentAction(formData: FormData) {
 
 export async function markNoPayVisitAction(formData: FormData) {
   const parsed = noPayVisitSchema.safeParse({
-    loanId: formData.get("loanId")
+    loanId: formData.get("loanId"),
+    nota: formData.get("nota") ?? "Sin motivo"
   });
 
   if (!parsed.success) {
@@ -148,7 +150,7 @@ export async function markNoPayVisitAction(formData: FormData) {
   const { error } = await adminClient.rpc("mark_no_pay_visit", {
     p_loan_id: parsed.data.loanId,
     p_unit_id: user.id,
-    p_nota: ""
+    p_nota: parsed.data.nota
   });
 
   if (error) {
@@ -160,9 +162,10 @@ export async function markNoPayVisitAction(formData: FormData) {
 }
 
 export async function markNoPayVisitResult(
-  loanId: string
+  loanId: string,
+  nota: string
 ): Promise<{ ok: boolean; message: string }> {
-  const parsed = noPayVisitSchema.safeParse({ loanId });
+  const parsed = noPayVisitSchema.safeParse({ loanId, nota });
   if (!parsed.success) return { ok: false, message: "Préstamo inválido." };
 
   const supabase = await createClient();
@@ -175,7 +178,7 @@ export async function markNoPayVisitResult(
   const { error } = await adminClient.rpc("mark_no_pay_visit", {
     p_loan_id: parsed.data.loanId,
     p_unit_id: user.id,
-    p_nota: ""
+    p_nota: parsed.data.nota
   });
 
   if (error) return { ok: false, message: error.message };
