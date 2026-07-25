@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { FormEvent, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -157,9 +157,7 @@ export function PrestamosClient({
     return matchesFilter && (!q || searchable.includes(q));
   });
 
-  function handlePayment(loanId: string, e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
+  function handlePayment(loanId: string, formData: FormData) {
     setSubmittingId(loanId);
     startTransition(async () => {
       const result = await registerPaymentAction({ ok: false, message: "" }, formData);
@@ -753,8 +751,15 @@ function PaymentModal({
   isPending: boolean;
   loan: ClientLoan | null;
   onClose: () => void;
-  onSubmit: (loanId: string, event: FormEvent<HTMLFormElement>) => void;
+  onSubmit: (loanId: string, formData: FormData) => void;
 }) {
+  const [confirmation, setConfirmation] = useState<{
+    formData: FormData;
+    monto: string;
+    cuotas: string;
+    metodo: string;
+  } | null>(null);
+
   if (!loan) {
     return null;
   }
@@ -791,14 +796,59 @@ function PaymentModal({
             <MiniStat highlight label="Cuota" value={formatCurrency(Number(loan.valor_cuota))} />
           </div>
 
-          <form className="space-y-4" onSubmit={(event) => onSubmit(loan.id, event)}>
-            <input name="loanId" type="hidden" value={loan.id} />
-            <PaymentInputs
-              isPending={isPending}
-              maxCuotas={Math.max(loan.numero_cuotas - loan.cuotas_pagadas, 1)}
-              valorCuota={Number(loan.valor_cuota)}
-            />
-          </form>
+          {confirmation ? (
+            <div className="space-y-5">
+              <div className="rounded-2xl bg-primary/10 p-4 text-center">
+                <p className="text-sm font-bold text-muted-foreground">Confirmar pago</p>
+                <p className="mt-2 text-3xl font-black text-primary">
+                  {formatCurrency(Number(confirmation.monto))}
+                </p>
+                <p className="mt-1 text-sm font-medium text-muted-foreground">
+                  {confirmation.cuotas} cuota(s) - {confirmation.metodo}
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  className="h-14 rounded-2xl font-black"
+                  disabled={isPending}
+                  onClick={() => setConfirmation(null)}
+                  type="button"
+                  variant="secondary"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  className="h-14 rounded-2xl font-black shadow-lg shadow-primary/20"
+                  disabled={isPending}
+                  onClick={() => onSubmit(loan.id, confirmation.formData)}
+                  type="button"
+                >
+                  {isPending ? "Guardando..." : "Confirmar"}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <form
+              className="space-y-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const formData = new FormData(event.currentTarget);
+                setConfirmation({
+                  formData,
+                  monto: String(formData.get("monto") ?? "0"),
+                  cuotas: String(formData.get("numeroCuotas") ?? "1"),
+                  metodo: String(formData.get("metodoPago") ?? "")
+                });
+              }}
+            >
+              <input name="loanId" type="hidden" value={loan.id} />
+              <PaymentInputs
+                isPending={isPending}
+                maxCuotas={Math.max(loan.numero_cuotas - loan.cuotas_pagadas, 1)}
+                valorCuota={Number(loan.valor_cuota)}
+              />
+            </form>
+          )}
         </div>
       </div>
     </div>
@@ -826,6 +876,7 @@ function NoPayModal({
   onSubmit: (loanId: string, nota: string) => void;
 }) {
   const [reason, setReason] = useState(noPayReasons[0]);
+  const [confirming, setConfirming] = useState(false);
 
   if (!loan) {
     return null;
@@ -857,35 +908,65 @@ function NoPayModal({
             </button>
           </div>
 
-          <label className="block space-y-3">
-            <span className="text-base font-medium">
-              Razon <span className="text-destructive">*</span>
-            </span>
-            <div className="relative">
-              <select
-                className="h-14 w-full appearance-none rounded-xl bg-primary/10 px-4 pr-11 text-base font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                name="nota"
-                onChange={(event) => setReason(event.target.value)}
-                value={reason}
-              >
-                {noPayReasons.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-4 top-4 h-6 w-6 text-muted-foreground" />
+          {confirming ? (
+            <div className="space-y-5">
+              <div className="rounded-2xl bg-destructive/10 p-4 text-center">
+                <p className="text-sm font-bold text-muted-foreground">Confirmar no pago</p>
+                <p className="mt-2 text-xl font-black text-destructive">{reason}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  className="h-14 rounded-2xl font-black"
+                  disabled={isPending}
+                  onClick={() => setConfirming(false)}
+                  type="button"
+                  variant="secondary"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  className="h-14 rounded-2xl font-black shadow-lg shadow-primary/20"
+                  disabled={isPending}
+                  onClick={() => onSubmit(loan.id, reason)}
+                  type="button"
+                >
+                  {isPending ? "Guardando..." : "Confirmar"}
+                </Button>
+              </div>
             </div>
-          </label>
+          ) : (
+            <>
+              <label className="block space-y-3">
+                <span className="text-base font-medium">
+                  Razon <span className="text-destructive">*</span>
+                </span>
+                <div className="relative">
+                  <select
+                    className="h-14 w-full appearance-none rounded-xl bg-primary/10 px-4 pr-11 text-base font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    name="nota"
+                    onChange={(event) => setReason(event.target.value)}
+                    value={reason}
+                  >
+                    {noPayReasons.map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-4 top-4 h-6 w-6 text-muted-foreground" />
+                </div>
+              </label>
 
-          <Button
-            className="h-14 w-full rounded-2xl text-base font-black shadow-lg shadow-primary/20"
-            disabled={isPending}
-            onClick={() => onSubmit(loan.id, reason)}
-            type="button"
-          >
-            {isPending ? "Guardando..." : "Confirmar"}
-          </Button>
+              <Button
+                className="h-14 w-full rounded-2xl text-base font-black shadow-lg shadow-primary/20"
+                disabled={isPending}
+                onClick={() => setConfirming(true)}
+                type="button"
+              >
+                Continuar
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </div>

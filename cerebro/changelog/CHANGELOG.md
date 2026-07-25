@@ -218,6 +218,7 @@ updated: 2026-07-24
 - Pantalla `/unidad/prestamos` rediseñada con experiencia móvil tipo app: totalizador destacado, búsqueda grande, tabs, tarjetas compactas y pago en modal.
 - Menú `...` de préstamo agregado con WhatsApp, llamada, detalles, historial de pagos, historial de préstamos y editar cliente; los accesos informativos abren modales.
 - Modal de pago rediseñado con stepper de cuotas, monto y selector de método; `No Pago` ahora abre modal con razón obligatoria guardada en `loan_visits.nota`.
+- Modales de pago y no pago actualizados con paso de confirmación final antes de ejecutar la acción.
 
 ### Verificado
 - `npm run build` pasa correctamente.
