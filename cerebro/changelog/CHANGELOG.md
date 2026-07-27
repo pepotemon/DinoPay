@@ -12,6 +12,24 @@ updated: 2026-07-24
 
 ---
 
+## [0.7.0] — 2026-07-27
+
+### Modificado
+
+**Rediseño completo de la pantalla Préstamos** (`/unidad/prestamos`)
+- Diseño propio, desacoplado de la referencia original
+- Cabecera sticky compacta: título + stats en una sola línea (`$cobrado · $meta · %`) + barra de progreso fina + búsqueda + tabs de filtro — sin tarjeta hero con gradiente
+- Lista densa: una fila por cliente con punto de color (verde = cobrado, rojo = no-pago, gris = pendiente), nombre, barrio + cuotas y monto de cuota con chevron
+- Bottom sheet unificado reemplaza todos los modales y menús separados anteriores:
+  - Vista `main`: dirección, badge de estado, stats (cuota/saldo/cuotas), botones Llamar/WhatsApp, botones Pagar/No Pago, acciones secundarias (detalles, historial de pagos, historial de préstamos, editar cliente)
+  - Vista `pay` → `pay-confirm`: formulario de pago dentro del mismo sheet con flujo de confirmación
+  - Vista `nopay` → `nopay-confirm`: selector de razón + confirmación dentro del mismo sheet
+  - Vistas `info-*`: detalles, historial de pagos e historial de préstamos dentro del sheet con botón Volver
+- Máquina de estados (`SheetState`) con backView() para navegar entre vistas sin cerrar el sheet
+- Sin botones expuestos en la lista → elimina riesgo de acción accidental en campo
+
+---
+
 ## [0.6.0] — 2026-07-24
 
 ### Agregado

@@ -13,7 +13,7 @@ updated: 2026-07-24
 ## Objetivo
 Es la pantalla principal de trabajo de la unidad. Aquí se listan todos los préstamos activos y se registran los pagos del día. Es el corazón de la operación diaria.
 
-Estado de implementación: 🔄 lista conectada a préstamos activos, formulario base de pago, botón No pagó, totalizador diario, filtros y buscador implementados. Acciones avanzadas pendientes.
+Estado de implementación: ✅ Implementada y rediseñada (2026-07-27). Lista conectada a préstamos activos, registro de pago, no-pago, historial, detalles y edición de cliente operativos. Diseño propio con cabecera sticky + lista compacta + bottom sheet unificado.
 
 ## Problema que Resuelve
 El cobrador necesita ver rápidamente quién debe pagar hoy, cuánto lleva cobrado, y registrar pagos con el menor número de toques posible.
@@ -24,23 +24,41 @@ El cobrador necesita ver rápidamente quién debe pagar hoy, cuánto lleva cobra
 
 ```
 ┌─────────────────────────────────────┐
-│  TOTALIZADOR DEL DÍA (tarjeta grande)│
-│  Recaudado hoy: $X                  │
-│  Meta del día: $Y                   │
-│  Total que falta: $Z                │
-│  Progreso: ████░░░░ 40%             │
-│  Visitados: 4/122                   │
+│ DinoPay                 [Enrutar →] │  ← cabecera sticky
+│ Cuotas del Día                      │
+│ $124,000 cobrado · $450k meta · 27% │
+│ ████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  │  ← barra de progreso fina
+│ 🔍 Nombre, barrio o teléfono…       │
+│ [Pendientes (12)]  [Visitados (4)]  │
 ├─────────────────────────────────────┤
-│  [Todos] [Pendientes] [Visitados]   │
-├─────────────────────────────────────┤
-│  🔍 Buscar cliente...               │
-├─────────────────────────────────────┤
-│  TARJETA PRÉSTAMO 1                 │
-│  TARJETA PRÉSTAMO 2                 │
-│  TARJETA PRÉSTAMO 3                 │
-│  ...                                │
+│ ● Juan Carlos Lopez    $15,000  >   │  ← fila por cliente
+│   El Carmen · 3/20 cuotas           │
+│ ● Maria Perez          $8,000   >   │
+│   Centro · 10/20 cuotas             │
+│ ● Carlos Ruiz          $20,000  >   │  ← punto gris = pendiente
+│   ...                               │
+└─────────────────────────────────────┘
+
+Al tocar una fila → bottom sheet:
+┌─────────────────────────────────────┐
+│ ─────── (handle)                    │
+│ Juan Carlos Lopez          [←] [×]  │
+│ Calle 45 · El Carmen                │
+│ ┌─────────┬──────────┬──────────┐  │
+│ │ Cuota   │  Saldo   │  Cuotas  │  │
+│ │$15,000  │ $285,000 │   3/20   │  │
+│ └─────────┴──────────┴──────────┘  │
+│ [Llamar]           [WhatsApp]       │
+│ [── No Pago ──]  [──── Pagar ────] │
+│ ─────────────────────────────────   │
+│  Ver Detalles                       │
+│  Historial de Pagos                 │
+│  Historial de Préstamos             │
+│  Editar Cliente                     │
 └─────────────────────────────────────┘
 ```
+
+El bottom sheet evoluciona internamente entre vistas (main → pagar → confirmar, main → no-pago → confirmar, main → historial, etc.) usando una máquina de estados con botón Volver.
 
 ---
 
@@ -187,13 +205,13 @@ Los préstamos se muestran en el orden configurado en [[PANTALLA-ENRUTAR]]. El c
 ---
 
 ## Archivos Involucrados
-- `src/app/unidad/prestamos/page.tsx`
-- `src/components/unidad/TotalizadorDia.tsx`
-- `src/components/unidad/TarjetaPrestamo.tsx`
-- `src/components/unidad/ModalPago.tsx`
-- `src/components/unidad/ModalDetalles.tsx`
-- `src/lib/actions/payments.ts` — Server Actions: registrar pago, eliminar pago
-- `src/lib/queries/prestamos.ts` — TanStack Query hooks
+- `src/app/unidad/prestamos/page.tsx` — Server Component, carga datos de Supabase
+- `src/app/unidad/prestamos/loading.tsx` — skeleton de carga
+- `src/app/unidad/prestamos/[id]/page.tsx` — detalle de préstamo individual
+- `src/app/unidad/prestamos/[id]/editar-cliente/page.tsx` — edición de datos del cliente
+- `src/components/unidad/prestamos-client.tsx` — UI completa (cabecera + lista + bottom sheet)
+- `src/components/unidad/payment-inputs.tsx` — formulario de cuotas/monto/método
+- `src/lib/actions/unidad/payments.ts` — Server Actions: `registerPaymentAction`, `markNoPayVisitResult`
 
 ---
 

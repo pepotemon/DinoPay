@@ -1,13 +1,14 @@
 "use client";
 
 import {
+  ArrowLeft,
   ChevronDown,
+  ChevronRight,
   CircleSlash,
   FileText,
   History,
   MapPinned,
   MessageCircle,
-  MoreVertical,
   Phone,
   Search,
   UserPen,
@@ -83,11 +84,32 @@ type Props = {
   totalSaldo: number;
 };
 
-type InfoModal =
-  | { type: "details"; loan: ClientLoan }
-  | { type: "payments"; loan: ClientLoan }
-  | { type: "loans"; loan: ClientLoan }
-  | null;
+type SheetState =
+  | null
+  | { view: "main"; loan: ClientLoan }
+  | { view: "pay"; loan: ClientLoan }
+  | {
+      view: "pay-confirm";
+      loan: ClientLoan;
+      formData: FormData;
+      monto: string;
+      cuotas: string;
+      metodo: string;
+    }
+  | { view: "nopay"; loan: ClientLoan }
+  | { view: "nopay-confirm"; loan: ClientLoan; reason: string }
+  | { view: "info-details"; loan: ClientLoan }
+  | { view: "info-payments"; loan: ClientLoan }
+  | { view: "info-loans"; loan: ClientLoan };
+
+const noPayReasons = [
+  "No estaba en casa",
+  "No contesta",
+  "Dice que paga mañana",
+  "Sin dinero",
+  "Dirección incorrecta",
+  "Otro"
+];
 
 function digitsOnly(value: string | null | undefined) {
   return value?.replace(/\D/g, "") ?? "";
@@ -98,14 +120,41 @@ function whatsappHref(phone: string, alias: string) {
   return `https://wa.me/${digitsOnly(phone)}?text=${msg}`;
 }
 
-function initials(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
+function backView(sheet: Exclude<SheetState, null>): SheetState {
+  const { loan } = sheet;
+  switch (sheet.view) {
+    case "pay":
+    case "nopay":
+    case "info-details":
+    case "info-payments":
+    case "info-loans":
+      return { view: "main", loan };
+    case "pay-confirm":
+      return { view: "pay", loan };
+    case "nopay-confirm":
+      return { view: "nopay", loan };
+    default:
+      return null;
+  }
+}
+
+function sheetSubtitle(view: Exclude<SheetState, null>["view"]) {
+  switch (view) {
+    case "pay":
+    case "pay-confirm":
+      return "Registrar pago";
+    case "nopay":
+    case "nopay-confirm":
+      return "Sin pago hoy";
+    case "info-details":
+      return "Detalles";
+    case "info-payments":
+      return "Pagos";
+    case "info-loans":
+      return "Historial";
+    default:
+      return null;
+  }
 }
 
 export function PrestamosClient({
@@ -115,16 +164,12 @@ export function PrestamosClient({
   paymentHistoryByLoan,
   loanHistoryByClient,
   cobradoHoy,
-  meta,
-  totalSaldo
+  meta
 }: Props) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"pendientes" | "visitados">("pendientes");
-  const [selectedLoan, setSelectedLoan] = useState<ClientLoan | null>(null);
-  const [noPayLoan, setNoPayLoan] = useState<ClientLoan | null>(null);
-  const [menuLoan, setMenuLoan] = useState<ClientLoan | null>(null);
-  const [infoModal, setInfoModal] = useState<InfoModal>(null);
+  const [sheet, setSheet] = useState<SheetState>(null);
   const [, startTransition] = useTransition();
   const [submittingId, setSubmittingId] = useState<string | null>(null);
 
@@ -135,27 +180,24 @@ export function PrestamosClient({
     [paidLoanIds, noPayLoanIds]
   );
 
-  const faltante = Math.max(meta - cobradoHoy, 0);
   const progreso = meta > 0 ? Math.min(Math.round((cobradoHoy / meta) * 100), 100) : 0;
-  const pendingCount = loans.filter((loan) => !visitedSet.has(loan.id)).length;
+  const pendingCount = loans.filter((l) => !visitedSet.has(l.id)).length;
 
-  const filtered = loans.filter((loan) => {
-    const matchesFilter =
-      (filter === "pendientes" && !visitedSet.has(loan.id)) ||
-      (filter === "visitados" && visitedSet.has(loan.id));
-    const q = search.toLowerCase();
-    const searchable = [
-      loan.clients?.alias,
-      loan.clients?.barrio,
-      loan.clients?.telefono1,
-      loan.clients?.telefono2
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
-
-    return matchesFilter && (!q || searchable.includes(q));
-  });
+  const filtered = useMemo(
+    () =>
+      loans.filter((loan) => {
+        const matchesFilter =
+          (filter === "pendientes" && !visitedSet.has(loan.id)) ||
+          (filter === "visitados" && visitedSet.has(loan.id));
+        const q = search.toLowerCase();
+        const searchable = [loan.clients?.alias, loan.clients?.barrio, loan.clients?.telefono1]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return matchesFilter && (!q || searchable.includes(q));
+      }),
+    [loans, filter, visitedSet, search]
+  );
 
   function handlePayment(loanId: string, formData: FormData) {
     setSubmittingId(loanId);
@@ -163,7 +205,7 @@ export function PrestamosClient({
       const result = await registerPaymentAction({ ok: false, message: "" }, formData);
       setSubmittingId(null);
       if (result.ok) {
-        setSelectedLoan(null);
+        setSheet(null);
         toast.success("Pago registrado");
         router.refresh();
       } else {
@@ -178,8 +220,8 @@ export function PrestamosClient({
       const result = await markNoPayVisitResult(loanId, nota);
       setSubmittingId(null);
       if (result.ok) {
-        setNoPayLoan(null);
-        toast.success("Cliente marcado sin pago");
+        setSheet(null);
+        toast.success("Marcado sin pago");
         router.refresh();
       } else {
         toast.error(result.message);
@@ -188,488 +230,550 @@ export function PrestamosClient({
   }
 
   return (
-    <div className="mx-auto max-w-md space-y-5 pb-6">
-      <section className="space-y-1">
-        <p className="text-sm font-medium text-muted-foreground">DinoPay</p>
-        <h1 className="text-4xl font-black tracking-normal text-foreground">Cuotas Diarias</h1>
-      </section>
-
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-500 via-primary to-teal-700 p-6 text-primary-foreground shadow-xl shadow-primary/20">
-        <div className="absolute -right-10 -top-14 h-44 w-44 rounded-full bg-white/10" />
-        <div className="absolute bottom-0 right-5 h-32 w-32 rounded-full bg-black/10" />
-        <div className="relative grid grid-cols-[1fr_auto] gap-4">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/75">
-              Recaudado hoy
-            </p>
-            <p className="mt-3 text-5xl font-black">{formatCurrency(cobradoHoy)}</p>
-            <div className="mt-6 grid grid-cols-2 gap-5">
-              <HeroStat label="Meta del dia" value={formatCurrency(meta)} />
-              <HeroStat label="Faltan" value={formatCurrency(faltante)} />
+    <>
+      {/* ── Cabecera sticky ── */}
+      <div className="sticky top-0 z-40 border-b bg-background">
+        <div className="mx-auto max-w-md space-y-3 px-4 pb-3 pt-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                DinoPay
+              </p>
+              <h1 className="text-2xl font-black leading-tight">Cuotas del Día</h1>
             </div>
-          </div>
-          <div className="grid h-28 w-28 place-items-center self-center rounded-full border-[12px] border-white/20 bg-white/10">
-            <div className="text-center">
-              <p className="text-2xl font-black">{progreso}%</p>
-              <p className="text-[10px] font-bold uppercase text-white/75">del dia</p>
-            </div>
-          </div>
-          <div className="col-span-2 inline-flex w-fit items-center rounded-full bg-white/15 px-4 py-2 text-sm font-bold">
-            <span className="mr-2 h-2 w-2 rounded-full bg-white" />
-            {visitedSet.size} / {loans.length} visitados
-          </div>
-          <p className="col-span-2 text-xs font-bold uppercase tracking-[0.12em] text-white/70">
-            Cartera total: {formatCurrency(totalSaldo)}
-          </p>
-        </div>
-      </section>
-
-      <Button asChild className="h-12 w-full rounded-2xl border shadow-sm" variant="secondary">
-        <Link href="/unidad/enrutar">
-          <MapPinned className="h-5 w-5" />
-          Planear recorrido
-        </Link>
-      </Button>
-
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-5 top-4 h-5 w-5 text-primary" />
-        <input
-          className="h-14 w-full rounded-2xl border-0 bg-muted pl-14 pr-4 text-base font-medium outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Busca por nombre, nit, telefono o alias"
-          type="search"
-          value={search}
-        />
-      </div>
-
-      <div className="grid grid-cols-2 rounded-2xl bg-muted p-1">
-        <button
-          className={cn(
-            "h-12 rounded-xl text-sm font-black transition-colors",
-            filter === "pendientes" ? "bg-background text-primary shadow-sm" : "text-muted-foreground"
-          )}
-          onClick={() => setFilter("pendientes")}
-          type="button"
-        >
-          Pendientes ({pendingCount})
-        </button>
-        <button
-          className={cn(
-            "h-12 rounded-xl text-sm font-black transition-colors",
-            filter === "visitados" ? "bg-background text-primary shadow-sm" : "text-muted-foreground"
-          )}
-          onClick={() => setFilter("visitados")}
-          type="button"
-        >
-          Visitados Hoy ({visitedSet.size})
-        </button>
-      </div>
-
-      <section className="space-y-4">
-        {filtered.map((loan) => {
-          const clientName = loan.clients?.alias ?? "Cliente sin nombre";
-          const isPaid = paidSet.has(loan.id);
-          const isNoPay = noPaySet.has(loan.id) && !isPaid;
-          const isVisited = visitedSet.has(loan.id);
-          const isSubmitting = submittingId === loan.id;
-          const paidAmount = Math.max(Number(loan.total_a_cobrar) - Number(loan.saldo), 0);
-
-          return (
-            <article
-              className="rounded-3xl border bg-card p-5 shadow-sm shadow-muted-foreground/10"
-              key={loan.id}
+            <Link
+              className="flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-bold text-muted-foreground hover:bg-muted"
+              href="/unidad/enrutar"
             >
-              <div className="flex items-start gap-3">
-                <div className="relative grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-primary/10 text-lg font-black text-primary">
-                  {initials(clientName)}
-                  {!isVisited ? (
-                    <span className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full border-2 border-card bg-destructive" />
+              <MapPinned className="h-4 w-4" />
+              Enrutar
+            </Link>
+          </div>
+
+          <div className="flex items-center gap-2 text-sm">
+            <span className="font-black text-primary">{formatCurrency(cobradoHoy)}</span>
+            <span className="text-muted-foreground">cobrado</span>
+            <span className="text-border">·</span>
+            <span className="font-black">{formatCurrency(meta)}</span>
+            <span className="text-muted-foreground">meta</span>
+            <span className="text-border">·</span>
+            <span className="font-black">{progreso}%</span>
+            <span className="text-muted-foreground">del día</span>
+          </div>
+
+          <div className="h-1 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-700"
+              style={{ width: `${progreso}%` }}
+            />
+          </div>
+
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3.5 top-3 h-4 w-4 text-muted-foreground" />
+            <input
+              className="h-10 w-full rounded-xl bg-muted/60 pl-9 pr-4 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Nombre, barrio o teléfono…"
+              type="search"
+              value={search}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 rounded-xl bg-muted p-0.5">
+            <button
+              className={cn(
+                "h-8 rounded-lg text-xs font-black transition-colors",
+                filter === "pendientes"
+                  ? "bg-background text-primary shadow-sm"
+                  : "text-muted-foreground"
+              )}
+              onClick={() => setFilter("pendientes")}
+              type="button"
+            >
+              Pendientes ({pendingCount})
+            </button>
+            <button
+              className={cn(
+                "h-8 rounded-lg text-xs font-black transition-colors",
+                filter === "visitados"
+                  ? "bg-background text-primary shadow-sm"
+                  : "text-muted-foreground"
+              )}
+              onClick={() => setFilter("visitados")}
+              type="button"
+            >
+              Visitados ({visitedSet.size})
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Lista ── */}
+      <div className="mx-auto w-full max-w-md divide-y px-4">
+        {filtered.length === 0 ? (
+          <p className="py-12 text-center text-sm text-muted-foreground">
+            {loans.length === 0
+              ? "No hay préstamos activos. Crea uno desde Nuevo."
+              : "Sin resultados para este filtro."}
+          </p>
+        ) : (
+          filtered.map((loan) => {
+            const isPaid = paidSet.has(loan.id);
+            const isNoPay = noPaySet.has(loan.id) && !isPaid;
+            const isVisited = isPaid || isNoPay;
+            const name = loan.clients?.alias ?? "Sin nombre";
+
+            return (
+              <button
+                className="flex w-full items-center gap-3.5 py-4 text-left transition-colors active:bg-muted/50"
+                key={loan.id}
+                onClick={() => setSheet({ view: "main", loan })}
+                type="button"
+              >
+                <span
+                  className={cn(
+                    "mt-0.5 h-2 w-2 shrink-0 rounded-full",
+                    isPaid ? "bg-primary" : isNoPay ? "bg-destructive" : "bg-border"
+                  )}
+                />
+                <div className="min-w-0 flex-1">
+                  <p
+                    className={cn(
+                      "truncate font-black",
+                      isVisited && "text-muted-foreground"
+                    )}
+                  >
+                    {name}
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {[
+                      loan.clients?.barrio,
+                      `${loan.cuotas_pagadas}/${loan.numero_cuotas} cuotas`
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <p
+                    className={cn(
+                      "text-sm font-black",
+                      isPaid
+                        ? "text-primary"
+                        : isNoPay
+                          ? "text-muted-foreground line-through"
+                          : "text-foreground"
+                    )}
+                  >
+                    {formatCurrency(Number(loan.valor_cuota))}
+                  </p>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
+                </div>
+              </button>
+            );
+          })
+        )}
+      </div>
+
+      {/* ── Bottom sheet ── */}
+      {sheet ? (
+        <div className="fixed inset-0 z-50">
+          <button
+            aria-label="Cerrar"
+            className="absolute inset-0 bg-foreground/40"
+            onClick={() => setSheet(null)}
+            type="button"
+          />
+          <div className="absolute bottom-0 left-0 right-0 max-h-[90vh] overflow-y-auto rounded-t-3xl bg-background shadow-2xl">
+            <div className="mx-auto max-w-md">
+              <div className="flex justify-center pb-1 pt-3">
+                <div className="h-1 w-10 rounded-full bg-border" />
+              </div>
+
+              <div className="flex items-center gap-2 px-5 py-3">
+                {sheet.view !== "main" ? (
+                  <button
+                    className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-muted text-muted-foreground"
+                    onClick={() => setSheet(backView(sheet))}
+                    type="button"
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                  </button>
+                ) : null}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xl font-black">
+                    {sheet.loan.clients?.alias ?? "Sin nombre"}
+                  </p>
+                  {sheetSubtitle(sheet.view) ? (
+                    <p className="text-xs font-bold text-muted-foreground">
+                      {sheetSubtitle(sheet.view)}
+                    </p>
                   ) : null}
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xl font-black leading-tight">{clientName}</p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {isPaid ? (
-                      <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
-                        Pago registrado hoy
-                      </span>
-                    ) : isNoPay ? (
-                      <span className="rounded-full bg-destructive/10 px-3 py-1 text-xs font-bold text-destructive">
-                        No pago hoy
-                      </span>
-                    ) : (
-                      <span className="rounded-full bg-destructive/10 px-3 py-1 text-xs font-bold text-destructive">
-                        Pendiente por visitar
-                      </span>
-                    )}
-                  </div>
-                </div>
                 <button
-                  className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-muted text-foreground transition-colors hover:bg-muted/80"
-                  onClick={() => setMenuLoan(loan)}
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-muted text-muted-foreground"
+                  onClick={() => setSheet(null)}
                   type="button"
                 >
-                  <MoreVertical className="h-6 w-6" />
+                  <X className="h-5 w-5" />
                 </button>
               </div>
 
-              <div className="mt-5 rounded-2xl bg-muted p-4">
-                <div className="grid grid-cols-[1fr_auto] gap-4">
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">
-                      Cuota de hoy
-                    </p>
-                    <p className="mt-2 text-4xl font-black">
-                      {formatCurrency(Number(loan.valor_cuota))}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">
-                      Cuotas
-                    </p>
-                    <p className="mt-2 text-2xl font-black">
-                      {loan.cuotas_pagadas} / {loan.numero_cuotas}
-                    </p>
-                    <span className="mt-1 inline-flex rounded-lg bg-background px-2 py-1 text-xs font-bold text-primary">
-                      {loan.modalidad}
-                    </span>
-                  </div>
-                </div>
+              <div className="pb-8">
+                {sheet.view === "main" ? (
+                  <SheetMain
+                    isPaid={paidSet.has(sheet.loan.id)}
+                    isNoPay={noPaySet.has(sheet.loan.id) && !paidSet.has(sheet.loan.id)}
+                    loan={sheet.loan}
+                    onSetSheet={setSheet}
+                  />
+                ) : sheet.view === "pay" ? (
+                  <SheetPay loan={sheet.loan} onSetSheet={setSheet} />
+                ) : sheet.view === "pay-confirm" ? (
+                  <SheetPayConfirm
+                    cuotas={sheet.cuotas}
+                    isPending={submittingId === sheet.loan.id}
+                    metodo={sheet.metodo}
+                    monto={sheet.monto}
+                    onBack={() => setSheet(backView(sheet))}
+                    onConfirm={() => handlePayment(sheet.loan.id, sheet.formData)}
+                  />
+                ) : sheet.view === "nopay" ? (
+                  <SheetNoPay loan={sheet.loan} onSetSheet={setSheet} />
+                ) : sheet.view === "nopay-confirm" ? (
+                  <SheetNoPayConfirm
+                    isPending={submittingId === sheet.loan.id}
+                    onBack={() => setSheet(backView(sheet))}
+                    onConfirm={() => handleNoPay(sheet.loan.id, sheet.reason)}
+                    reason={sheet.reason}
+                  />
+                ) : sheet.view === "info-details" ? (
+                  <SheetInfoDetails loan={sheet.loan} />
+                ) : sheet.view === "info-payments" ? (
+                  <SheetInfoPayments payments={paymentHistoryByLoan[sheet.loan.id] ?? []} />
+                ) : sheet.view === "info-loans" ? (
+                  <SheetInfoLoans
+                    activeLoanId={sheet.loan.id}
+                    loans={loanHistoryByClient[sheet.loan.client_id] ?? []}
+                  />
+                ) : null}
               </div>
-
-              <div className="grid grid-cols-3 gap-3 px-4 py-4 text-center">
-                <MiniStat label="Saldo" value={formatCurrency(Number(loan.saldo))} />
-                <MiniStat label="Prestamo" value={formatCurrency(Number(loan.valor_neto))} />
-                <MiniStat highlight label="Pagado" value={formatCurrency(paidAmount)} />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  className="h-12 rounded-2xl border border-destructive/20 bg-destructive/10 font-black text-destructive hover:bg-destructive/15"
-                  disabled={isSubmitting || isVisited}
-                  onClick={() => setNoPayLoan(loan)}
-                  type="button"
-                  variant="secondary"
-                >
-                  <CircleSlash className="h-5 w-5" />
-                  No Pago
-                </Button>
-                <Button
-                  className="h-12 rounded-2xl bg-primary font-black shadow-lg shadow-primary/25"
-                  disabled={isSubmitting}
-                  onClick={() => setSelectedLoan(loan)}
-                  type="button"
-                >
-                  <WalletCards className="h-5 w-5" />
-                  Pagar
-                </Button>
-              </div>
-            </article>
-          );
-        })}
-
-        {loans.length === 0 ? (
-          <div className="rounded-3xl border bg-card p-6 text-sm text-muted-foreground">
-            Todavia no hay prestamos activos. Crea el primero desde Nuevo.
+            </div>
           </div>
-        ) : null}
-
-        {loans.length > 0 && filtered.length === 0 ? (
-          <div className="rounded-3xl border bg-card p-6 text-sm text-muted-foreground">
-            No hay prestamos que coincidan con este filtro.
-          </div>
-        ) : null}
-      </section>
-
-      <PaymentModal
-        isPending={selectedLoan ? submittingId === selectedLoan.id : false}
-        loan={selectedLoan}
-        onClose={() => setSelectedLoan(null)}
-        onSubmit={handlePayment}
-      />
-      <NoPayModal
-        isPending={noPayLoan ? submittingId === noPayLoan.id : false}
-        loan={noPayLoan}
-        onClose={() => setNoPayLoan(null)}
-        onSubmit={handleNoPay}
-      />
-      <LoanActionsMenu
-        loan={menuLoan}
-        onClose={() => setMenuLoan(null)}
-        onOpenInfo={(modal) => {
-          setInfoModal(modal);
-          setMenuLoan(null);
-        }}
-      />
-      <LoanInfoModal
-        modal={infoModal}
-        loanHistoryByClient={loanHistoryByClient}
-        onClose={() => setInfoModal(null)}
-        paymentHistoryByLoan={paymentHistoryByLoan}
-      />
-    </div>
+        </div>
+      ) : null}
+    </>
   );
 }
 
-function HeroStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs font-bold uppercase tracking-[0.12em] text-white/70">{label}</p>
-      <p className="mt-1 text-xl font-black">{value}</p>
-    </div>
-  );
-}
-
-function MiniStat({
-  label,
-  value,
-  highlight
-}: {
-  label: string;
-  value: string;
-  highlight?: boolean;
-}) {
-  return (
-    <div>
-      <p className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">
-        {label}
-      </p>
-      <p className={cn("mt-1 text-base font-black", highlight && "text-primary")}>{value}</p>
-    </div>
-  );
-}
-
-function LoanActionsMenu({
+function SheetMain({
+  isPaid,
+  isNoPay,
   loan,
-  onClose,
-  onOpenInfo
+  onSetSheet
 }: {
-  loan: ClientLoan | null;
-  onClose: () => void;
-  onOpenInfo: (modal: Exclude<InfoModal, null>) => void;
+  isPaid: boolean;
+  isNoPay: boolean;
+  loan: ClientLoan;
+  onSetSheet: (state: SheetState) => void;
 }) {
-  if (!loan) {
-    return null;
-  }
-
-  const clientName = loan.clients?.alias ?? "Cliente sin nombre";
-  const phone = loan.clients?.telefono1 || loan.clients?.telefono2 || "";
+  const client = loan.clients;
+  const phone = client?.telefono1 || client?.telefono2 || "";
   const hasPhone = digitsOnly(phone).length > 0;
+  const clientName = client?.alias ?? "Sin nombre";
+  const address = [client?.direccion1, client?.barrio].filter(Boolean).join(", ");
+  const isVisited = isPaid || isNoPay;
 
   return (
-    <div className="fixed inset-0 z-50">
-      <button
-        aria-label="Cerrar menu"
-        className="absolute inset-0 bg-foreground/10"
-        onClick={onClose}
-        type="button"
-      />
-      <div className="absolute right-5 top-36 w-[min(22rem,calc(100vw-2.5rem))] rounded-[2rem] bg-background p-5 shadow-2xl">
-        <div className="mb-2 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">
-              Acciones
-            </p>
-            <p className="font-black">{clientName}</p>
-          </div>
-          <button
-            className="grid h-9 w-9 place-items-center rounded-xl bg-muted text-muted-foreground"
-            onClick={onClose}
+    <div className="space-y-4 px-5">
+      {address ? <p className="text-sm text-muted-foreground">{address}</p> : null}
+
+      {isPaid ? (
+        <span className="inline-flex rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
+          Pago registrado hoy
+        </span>
+      ) : isNoPay ? (
+        <span className="inline-flex rounded-full bg-destructive/10 px-3 py-1 text-xs font-bold text-destructive">
+          No pagó hoy
+        </span>
+      ) : null}
+
+      <div className="grid grid-cols-3 rounded-2xl bg-muted p-4 text-center">
+        <SheetStat highlight label="Cuota" value={formatCurrency(Number(loan.valor_cuota))} />
+        <SheetStat label="Saldo" value={formatCurrency(Number(loan.saldo))} />
+        <SheetStat label="Cuotas" value={`${loan.cuotas_pagadas}/${loan.numero_cuotas}`} />
+      </div>
+
+      {hasPhone ? (
+        <div className="grid grid-cols-2 gap-3">
+          <a
+            className="flex h-11 items-center justify-center gap-2 rounded-xl border text-sm font-bold"
+            href={`tel:${digitsOnly(phone)}`}
+          >
+            <Phone className="h-4 w-4" />
+            Llamar
+          </a>
+          <a
+            className="flex h-11 items-center justify-center gap-2 rounded-xl border text-sm font-bold"
+            href={whatsappHref(phone, clientName)}
+            rel="noreferrer"
+            target="_blank"
+          >
+            <MessageCircle className="h-4 w-4 text-primary" />
+            WhatsApp
+          </a>
+        </div>
+      ) : null}
+
+      {!isVisited ? (
+        <div className="grid grid-cols-2 gap-3">
+          <Button
+            className="h-12 rounded-2xl border border-destructive/20 bg-destructive/10 font-black text-destructive hover:bg-destructive/15"
+            onClick={() => onSetSheet({ view: "nopay", loan })}
+            type="button"
+            variant="secondary"
+          >
+            <CircleSlash className="h-5 w-5" />
+            No Pago
+          </Button>
+          <Button
+            className="h-12 rounded-2xl font-black shadow-lg shadow-primary/25"
+            onClick={() => onSetSheet({ view: "pay", loan })}
             type="button"
           >
-            <X className="h-4 w-4" />
-          </button>
+            <WalletCards className="h-5 w-5" />
+            Pagar
+          </Button>
         </div>
+      ) : null}
 
-        <div className="space-y-1">
-          <ActionItem
-            disabled={!hasPhone}
-            href={hasPhone ? whatsappHref(phone, clientName) : "#"}
-            icon={<MessageCircle className="h-6 w-6 text-primary" />}
-            label="Whatsapp"
-            newTab
-            onClick={onClose}
-          />
-          <ActionItem
-            disabled={!hasPhone}
-            href={hasPhone ? `tel:${digitsOnly(phone)}` : "#"}
-            icon={<Phone className="h-6 w-6" />}
-            label="Llamar"
-            onClick={onClose}
-          />
-          <ActionItem
-            icon={<FileText className="h-6 w-6" />}
-            label="Ver Detalles"
-            onClick={() => onOpenInfo({ type: "details", loan })}
-          />
-          <ActionItem
-            icon={<WalletCards className="h-6 w-6" />}
-            label="Historial de Pagos"
-            onClick={() => onOpenInfo({ type: "payments", loan })}
-          />
-          <ActionItem
-            icon={<History className="h-6 w-6" />}
-            label="Historial de Prestamos"
-            onClick={() => onOpenInfo({ type: "loans", loan })}
-          />
-          <ActionItem
-            href={`/unidad/prestamos/${loan.id}/editar-cliente`}
-            icon={<UserPen className="h-6 w-6" />}
-            label="Editar Cliente"
-            onClick={onClose}
-          />
-        </div>
+      <div className="space-y-0.5 border-t pt-2">
+        <SheetAction
+          icon={<FileText className="h-5 w-5" />}
+          label="Ver Detalles"
+          onClick={() => onSetSheet({ view: "info-details", loan })}
+        />
+        <SheetAction
+          icon={<WalletCards className="h-5 w-5" />}
+          label="Historial de Pagos"
+          onClick={() => onSetSheet({ view: "info-payments", loan })}
+        />
+        <SheetAction
+          icon={<History className="h-5 w-5" />}
+          label="Historial de Préstamos"
+          onClick={() => onSetSheet({ view: "info-loans", loan })}
+        />
+        <SheetAction
+          href={`/unidad/prestamos/${loan.id}/editar-cliente`}
+          icon={<UserPen className="h-5 w-5" />}
+          label="Editar Cliente"
+        />
       </div>
     </div>
   );
 }
 
-function ActionItem({
-  disabled,
-  href,
-  icon,
-  label,
-  newTab,
-  onClick
+function SheetPay({
+  loan,
+  onSetSheet
 }: {
-  disabled?: boolean;
-  href?: string;
-  icon: ReactNode;
-  label: string;
-  newTab?: boolean;
-  onClick: () => void;
+  loan: ClientLoan;
+  onSetSheet: (state: SheetState) => void;
 }) {
-  const className = cn(
-    "flex h-14 w-full items-center gap-4 rounded-2xl px-3 text-left text-base font-black text-muted-foreground transition-colors hover:bg-muted",
-    disabled && "pointer-events-none opacity-40"
-  );
-
-  if (href) {
-    return (
-      <Link
-        className={className}
-        href={href}
-        onClick={onClick}
-        rel={newTab ? "noreferrer" : undefined}
-        target={newTab ? "_blank" : undefined}
-      >
-        {icon}
-        {label}
-      </Link>
-    );
-  }
-
   return (
-    <button className={className} onClick={onClick} type="button">
-      {icon}
-      {label}
-    </button>
-  );
-}
-
-function LoanInfoModal({
-  loanHistoryByClient,
-  modal,
-  onClose,
-  paymentHistoryByLoan
-}: {
-  loanHistoryByClient: Record<string, LoanHistory[]>;
-  modal: InfoModal;
-  onClose: () => void;
-  paymentHistoryByLoan: Record<string, PaymentHistory[]>;
-}) {
-  if (!modal) {
-    return null;
-  }
-
-  const { loan } = modal;
-  const client = loan.clients;
-  const title =
-    modal.type === "details"
-      ? "Detalles del cliente"
-      : modal.type === "payments"
-        ? "Historial de pagos"
-        : "Historial de prestamos";
-
-  return (
-    <div className="fixed inset-0 z-50">
-      <button
-        aria-label="Cerrar informacion"
-        className="absolute inset-0 bg-foreground/55"
-        onClick={onClose}
-        type="button"
+    <form
+      className="space-y-4 px-5"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
+        onSetSheet({
+          view: "pay-confirm",
+          loan,
+          formData,
+          monto: String(formData.get("monto") ?? "0"),
+          cuotas: String(formData.get("numeroCuotas") ?? "1"),
+          metodo: String(formData.get("metodoPago") ?? "")
+        });
+      }}
+    >
+      <input name="loanId" type="hidden" value={loan.id} />
+      <PaymentInputs
+        maxCuotas={Math.max(loan.numero_cuotas - loan.cuotas_pagadas, 1)}
+        valorCuota={Number(loan.valor_cuota)}
       />
-      <div className="absolute bottom-0 left-0 right-0 max-h-[82vh] overflow-y-auto rounded-t-3xl bg-background p-5 shadow-2xl">
-        <div className="mx-auto max-w-md space-y-5">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-sm font-bold text-primary">{title}</p>
-              <h2 className="mt-1 text-2xl font-black">
-                {client?.alias ?? "Cliente sin nombre"}
-              </h2>
-            </div>
-            <button
-              className="grid h-10 w-10 place-items-center rounded-xl bg-muted text-muted-foreground"
-              onClick={onClose}
-              type="button"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
+    </form>
+  );
+}
 
-          {modal.type === "details" ? <LoanDetailsContent loan={loan} /> : null}
-          {modal.type === "payments" ? (
-            <PaymentHistoryContent payments={paymentHistoryByLoan[loan.id] ?? []} />
-          ) : null}
-          {modal.type === "loans" ? (
-            <LoanHistoryContent activeLoanId={loan.id} loans={loanHistoryByClient[loan.client_id] ?? []} />
-          ) : null}
-        </div>
+function SheetPayConfirm({
+  cuotas,
+  isPending,
+  metodo,
+  monto,
+  onBack,
+  onConfirm
+}: {
+  cuotas: string;
+  isPending: boolean;
+  metodo: string;
+  monto: string;
+  onBack: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="space-y-5 px-5">
+      <div className="rounded-2xl bg-primary/10 p-5 text-center">
+        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          Vas a registrar
+        </p>
+        <p className="mt-2 text-4xl font-black text-primary">{formatCurrency(Number(monto))}</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {cuotas} cuota(s) · {metodo}
+        </p>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Button
+          className="h-14 rounded-2xl font-black"
+          disabled={isPending}
+          onClick={onBack}
+          type="button"
+          variant="secondary"
+        >
+          Volver
+        </Button>
+        <Button
+          className="h-14 rounded-2xl font-black shadow-lg shadow-primary/20"
+          disabled={isPending}
+          onClick={onConfirm}
+          type="button"
+        >
+          {isPending ? "Guardando…" : "Confirmar"}
+        </Button>
       </div>
     </div>
   );
 }
 
-function LoanDetailsContent({ loan }: { loan: ClientLoan }) {
+function SheetNoPay({
+  loan,
+  onSetSheet
+}: {
+  loan: ClientLoan;
+  onSetSheet: (state: SheetState) => void;
+}) {
+  const [reason, setReason] = useState(noPayReasons[0]);
+
+  return (
+    <div className="space-y-4 px-5">
+      <label className="block space-y-2">
+        <span className="text-sm font-bold">Razón</span>
+        <div className="relative">
+          <select
+            className="h-12 w-full appearance-none rounded-xl bg-destructive/10 px-4 pr-10 text-sm font-medium outline-none"
+            onChange={(e) => setReason(e.target.value)}
+            value={reason}
+          >
+            {noPayReasons.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-3 top-3.5 h-5 w-5 text-muted-foreground" />
+        </div>
+      </label>
+      <Button
+        className="h-12 w-full rounded-2xl font-black"
+        onClick={() => onSetSheet({ view: "nopay-confirm", loan, reason })}
+        type="button"
+      >
+        Continuar
+      </Button>
+    </div>
+  );
+}
+
+function SheetNoPayConfirm({
+  isPending,
+  onBack,
+  onConfirm,
+  reason
+}: {
+  isPending: boolean;
+  onBack: () => void;
+  onConfirm: () => void;
+  reason: string;
+}) {
+  return (
+    <div className="space-y-5 px-5">
+      <div className="rounded-2xl bg-destructive/10 p-5 text-center">
+        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Motivo</p>
+        <p className="mt-2 text-xl font-black text-destructive">{reason}</p>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Button
+          className="h-14 rounded-2xl font-black"
+          disabled={isPending}
+          onClick={onBack}
+          type="button"
+          variant="secondary"
+        >
+          Volver
+        </Button>
+        <Button
+          className="h-14 rounded-2xl bg-destructive font-black text-destructive-foreground hover:bg-destructive/90"
+          disabled={isPending}
+          onClick={onConfirm}
+          type="button"
+        >
+          {isPending ? "Guardando…" : "Confirmar"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function SheetInfoDetails({ loan }: { loan: ClientLoan }) {
   const client = loan.clients;
   const address = [client?.direccion1, client?.direccion2, client?.barrio]
     .filter(Boolean)
     .join(", ");
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 px-5">
       <div className="grid grid-cols-2 gap-3 rounded-2xl bg-muted p-4">
         <InfoLine label="Saldo" value={formatCurrency(Number(loan.saldo))} />
         <InfoLine label="Cuota" value={formatCurrency(Number(loan.valor_cuota))} />
-        <InfoLine label="Prestamo" value={formatCurrency(Number(loan.valor_neto))} />
+        <InfoLine label="Préstamo" value={formatCurrency(Number(loan.valor_neto))} />
         <InfoLine label="Total" value={formatCurrency(Number(loan.total_a_cobrar))} />
         <InfoLine label="Cuotas" value={`${loan.cuotas_pagadas}/${loan.numero_cuotas}`} />
         <InfoLine label="Modalidad" value={loan.modalidad} />
       </div>
-      <div className="space-y-3 rounded-2xl border p-4">
-        {client?.nit ? <InfoLine label="NIT" value={client.nit} /> : null}
-        {client?.telefono1 ? <InfoLine label="Telefono 1" value={client.telefono1} /> : null}
-        {client?.telefono2 ? <InfoLine label="Telefono 2" value={client.telefono2} /> : null}
-        {address ? <InfoLine label="Direccion" value={address} /> : null}
-        {!client?.nit && !client?.telefono1 && !client?.telefono2 && !address ? (
-          <p className="text-sm text-muted-foreground">No hay datos adicionales registrados.</p>
-        ) : null}
-      </div>
+      {client?.nit || client?.telefono1 || client?.telefono2 || address ? (
+        <div className="space-y-3 rounded-2xl border p-4">
+          {client?.nit ? <InfoLine label="NIT" value={client.nit} /> : null}
+          {client?.telefono1 ? <InfoLine label="Teléfono 1" value={client.telefono1} /> : null}
+          {client?.telefono2 ? <InfoLine label="Teléfono 2" value={client.telefono2} /> : null}
+          {address ? <InfoLine label="Dirección" value={address} /> : null}
+        </div>
+      ) : null}
     </div>
   );
 }
 
-function PaymentHistoryContent({ payments }: { payments: PaymentHistory[] }) {
+function SheetInfoPayments({ payments }: { payments: PaymentHistory[] }) {
   if (payments.length === 0) {
     return (
-      <div className="rounded-2xl border p-5 text-sm text-muted-foreground">
-        Este prestamo todavia no tiene pagos registrados.
+      <div className="px-5">
+        <p className="rounded-2xl border p-5 text-sm text-muted-foreground">
+          Sin pagos registrados todavía.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 px-5">
       {payments.map((payment) => (
         <div
           className="flex items-center justify-between rounded-2xl border bg-muted/40 p-4"
@@ -678,7 +782,7 @@ function PaymentHistoryContent({ payments }: { payments: PaymentHistory[] }) {
           <div>
             <p className="font-black">{payment.fecha_pago}</p>
             <p className="text-sm text-muted-foreground">
-              {payment.numero_cuotas} cuota(s) - {payment.metodo_pago}
+              {payment.numero_cuotas} cuota(s) · {payment.metodo_pago}
             </p>
           </div>
           <p className="font-black text-primary">{formatCurrency(Number(payment.monto))}</p>
@@ -688,7 +792,7 @@ function PaymentHistoryContent({ payments }: { payments: PaymentHistory[] }) {
   );
 }
 
-function LoanHistoryContent({
+function SheetInfoLoans({
   activeLoanId,
   loans
 }: {
@@ -697,20 +801,22 @@ function LoanHistoryContent({
 }) {
   if (loans.length === 0) {
     return (
-      <div className="rounded-2xl border p-5 text-sm text-muted-foreground">
-        Este cliente todavia no tiene historial de prestamos.
+      <div className="px-5">
+        <p className="rounded-2xl border p-5 text-sm text-muted-foreground">
+          Sin historial de préstamos.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 px-5">
       {loans.map((loan) => (
         <div className="rounded-2xl border bg-muted/40 p-4" key={loan.id}>
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="font-black">
-                {loan.id === activeLoanId ? "Prestamo activo" : "Prestamo anterior"}
+                {loan.id === activeLoanId ? "Activo" : "Anterior"}
               </p>
               <p className="text-sm text-muted-foreground">
                 {loan.fecha_inicio ?? loan.created_at.slice(0, 10)}
@@ -720,10 +826,10 @@ function LoanHistoryContent({
               {loan.estado}
             </span>
           </div>
-          <div className="mt-3 grid grid-cols-3 gap-3 text-center">
-            <MiniStat label="Prestamo" value={formatCurrency(Number(loan.valor_neto))} />
-            <MiniStat label="Total" value={formatCurrency(Number(loan.total_a_cobrar))} />
-            <MiniStat label="Saldo" value={formatCurrency(Number(loan.saldo))} />
+          <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+            <InfoLine label="Préstamo" value={formatCurrency(Number(loan.valor_neto))} />
+            <InfoLine label="Total" value={formatCurrency(Number(loan.total_a_cobrar))} />
+            <InfoLine label="Saldo" value={formatCurrency(Number(loan.saldo))} />
           </div>
         </div>
       ))}
@@ -731,244 +837,63 @@ function LoanHistoryContent({
   );
 }
 
+function SheetStat({
+  highlight,
+  label,
+  value
+}: {
+  highlight?: boolean;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div>
+      <p className="text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+        {label}
+      </p>
+      <p className={cn("mt-1 text-base font-black", highlight && "text-primary")}>{value}</p>
+    </div>
+  );
+}
+
+function SheetAction({
+  href,
+  icon,
+  label,
+  onClick
+}: {
+  href?: string;
+  icon: ReactNode;
+  label: string;
+  onClick?: () => void;
+}) {
+  const cls =
+    "flex h-12 w-full items-center gap-3 rounded-xl px-2 text-sm font-bold text-muted-foreground transition-colors hover:bg-muted active:bg-muted";
+
+  if (href) {
+    return (
+      <Link className={cls} href={href}>
+        {icon}
+        {label}
+      </Link>
+    );
+  }
+
+  return (
+    <button className={cls} onClick={onClick} type="button">
+      {icon}
+      {label}
+    </button>
+  );
+}
+
 function InfoLine({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">
+      <p className="text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">
         {label}
       </p>
-      <p className="mt-1 font-black">{value}</p>
-    </div>
-  );
-}
-
-function PaymentModal({
-  isPending,
-  loan,
-  onClose,
-  onSubmit
-}: {
-  isPending: boolean;
-  loan: ClientLoan | null;
-  onClose: () => void;
-  onSubmit: (loanId: string, formData: FormData) => void;
-}) {
-  const [confirmation, setConfirmation] = useState<{
-    formData: FormData;
-    monto: string;
-    cuotas: string;
-    metodo: string;
-  } | null>(null);
-
-  if (!loan) {
-    return null;
-  }
-
-  const clientName = loan.clients?.alias ?? "Cliente sin nombre";
-
-  return (
-    <div className="fixed inset-0 z-50">
-      <button
-        aria-label="Cerrar pago"
-        className="absolute inset-0 bg-foreground/55"
-        onClick={onClose}
-        type="button"
-      />
-      <div className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-background p-5 shadow-2xl">
-        <div className="mx-auto max-w-md space-y-6">
-          <div className="relative px-10 text-center">
-            <h2 className="text-3xl font-black leading-tight">
-              Registrar Pago a
-              <span className="block text-primary">{clientName}</span>
-            </h2>
-            <button
-              className="absolute right-0 top-0 grid h-10 w-10 place-items-center rounded-xl text-muted-foreground"
-              onClick={onClose}
-              type="button"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3 rounded-2xl bg-muted p-4 text-center">
-            <MiniStat label="Saldo" value={formatCurrency(Number(loan.saldo))} />
-            <MiniStat label="Cuotas" value={`${loan.cuotas_pagadas}/${loan.numero_cuotas}`} />
-            <MiniStat highlight label="Cuota" value={formatCurrency(Number(loan.valor_cuota))} />
-          </div>
-
-          {confirmation ? (
-            <div className="space-y-5">
-              <div className="rounded-2xl bg-primary/10 p-4 text-center">
-                <p className="text-sm font-bold text-muted-foreground">Confirmar pago</p>
-                <p className="mt-2 text-3xl font-black text-primary">
-                  {formatCurrency(Number(confirmation.monto))}
-                </p>
-                <p className="mt-1 text-sm font-medium text-muted-foreground">
-                  {confirmation.cuotas} cuota(s) - {confirmation.metodo}
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  className="h-14 rounded-2xl font-black"
-                  disabled={isPending}
-                  onClick={() => setConfirmation(null)}
-                  type="button"
-                  variant="secondary"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  className="h-14 rounded-2xl font-black shadow-lg shadow-primary/20"
-                  disabled={isPending}
-                  onClick={() => onSubmit(loan.id, confirmation.formData)}
-                  type="button"
-                >
-                  {isPending ? "Guardando..." : "Confirmar"}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <form
-              className="space-y-4"
-              onSubmit={(event) => {
-                event.preventDefault();
-                const formData = new FormData(event.currentTarget);
-                setConfirmation({
-                  formData,
-                  monto: String(formData.get("monto") ?? "0"),
-                  cuotas: String(formData.get("numeroCuotas") ?? "1"),
-                  metodo: String(formData.get("metodoPago") ?? "")
-                });
-              }}
-            >
-              <input name="loanId" type="hidden" value={loan.id} />
-              <PaymentInputs
-                isPending={isPending}
-                maxCuotas={Math.max(loan.numero_cuotas - loan.cuotas_pagadas, 1)}
-                valorCuota={Number(loan.valor_cuota)}
-              />
-            </form>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const noPayReasons = [
-  "No estaba en casa",
-  "No contesta",
-  "Dice que paga manana",
-  "Sin dinero",
-  "Direccion incorrecta",
-  "Otro"
-];
-
-function NoPayModal({
-  isPending,
-  loan,
-  onClose,
-  onSubmit
-}: {
-  isPending: boolean;
-  loan: ClientLoan | null;
-  onClose: () => void;
-  onSubmit: (loanId: string, nota: string) => void;
-}) {
-  const [reason, setReason] = useState(noPayReasons[0]);
-  const [confirming, setConfirming] = useState(false);
-
-  if (!loan) {
-    return null;
-  }
-
-  const clientName = loan.clients?.alias ?? "Cliente sin nombre";
-
-  return (
-    <div className="fixed inset-0 z-50">
-      <button
-        aria-label="Cerrar no pago"
-        className="absolute inset-0 bg-foreground/55"
-        onClick={onClose}
-        type="button"
-      />
-      <div className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-background p-5 shadow-2xl">
-        <div className="mx-auto max-w-md space-y-6">
-          <div className="relative px-10 text-center">
-            <h2 className="text-3xl font-black leading-tight">
-              Marcar como no pagado a
-              <span className="block text-primary">{clientName} ?</span>
-            </h2>
-            <button
-              className="absolute right-0 top-0 grid h-10 w-10 place-items-center rounded-xl text-muted-foreground"
-              onClick={onClose}
-              type="button"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-
-          {confirming ? (
-            <div className="space-y-5">
-              <div className="rounded-2xl bg-destructive/10 p-4 text-center">
-                <p className="text-sm font-bold text-muted-foreground">Confirmar no pago</p>
-                <p className="mt-2 text-xl font-black text-destructive">{reason}</p>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  className="h-14 rounded-2xl font-black"
-                  disabled={isPending}
-                  onClick={() => setConfirming(false)}
-                  type="button"
-                  variant="secondary"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  className="h-14 rounded-2xl font-black shadow-lg shadow-primary/20"
-                  disabled={isPending}
-                  onClick={() => onSubmit(loan.id, reason)}
-                  type="button"
-                >
-                  {isPending ? "Guardando..." : "Confirmar"}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <label className="block space-y-3">
-                <span className="text-base font-medium">
-                  Razon <span className="text-destructive">*</span>
-                </span>
-                <div className="relative">
-                  <select
-                    className="h-14 w-full appearance-none rounded-xl bg-primary/10 px-4 pr-11 text-base font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    name="nota"
-                    onChange={(event) => setReason(event.target.value)}
-                    value={reason}
-                  >
-                    {noPayReasons.map((item) => (
-                      <option key={item} value={item}>
-                        {item}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-4 top-4 h-6 w-6 text-muted-foreground" />
-                </div>
-              </label>
-
-              <Button
-                className="h-14 w-full rounded-2xl text-base font-black shadow-lg shadow-primary/20"
-                disabled={isPending}
-                onClick={() => setConfirming(true)}
-                type="button"
-              >
-                Continuar
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
+      <p className="mt-0.5 font-black">{value}</p>
     </div>
   );
 }
