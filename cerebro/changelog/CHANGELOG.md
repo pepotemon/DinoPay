@@ -12,6 +12,22 @@ updated: 2026-07-24
 
 ---
 
+## [0.16.0] — 2026-07-28
+
+### Agregado / Modificado
+
+**Rediseño completo de Flujo Semanal** (`/unidad/flujo-semanal`)
+- Hero: "Flujo" (negro) + "Semanal" (primary) + 👻 emoji
+- Rango de fechas libre (ya no fijado a semana de lunes a domingo): dos date pickers Fecha Inicial / Fecha Final; por defecto inicio de semana a hoy
+- "Crear Ajuste" → bottom sheet con tipo (ingreso/egreso), monto, fecha, descripción; usa `useActionState`
+- **5 tarjetas de resumen**: Cobrado (con sub-líneas Transferencia/Efectivo) | Prestado, Gastos | Recaudado (net), Ajustes (ancho completo)
+- **"Copiar Resumen"** y **"Copiar Todo"** con `navigator.clipboard.writeText` + feedback visual (Check icon 2s)
+- **Tarjetas diarias** (una por cada día del rango): header en primary con fecha larga + botón copiar individual; líneas con icono + Prestado(-) / Cobrado / Transferencia / Efectivo / Gastos(-) / Ajustes / Total Recaudado / Total Final
+- Todo el filtrado es client-side (servidor precarga 90 días); cambio de rango de fechas es instantáneo
+- `createAjusteAction` actualizada: redirect a `/unidad/flujo-semanal` (sin params de semana)
+
+---
+
 ## [0.15.0] — 2026-07-28
 
 ### Agregado / Modificado

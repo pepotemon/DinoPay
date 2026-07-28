@@ -54,7 +54,7 @@ export async function createAjusteAction(
   if (error) return { ok: false, message: error.message };
 
   revalidatePath("/unidad/flujo-semanal");
-  redirect(`/unidad/flujo-semanal?semana=${parsed.data.semanaInicio}`);
+  redirect("/unidad/flujo-semanal");
 }
 
 export type UpdateAjusteState = {
