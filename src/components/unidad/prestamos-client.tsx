@@ -19,6 +19,7 @@ import {
   Phone,
   Receipt,
   Search,
+  Trash2,
   UserPen,
   WalletCards,
   X
@@ -31,6 +32,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PaymentInputs } from "@/components/unidad/payment-inputs";
 import {
+  deleteLoanResult,
+  deletePaymentResult,
   markNoPayVisitResult,
   registerPaymentAction
 } from "@/lib/actions/unidad/payments";
@@ -110,6 +113,9 @@ type Props = {
   meta: number;
   totalSaldo: number;
   countryCode: string | null;
+  canDeleteLoans: boolean;
+  canDeletePayments: boolean;
+  today: string;
   zonaHoraria: string;
 };
 
@@ -130,7 +136,18 @@ type SheetState =
   | { view: "info-details"; loan: ClientLoan }
   | { view: "info-payments"; loan: PaymentLoanContext; clientLoan: ClientLoan }
   | { view: "info-loans"; loan: ClientLoan }
-  | { view: "receipt"; loan: ClientLoan };
+  | { view: "receipt"; loan: ClientLoan }
+  | {
+      view: "delete-payment-confirm";
+      loan: PaymentLoanContext;
+      clientLoan: ClientLoan;
+      payment: PaymentHistory;
+    }
+  | {
+      view: "delete-loan-confirm";
+      loan: ClientLoan | LoanHistory;
+      clientLoan: ClientLoan;
+    };
 
 const noPayReasons = [
   "No estaba en casa",
@@ -184,6 +201,10 @@ function backView(sheet: Exclude<SheetState, null>): SheetState {
       return { view: "main", loan: sheet.loan };
     case "info-payments":
       return { view: "main", loan: sheet.clientLoan };
+    case "delete-payment-confirm":
+      return { view: "info-payments", loan: sheet.loan, clientLoan: sheet.clientLoan };
+    case "delete-loan-confirm":
+      return { view: "info-loans", loan: sheet.clientLoan };
     case "pay-confirm":
       return { view: "pay", loan: sheet.loan };
     case "nopay-confirm":
@@ -209,6 +230,10 @@ function sheetSubtitle(view: Exclude<SheetState, null>["view"]) {
       return "Historial";
     case "receipt":
       return "Recibo de pago";
+    case "delete-payment-confirm":
+      return "Confirmar anulacion";
+    case "delete-loan-confirm":
+      return "Confirmar eliminacion";
     default:
       return null;
   }
@@ -225,6 +250,9 @@ export function PrestamosClient({
   cobradoHoy,
   meta,
   countryCode,
+  canDeleteLoans,
+  canDeletePayments,
+  today,
   zonaHoraria
 }: Props) {
   const router = useRouter();
@@ -288,6 +316,36 @@ export function PrestamosClient({
       if (result.ok) {
         setSheet(null);
         toast.success("Marcado sin pago");
+        router.refresh();
+      } else {
+        toast.error(result.message);
+      }
+    });
+  }
+
+  function handleDeletePayment(paymentId: string) {
+    setSubmittingId(paymentId);
+    startTransition(async () => {
+      const result = await deletePaymentResult(paymentId);
+      setSubmittingId(null);
+      if (result.ok) {
+        setSheet(null);
+        toast.success(result.message);
+        router.refresh();
+      } else {
+        toast.error(result.message);
+      }
+    });
+  }
+
+  function handleDeleteLoan(loanId: string) {
+    setSubmittingId(loanId);
+    startTransition(async () => {
+      const result = await deleteLoanResult(loanId);
+      setSubmittingId(null);
+      if (result.ok) {
+        setSheet(null);
+        toast.success(result.message);
         router.refresh();
       } else {
         toast.error(result.message);
@@ -466,6 +524,10 @@ export function PrestamosClient({
                       <p className="truncate text-base font-black">
                         {sheet.view === "info-payments"
                           ? (sheet.clientLoan.clients?.alias ?? "Sin nombre")
+                          : sheet.view === "delete-payment-confirm"
+                            ? (sheet.clientLoan.clients?.alias ?? "Sin nombre")
+                          : sheet.view === "delete-loan-confirm"
+                            ? (sheet.clientLoan.clients?.alias ?? "Sin nombre")
                           : ((sheet.loan as ClientLoan).clients?.alias ?? "Sin nombre")}
                       </p>
                       {sheetSubtitle(sheet.view) ? (
@@ -519,8 +581,18 @@ export function PrestamosClient({
                   />
                 ) : sheet.view === "info-payments" ? (
                   <SheetInfoPayments
+                    canDeletePayments={canDeletePayments}
                     loan={sheet.loan}
+                    onDeletePayment={(payment) =>
+                      setSheet({
+                        view: "delete-payment-confirm",
+                        loan: sheet.loan,
+                        clientLoan: sheet.clientLoan,
+                        payment
+                      })
+                    }
                     payments={paymentHistoryByLoan[sheet.loan.id] ?? []}
+                    today={today}
                   />
 
                 ) : sheet.view === "info-loans" ? (
@@ -529,9 +601,14 @@ export function PrestamosClient({
                     loans={loanHistoryByClient[sheet.loan.client_id] ?? []}
                     overdue={overdueByLoan[sheet.loan.id] ?? 0}
                     paymentHistoryByLoan={paymentHistoryByLoan}
+                    canDeleteLoans={canDeleteLoans}
+                    onDeleteLoan={(loan) =>
+                      setSheet({ view: "delete-loan-confirm", loan, clientLoan: sheet.loan })
+                    }
                     onViewPayments={(loan) =>
                       setSheet({ view: "info-payments", loan, clientLoan: sheet.loan })
                     }
+                    today={today}
                   />
                 ) : sheet.view === "receipt" ? (
                   <SheetReceipt
@@ -539,6 +616,20 @@ export function PrestamosClient({
                     loan={sheet.loan}
                     payments={paymentHistoryByLoan[sheet.loan.id] ?? []}
                     zonaHoraria={zonaHoraria}
+                  />
+                ) : sheet.view === "delete-payment-confirm" ? (
+                  <SheetDeletePaymentConfirm
+                    isPending={submittingId === sheet.payment.id}
+                    onBack={() => setSheet(backView(sheet))}
+                    onConfirm={() => handleDeletePayment(sheet.payment.id)}
+                    payment={sheet.payment}
+                  />
+                ) : sheet.view === "delete-loan-confirm" ? (
+                  <SheetDeleteLoanConfirm
+                    isPending={submittingId === sheet.loan.id}
+                    loan={sheet.loan}
+                    onBack={() => setSheet(backView(sheet))}
+                    onConfirm={() => handleDeleteLoan(sheet.loan.id)}
                   />
                 ) : null}
               </div>
@@ -923,6 +1014,100 @@ function SheetNoPayConfirm({
   );
 }
 
+function SheetDeletePaymentConfirm({
+  isPending,
+  onBack,
+  onConfirm,
+  payment
+}: {
+  isPending: boolean;
+  onBack: () => void;
+  onConfirm: () => void;
+  payment: PaymentHistory;
+}) {
+  return (
+    <div className="space-y-3 px-3">
+      <div className="rounded-xl bg-destructive/10 px-4 py-3 text-center">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+          Vas a eliminar este abono
+        </p>
+        <p className="mt-1 text-2xl font-black text-destructive">
+          {formatCurrency(Number(payment.monto))}
+        </p>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Se reversa el saldo y las cuotas del prestamo.
+        </p>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <Button
+          className="h-10 rounded-xl text-sm font-black"
+          disabled={isPending}
+          onClick={onBack}
+          type="button"
+          variant="secondary"
+        >
+          Volver
+        </Button>
+        <Button
+          className="h-10 rounded-xl bg-destructive text-sm font-black text-destructive-foreground hover:bg-destructive/90"
+          disabled={isPending}
+          onClick={onConfirm}
+          type="button"
+        >
+          {isPending ? "Eliminando..." : "Eliminar"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function SheetDeleteLoanConfirm({
+  isPending,
+  loan,
+  onBack,
+  onConfirm
+}: {
+  isPending: boolean;
+  loan: ClientLoan | LoanHistory;
+  onBack: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="space-y-3 px-3">
+      <div className="rounded-xl bg-destructive/10 px-4 py-3 text-center">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+          Vas a eliminar este prestamo
+        </p>
+        <p className="mt-1 text-2xl font-black text-destructive">
+          {formatCurrency(Number(loan.valor_neto))}
+        </p>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Solo se permite si fue creado hoy y no tiene abonos.
+        </p>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <Button
+          className="h-10 rounded-xl text-sm font-black"
+          disabled={isPending}
+          onClick={onBack}
+          type="button"
+          variant="secondary"
+        >
+          Volver
+        </Button>
+        <Button
+          className="h-10 rounded-xl bg-destructive text-sm font-black text-destructive-foreground hover:bg-destructive/90"
+          disabled={isPending}
+          onClick={onConfirm}
+          type="button"
+        >
+          {isPending ? "Eliminando..." : "Eliminar"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function SheetInfoDetails({
   lastPayment,
   loan
@@ -977,11 +1162,17 @@ function fmtCuotaNum(n: number): string {
 }
 
 function SheetInfoPayments({
+  canDeletePayments,
   loan,
-  payments
+  onDeletePayment,
+  payments,
+  today
 }: {
+  canDeletePayments: boolean;
   loan: PaymentLoanContext;
+  onDeletePayment: (payment: PaymentHistory) => void;
   payments: PaymentHistory[];
+  today: string;
 }) {
   const totalPagado = loan.total_a_cobrar - loan.saldo;
   const cuotasFrac = totalPagado / loan.valor_cuota;
@@ -1075,6 +1266,16 @@ function SheetInfoPayments({
                   <p className="text-lg font-black">{formatCurrency(Number(payment.monto))}</p>
                 </div>
               </div>
+              {canDeletePayments && payment.fecha_pago === today ? (
+                <button
+                  className="mt-3 flex h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-destructive/20 bg-destructive/10 text-xs font-black text-destructive"
+                  onClick={() => onDeletePayment(payment)}
+                  type="button"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Eliminar abono
+                </button>
+              ) : null}
             </div>
           ))}
         </div>
@@ -1090,19 +1291,24 @@ function formatDateNice(dateStr: string | null | undefined): string {
 }
 
 function LoanCard({
+  canDeleteLoan,
   loan,
   payments,
   overdueActiveDays,
   isActive,
+  onDeleteLoan,
   onViewPayments
 }: {
+  canDeleteLoan: boolean;
   loan: ClientLoan | LoanHistory;
   payments: PaymentHistory[];
   overdueActiveDays?: number;
   isActive: boolean;
+  onDeleteLoan: (loan: ClientLoan | LoanHistory) => void;
   onViewPayments: () => void;
 }) {
   const cuotasFrac = (loan.total_a_cobrar - loan.saldo) / loan.valor_cuota;
+  const showDeleteLoan = canDeleteLoan && payments.length === 0;
 
   // Cuotas parciales = pagos donde monto < valor_cuota
   const cuotasParciales = payments.filter(
@@ -1194,29 +1400,47 @@ function LoanCard({
         </ul>
       </div>
 
-      <Button
-        className="h-12 w-full rounded-2xl font-black shadow-lg shadow-primary/20"
-        onClick={onViewPayments}
-        type="button"
-      >
-        Ver Pagos
-      </Button>
+      <div className="grid gap-2">
+        <Button
+          className="h-12 w-full rounded-2xl font-black shadow-lg shadow-primary/20"
+          onClick={onViewPayments}
+          type="button"
+        >
+          Ver Pagos
+        </Button>
+        {showDeleteLoan ? (
+          <button
+            className="flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-destructive/20 bg-destructive/10 text-xs font-black text-destructive"
+            onClick={() => onDeleteLoan(loan)}
+            type="button"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Eliminar prestamo
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }
 
 function SheetInfoLoans({
   activeLoan,
+  canDeleteLoans,
   loans,
   overdue,
+  onDeleteLoan,
   paymentHistoryByLoan,
-  onViewPayments
+  onViewPayments,
+  today
 }: {
   activeLoan: ClientLoan;
+  canDeleteLoans: boolean;
   loans: LoanHistory[];
   overdue: number;
+  onDeleteLoan: (loan: ClientLoan | LoanHistory) => void;
   paymentHistoryByLoan: Record<string, PaymentHistory[]>;
   onViewPayments: (loan: PaymentLoanContext) => void;
+  today: string;
 }) {
   const previousLoans = loans.filter((l) => l.id !== activeLoan.id);
 
@@ -1228,9 +1452,11 @@ function SheetInfoLoans({
           <p className="font-black">Detalles del Préstamo</p>
         </div>
         <LoanCard
+          canDeleteLoan={canDeleteLoans && activeLoan.created_at.slice(0, 10) === today}
           isActive
           loan={activeLoan}
           overdueActiveDays={overdue}
+          onDeleteLoan={onDeleteLoan}
           payments={paymentHistoryByLoan[activeLoan.id] ?? []}
           onViewPayments={() => onViewPayments(activeLoan)}
         />
@@ -1260,8 +1486,10 @@ function SheetInfoLoans({
                 </span>
               </div>
               <LoanCard
+                canDeleteLoan={canDeleteLoans && loan.created_at.slice(0, 10) === today}
                 isActive={false}
                 loan={loan}
+                onDeleteLoan={onDeleteLoan}
                 payments={paymentHistoryByLoan[loan.id] ?? []}
                 onViewPayments={() => onViewPayments(loan)}
               />

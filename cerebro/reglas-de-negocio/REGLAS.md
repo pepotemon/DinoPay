@@ -83,13 +83,24 @@ ultima_cuota_fecha = fecha_pago
 Si `saldo <= 0` o `cuotas_pagadas >= numero_cuotas` → el préstamo se completa (R-PRE-07).
 
 ### R-PAG-05: Eliminar pago
-Un pago solo se puede eliminar dentro del período de `dias_bloqueados_eliminacion` configurado en la unidad.
+Un pago solo se puede eliminar si se cumplen ambas condiciones:
+1. La unidad tiene `puede_eliminar_abonos = true` configurado por el administrador.
+2. El pago fue registrado el mismo dia (`fecha_pago = current_date`).
 
 Al eliminar un pago:
-1. El pago se marca como `eliminado = true` en la tabla `payments`
-2. Se revierte el saldo y las cuotas en el préstamo
-3. Se crea un `box_adjustment` de tipo `salida` (el dinero "sale" de la caja porque fue devuelto)
-4. El préstamo vuelve a estado `activo` si estaba `completado`
+1. El pago se marca como `eliminado = true` en la tabla `payments`.
+2. Se revierte el saldo del prestamo hasta maximo `total_a_cobrar`.
+3. Se revierten solo las cuotas completas realmente cubiertas por el monto del pago.
+4. El prestamo vuelve a estado `activo` si estaba `completado`.
+
+### R-PRE-08: Eliminar prestamo
+Un prestamo solo se puede eliminar si se cumplen todas estas condiciones:
+1. La unidad tiene `puede_eliminar_prestamos = true` configurado por el administrador.
+2. El prestamo fue creado el mismo dia (`created_at::date = current_date`).
+3. El prestamo no tiene ningun abono registrado en `payments`, incluso si hubiera pagos anulados.
+
+El borrado del prestamo es fisico y primero limpia visitas asociadas (`loan_visits`).
+
 
 ### R-PAG-06: Métodos de pago
 Los métodos son **efectivo** y **transferencia**. Ambos afectan la caja de la misma manera (solo diferencia en reportes de efectivo vs. transferencia).

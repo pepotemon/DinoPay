@@ -127,6 +127,65 @@ export async function deletePaymentAction(formData: FormData) {
   redirect("/unidad/prestamos");
 }
 
+export async function deletePaymentResult(
+  paymentId: string
+): Promise<{ ok: boolean; message: string }> {
+  const parsed = z.string().uuid().safeParse(paymentId);
+  if (!parsed.success) return { ok: false, message: "ID de pago invalido." };
+
+  const supabase = await createClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) return { ok: false, message: "Sesion expirada." };
+
+  const adminClient = createAdminClient();
+  const { error } = await adminClient.rpc("reverse_payment", {
+    p_payment_id: parsed.data,
+    p_unit_id: user.id
+  });
+
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath("/unidad/prestamos");
+  revalidatePath("/unidad/reporte-diario");
+  revalidatePath("/unidad/reportes");
+  revalidatePath("/unidad/flujo-semanal");
+
+  return { ok: true, message: "Abono eliminado." };
+}
+
+export async function deleteLoanResult(
+  loanId: string
+): Promise<{ ok: boolean; message: string }> {
+  const parsed = z.string().uuid().safeParse(loanId);
+  if (!parsed.success) return { ok: false, message: "ID de prestamo invalido." };
+
+  const supabase = await createClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) return { ok: false, message: "Sesion expirada." };
+
+  const adminClient = createAdminClient();
+  const { error } = await adminClient.rpc("delete_loan_same_day", {
+    p_loan_id: parsed.data,
+    p_unit_id: user.id
+  });
+
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath("/unidad/prestamos");
+  revalidatePath("/unidad/disponibles");
+  revalidatePath("/unidad/reporte-diario");
+  revalidatePath("/unidad/reportes");
+  revalidatePath("/unidad/flujo-semanal");
+
+  return { ok: true, message: "Prestamo eliminado." };
+}
+
 export async function markNoPayVisitAction(formData: FormData) {
   const parsed = noPayVisitSchema.safeParse({
     loanId: formData.get("loanId"),

@@ -118,6 +118,8 @@ export default async function PrestamosPage() {
   const diasLaborales: number[] = Array.isArray(unit?.dias_laborales) ? unit.dias_laborales : [];
   const zonaHoraria: string = unit?.zona_horaria ?? "America/Bogota";
   const encargado: string = unit?.encargado ?? "";
+  const canDeletePayments = unit?.puede_eliminar_abonos === true;
+  const canDeleteLoans = unit?.puede_eliminar_prestamos === true;
 
   const holidayDates = countryCode
     ? await getHolidayDates(countryCode, currentYear)
@@ -208,6 +210,8 @@ export default async function PrestamosPage() {
       adelantadasByLoan={adelantadasByLoan}
       cobradoHoy={cobradoHoy}
       countryCode={countryCode}
+      canDeleteLoans={canDeleteLoans}
+      canDeletePayments={canDeletePayments}
       loans={loans}
       loanHistoryByClient={loanHistoryByClient}
       meta={meta}
@@ -216,6 +220,7 @@ export default async function PrestamosPage() {
       paymentHistoryByLoan={paymentHistoryByLoan}
       paidLoanIds={paidLoanIds}
       totalSaldo={totalSaldo}
+      today={today}
       zonaHoraria={zonaHoraria}
     />
   );

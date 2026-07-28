@@ -33,6 +33,8 @@ const createUnitSchema = z
     ciudad: z.string().min(2, "La ciudad es obligatoria."),
     zonaHoraria: z.string().min(2),
     diasBloqueadosEliminacion: z.coerce.number().int().min(0),
+    puedeEliminarAbonos: z.coerce.boolean().default(false),
+    puedeEliminarPrestamos: z.coerce.boolean().default(false),
     diasLaborales: z.array(z.coerce.number().int().min(0).max(6)).min(1),
     intereses: z
       .string()
@@ -72,6 +74,8 @@ export async function createUnitAction(
     ciudad: formData.get("ciudad"),
     zonaHoraria: formData.get("zonaHoraria"),
     diasBloqueadosEliminacion: formData.get("diasBloqueadosEliminacion"),
+    puedeEliminarAbonos: formData.get("puedeEliminarAbonos") === "on",
+    puedeEliminarPrestamos: formData.get("puedeEliminarPrestamos") === "on",
     diasLaborales: formData.getAll("diasLaborales"),
     intereses: formData.get("intereses")
   };
@@ -150,6 +154,8 @@ export async function createUnitAction(
     zona_horaria: input.zonaHoraria,
     dias_laborales: input.diasLaborales,
     dias_bloqueados_eliminacion: input.diasBloqueadosEliminacion,
+    puede_eliminar_abonos: input.puedeEliminarAbonos,
+    puede_eliminar_prestamos: input.puedeEliminarPrestamos,
     intereses: input.intereses
   });
 

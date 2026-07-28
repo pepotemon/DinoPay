@@ -276,6 +276,30 @@ export function CreateUnitForm({ createUnit }: { createUnit: CreateUnitAction })
         </div>
       </section>
 
+      <section className="space-y-2">
+        <p className="text-sm font-medium">Permisos de eliminacion</p>
+        <div className="grid gap-2 md:grid-cols-2">
+          <label className="flex items-start gap-3 rounded-md border px-3 py-3 text-sm">
+            <input className="mt-0.5 h-4 w-4 accent-primary" name="puedeEliminarAbonos" type="checkbox" />
+            <span>
+              <span className="block font-medium">Eliminar abonos del dia</span>
+              <span className="text-xs text-muted-foreground">
+                La unidad solo podra anular abonos registrados hoy.
+              </span>
+            </span>
+          </label>
+          <label className="flex items-start gap-3 rounded-md border px-3 py-3 text-sm">
+            <input className="mt-0.5 h-4 w-4 accent-primary" name="puedeEliminarPrestamos" type="checkbox" />
+            <span>
+              <span className="block font-medium">Eliminar prestamos del dia</span>
+              <span className="text-xs text-muted-foreground">
+                Solo prestamos creados hoy y sin abonos.
+              </span>
+            </span>
+          </label>
+        </div>
+      </section>
+
       {state.message ? (
         <div
           className={

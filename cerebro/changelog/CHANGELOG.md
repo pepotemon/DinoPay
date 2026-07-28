@@ -12,6 +12,17 @@ updated: 2026-07-24
 
 ---
 
+## [0.18.0] -- 2026-07-28
+
+### Agregado / Modificado
+
+**Permisos de eliminacion para unidades**
+- Nuevos permisos por unidad: eliminar abonos del dia y eliminar prestamos del dia.
+- Historial de pagos muestra "Eliminar abono" solo si el abono es de hoy y la unidad tiene permiso.
+- Historial de prestamos muestra "Eliminar prestamo" solo si fue creado hoy, no tiene abonos y la unidad tiene permiso.
+- Nuevas RPCs seguras: `reverse_payment` valida permiso/mismo dia y `delete_loan_same_day` valida permiso/mismo dia/sin abonos.
+
+---
 ## [0.17.1] -- 2026-07-28
 
 ### Modificado

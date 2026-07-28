@@ -52,6 +52,8 @@ CREATE TABLE units (
   zona_horaria TEXT NOT NULL DEFAULT 'America/Bogota',
   dias_laborales JSONB NOT NULL DEFAULT '[1,2,3,4,5]'::jsonb,
   dias_bloqueados_eliminacion INTEGER NOT NULL DEFAULT 0,
+  puede_eliminar_abonos BOOLEAN NOT NULL DEFAULT FALSE,
+  puede_eliminar_prestamos BOOLEAN NOT NULL DEFAULT FALSE,
   intereses JSONB NOT NULL DEFAULT '[10,15,20]'::jsonb,
   activo BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL

@@ -7,7 +7,7 @@ const _fetchUnitMeta = unstable_cache(
     const { data } = await adminClient
       .from("units")
       .select(
-        "pais_codigo, pais, dias_laborales, zona_horaria, nombre_unidad, encargado, intereses, username"
+        "pais_codigo, pais, dias_laborales, zona_horaria, nombre_unidad, encargado, intereses, username, puede_eliminar_abonos, puede_eliminar_prestamos"
       )
       .eq("id", unitId)
       .maybeSingle();

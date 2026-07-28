@@ -72,6 +72,8 @@ Unidades creadas por el administrador. Cada unidad es un agente de cobro con su 
 | `zona_horaria` | text | Ej: 'America/Bogota' |
 | `dias_laborales` | jsonb | Array: [1,2,3,4,5] (lunes a viernes) |
 | `dias_bloqueados_eliminacion` | integer | Días después de pago en que no se puede eliminar |
+| `puede_eliminar_abonos` | boolean | Permite a la unidad eliminar abonos registrados hoy |
+| `puede_eliminar_prestamos` | boolean | Permite a la unidad eliminar prestamos creados hoy sin abonos |
 | `intereses` | jsonb | Array de % permitidos: [5, 10, 15, 20] |
 | `activo` | boolean | Si la unidad está activa |
 | `created_at` | timestamptz | Fecha de creación |
@@ -92,6 +94,8 @@ CREATE TABLE units (
   zona_horaria TEXT NOT NULL DEFAULT 'America/Bogota',
   dias_laborales JSONB DEFAULT '[1,2,3,4,5]',
   dias_bloqueados_eliminacion INTEGER DEFAULT 0,
+  puede_eliminar_abonos BOOLEAN DEFAULT FALSE,
+  puede_eliminar_prestamos BOOLEAN DEFAULT FALSE,
   intereses JSONB DEFAULT '[10,15,20]',
   activo BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMPTZ DEFAULT NOW()
