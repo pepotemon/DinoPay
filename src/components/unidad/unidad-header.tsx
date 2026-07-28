@@ -1,6 +1,5 @@
 "use client";
 
-import { Globe } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -56,14 +55,15 @@ export function UnidadHeaderInfo() {
     hour12: true,
   });
 
-  const countryLabel = meta.pais_codigo?.toUpperCase() ?? meta.pais;
-
   return (
     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-      <span className="flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 font-bold text-foreground">
-        <Globe className="h-3 w-3" />
-        {countryLabel}
-      </span>
+      {meta.pais_codigo ? (
+        <img
+          alt={meta.pais_codigo}
+          className="h-3.5 w-5 rounded-[2px] object-cover shadow-sm"
+          src={`https://flagcdn.com/w40/${meta.pais_codigo.toLowerCase()}.png`}
+        />
+      ) : null}
       <span className="font-medium">{dateStr} · {timeStr}</span>
       <span className="text-border">·</span>
       <span className="font-bold text-foreground">@{meta.username}</span>
