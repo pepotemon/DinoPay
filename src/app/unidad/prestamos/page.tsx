@@ -2,8 +2,9 @@ import { redirect } from "next/navigation";
 import { PrestamosClient } from "@/components/unidad/prestamos-client";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { syncHolidaysAction } from "@/lib/actions/admin/holidays";
 import { calcularCuotasAdelantadas, calcularDiasAtraso } from "@/lib/utils/overdue";
+import { getUnitMeta } from "@/lib/data/unit";
+import { getHolidayDates } from "@/lib/data/holidays";
 
 type RawLoanRow = {
   id: string;
@@ -81,7 +82,7 @@ export default async function PrestamosPage() {
   const today = new Date().toISOString().slice(0, 10);
   const currentYear = new Date().getFullYear();
 
-  const [{ data: rawLoans }, { data: paymentsToday }, { data: visitsToday }, { data: unitData }] =
+  const [{ data: rawLoans }, { data: paymentsToday }, { data: visitsToday }, unit] =
     await Promise.all([
       adminClient
         .from("loans")
@@ -103,11 +104,7 @@ export default async function PrestamosPage() {
         .eq("unit_id", user.id)
         .eq("fecha", today)
         .eq("tipo", "no_pago"),
-      adminClient
-        .from("units")
-        .select("pais_codigo, dias_laborales, zona_horaria, nombre_unidad, encargado")
-        .eq("id", user.id)
-        .single()
+      getUnitMeta(user.id)
     ]);
 
   const loans = ((rawLoans ?? []) as unknown as RawLoanRow[]).map((loan) => ({
@@ -117,44 +114,15 @@ export default async function PrestamosPage() {
   const loanIds = loans.map((loan) => loan.id);
   const clientIds = [...new Set(loans.map((loan) => loan.client_id))];
 
-  const unit = unitData as {
-    pais_codigo: string | null;
-    dias_laborales: number[] | null;
-    zona_horaria: string | null;
-    nombre_unidad: string | null;
-    encargado: string | null;
-  } | null;
   const countryCode: string | null = unit?.pais_codigo ?? null;
-  const diasLaborales: number[] = unit?.dias_laborales ?? [];
+  const diasLaborales: number[] = Array.isArray(unit?.dias_laborales) ? unit.dias_laborales : [];
   const zonaHoraria: string = unit?.zona_horaria ?? "America/Bogota";
   const encargado: string = unit?.encargado ?? "";
 
-  // Cargar festivos del país desde cache; auto-sync si no están cargados
-  let holidaySet = new Set<string>();
-  if (countryCode) {
-    const { data: holidays } = await adminClient
-      .from("holidays")
-      .select("date")
-      .eq("country_code", countryCode)
-      .eq("year", currentYear);
-
-    if (holidays && holidays.length > 0) {
-      holidaySet = new Set(holidays.map((h: { date: string }) => h.date));
-    } else {
-      // Primera visita o festivos no cacheados → sincroniza con Nager.Date
-      const syncResult = await syncHolidaysAction(countryCode, currentYear);
-      if (syncResult.ok) {
-        const { data: freshHolidays } = await adminClient
-          .from("holidays")
-          .select("date")
-          .eq("country_code", countryCode)
-          .eq("year", currentYear);
-        if (freshHolidays && freshHolidays.length > 0) {
-          holidaySet = new Set(freshHolidays.map((h: { date: string }) => h.date));
-        }
-      }
-    }
-  }
+  const holidayDates = countryCode
+    ? await getHolidayDates(countryCode, currentYear)
+    : [];
+  const holidaySet = new Set(holidayDates);
 
   const [{ data: activePaymentHistory }, { data: loanHistory }] = await Promise.all([
     loanIds.length > 0

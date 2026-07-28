@@ -95,7 +95,9 @@ updated: 2026-07-24
 | Responsive design móvil (tarjetas compactas) | ✅ Implementado | 🔴 Alta |
 | Navegación móvil (bottom nav + menú overlay) | ✅ Implementado | 🔴 Alta |
 | Manejo de errores global (error.tsx) | ✅ Implementado | 🔴 Alta |
-| Loading states en pantallas principales | ✅ Implementado (prestamos, gastos, reporte) | 🔴 Alta |
+| Loading states en pantallas principales | ✅ Implementado (prestamos, gastos, reporte, nuevo, disponibles, menú) | 🔴 Alta |
+| Caché de servidor (`unstable_cache`) para metadatos de unidad y festivos | ✅ Implementado (TTL 5 min / 60 min) | 🟡 Media |
+| Tarjeta de crédito interactiva en formulario Nuevo | ✅ Implementado (preview en vivo con nombre, cédula, dirección, cuota, total) | 🟡 Media |
 | Toasts con Sonner (AutoToast) | ✅ Implementado | 🟡 Media |
 | Paginación en reportes | ✅ Implementado | 🟡 Media |
 | PWA básica (manifest + meta tags) | ✅ Implementado | 🟢 Baja |

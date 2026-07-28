@@ -9,9 +9,9 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { LogoutButton } from "@/components/unidad/logout-button";
+import { getUnitMeta } from "@/lib/data/unit";
 
 const menuItems = [
   {
@@ -53,12 +53,7 @@ export default async function MenuPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const adminClient = createAdminClient();
-  const { data: unit } = await adminClient
-    .from("units")
-    .select("encargado, nombre_unidad, pais_codigo")
-    .eq("id", user.id)
-    .single();
+  const unit = await getUnitMeta(user.id);
 
   return (
     <div className="space-y-5 pb-4">

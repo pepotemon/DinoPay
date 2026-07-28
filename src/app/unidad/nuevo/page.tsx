@@ -1,9 +1,9 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { NuevoClienteForm } from "@/components/unidad/nuevo-cliente-form";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { createClientLoanAction } from "@/lib/actions/unidad/nuevo";
+import { getUnitMeta } from "@/lib/data/unit";
 
 // Shell síncrono — hero visible al instante
 export default function NuevoPrestamoPage() {
@@ -33,15 +33,10 @@ async function FormWithData() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const adminClient = createAdminClient();
-  const { data: unit } = await adminClient
-    .from("units")
-    .select("intereses")
-    .eq("id", user.id)
-    .maybeSingle();
+  const unit = await getUnitMeta(user.id);
 
   const interests = Array.isArray(unit?.intereses)
-    ? unit.intereses.filter((item): item is number => typeof item === "number")
+    ? (unit.intereses as unknown[]).filter((item): item is number => typeof item === "number")
     : [];
 
   if (interests.length === 0) {

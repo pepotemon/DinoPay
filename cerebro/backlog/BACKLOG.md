@@ -1,7 +1,7 @@
 ---
 tags: [backlog, pendiente, tareas, prioridades]
 created: 2026-07-24
-updated: 2026-07-27 (v0.10.0)
+updated: 2026-07-28 (v0.12.0)
 ---
 
 # Backlog — DinoPay

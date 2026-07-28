@@ -36,6 +36,9 @@ export function NuevoClienteForm({
     message: ""
   });
 
+  const [alias, setAlias] = useState("");
+  const [nit, setNit] = useState("");
+  const [direccion1, setDireccion1] = useState("");
   const [valorNeto, setValorNeto] = useState(0);
   const [numeroCuotas, setNumeroCuotas] = useState(0);
   const [interes, setInteres] = useState(interests[0] ?? 10);
@@ -67,11 +70,19 @@ export function NuevoClienteForm({
             name="alias"
             placeholder="Nombre y Apellido"
             required
+            value={alias}
+            onChange={(e) => setAlias(e.target.value)}
           />
         </FieldRow>
 
         <FieldRow label="NIT / Cédula" icon={<CreditCard className="h-4 w-4 text-primary/50" />}>
-          <input className={INPUT} name="nit" placeholder="Documento" />
+          <input
+            className={INPUT}
+            name="nit"
+            placeholder="Documento"
+            value={nit}
+            onChange={(e) => setNit(e.target.value)}
+          />
         </FieldRow>
 
         <FieldRow label="Teléfono 1" icon={<Phone className="h-4 w-4 text-primary/50" />}>
@@ -101,7 +112,13 @@ export function NuevoClienteForm({
         <SectionHead icon={<MapPin className="h-4 w-4" />} label="Domicilio" />
 
         <FieldRow label="Dirección 1" icon={<Home className="h-4 w-4 text-primary/50" />}>
-          <input className={INPUT} name="direccion1" placeholder="Calle, Carrera, Av…" />
+          <input
+            className={INPUT}
+            name="direccion1"
+            placeholder="Calle, Carrera, Av…"
+            value={direccion1}
+            onChange={(e) => setDireccion1(e.target.value)}
+          />
         </FieldRow>
 
         <FieldRow label="Dirección 2" icon={<Building2 className="h-4 w-4 text-primary/50" />}>
@@ -217,31 +234,15 @@ export function NuevoClienteForm({
           <input name="enrutar" type="hidden" value={enrutar ? "1" : "0"} />
         </div>
 
-        {/* ── Preview card ── */}
-        <div className="relative overflow-hidden rounded-2xl bg-primary p-5 text-white">
-          <div className="absolute -right-5 -top-5 h-24 w-24 rounded-full bg-white/10" />
-          <div className="absolute -bottom-8 right-4 h-32 w-32 rounded-full bg-white/5" />
-
-          <div className="relative flex items-start justify-between gap-4">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.15em] text-white/60">
-                Valor por cuota
-              </p>
-              <p className="mt-1 text-3xl font-black">{formatCurrency(preview.cuota)}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-[10px] text-white/60">plazo</p>
-              <p className="mt-0.5 font-black">{modalidadLabel[modalidad]}</p>
-            </div>
-          </div>
-
-          <div className="relative mt-4 rounded-xl bg-white/15 px-4 py-3">
-            <p className="text-[10px] font-black uppercase tracking-[0.15em] text-white/60">
-              Total a entregar
-            </p>
-            <p className="mt-0.5 text-2xl font-black">{formatCurrency(preview.total)}</p>
-          </div>
-        </div>
+        {/* ── Credit card preview ── */}
+        <CreditCardPreview
+          alias={alias}
+          nit={nit}
+          direccion1={direccion1}
+          cuota={preview.cuota}
+          total={preview.total}
+          modalidad={modalidadLabel[modalidad]}
+        />
       </section>
 
       {/* Error */}
@@ -298,5 +299,79 @@ function FieldRow({
         {children}
       </div>
     </label>
+  );
+}
+
+function CreditCardPreview({
+  alias,
+  nit,
+  direccion1,
+  cuota,
+  total,
+  modalidad
+}: {
+  alias: string;
+  nit: string;
+  direccion1: string;
+  cuota: number;
+  total: number;
+  modalidad: string;
+}) {
+  return (
+    <div
+      className="relative w-full overflow-hidden rounded-2xl bg-gradient-to-br from-green-600 via-primary to-green-900 p-5 text-white shadow-xl shadow-primary/30"
+      style={{ aspectRatio: "86/54" }}
+    >
+      {/* Decorative circles */}
+      <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-white/10" />
+      <div className="absolute -bottom-10 right-8 h-36 w-36 rounded-full bg-white/5" />
+      <div className="absolute -left-6 bottom-4 h-24 w-24 rounded-full bg-black/10" />
+
+      {/* Top row: brand + chip */}
+      <div className="relative flex items-start justify-between">
+        <span className="text-[11px] font-black tracking-[0.2em] text-white/80 uppercase">
+          DinoPay
+        </span>
+        {/* Chip */}
+        <div className="grid h-6 w-8 grid-cols-3 grid-rows-3 gap-[2px] rounded-[3px] bg-yellow-300/90 p-[3px]">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <div key={i} className="rounded-[1px] bg-yellow-500/60" />
+          ))}
+        </div>
+      </div>
+
+      {/* Center: cuota + plazo */}
+      <div className="relative mt-3 flex items-end justify-between gap-2">
+        <div>
+          <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/50">
+            Valor por cuota
+          </p>
+          <p className="mt-0.5 text-2xl font-black leading-none">{formatCurrency(cuota)}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-[9px] text-white/50">plazo</p>
+          <p className="text-sm font-black">{modalidad}</p>
+        </div>
+      </div>
+
+      {/* Dirección */}
+      <p className="relative mt-2 truncate text-[9px] text-white/40">
+        {direccion1 || "Dirección —"}
+      </p>
+
+      {/* Bottom row: name + nit + total */}
+      <div className="relative mt-auto flex items-end justify-between gap-2 pt-2">
+        <div className="min-w-0">
+          <p className="truncate text-[11px] font-black uppercase tracking-widest">
+            {alias || "NOMBRE DEL CLIENTE"}
+          </p>
+          <p className="text-[9px] text-white/50">{nit || "••••••••"}</p>
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="text-[9px] text-white/50">total</p>
+          <p className="text-sm font-black">{formatCurrency(total)}</p>
+        </div>
+      </div>
+    </div>
   );
 }

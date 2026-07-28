@@ -12,6 +12,26 @@ updated: 2026-07-24
 
 ---
 
+## [0.12.0] — 2026-07-28
+
+### Agregado / Modificado
+
+**Tarjeta de crédito en el formulario "Nuevo"** (`NuevoClienteForm`)
+- El bloque de resumen del préstamo ahora se muestra como una tarjeta de crédito visual (`CreditCardPreview`)
+- Muestra en tiempo real: nombre del cliente, cédula, dirección 1, valor por cuota, plazo (modalidad) y total a entregar
+- Diseño: gradiente verde, chip simulado (grilla 3×3 dorada), relación de aspecto 86:54, círculos decorativos, tipografía blanca
+- Los campos `alias`, `nit` y `direccion1` son ahora controlados (state) para alimentar la tarjeta en vivo
+
+**Optimización de velocidad de carga (caché de servidor)**
+- Nuevo módulo `src/lib/data/unit.ts`: función `getUnitMeta(unitId)` con `unstable_cache` de Next.js (TTL 5 min)
+  - Elimina consultas duplicadas a la tabla `units` en prestamos, nuevo y menú
+- Nuevo módulo `src/lib/data/holidays.ts`: función `getHolidayDates(countryCode, year)` con `unstable_cache` (TTL 60 min)
+  - Incluye lógica de auto-sync de Nager.Date si la DB no tiene festivos para el año
+  - La pantalla de préstamos ya no hace 2 viajes a Supabase por festivos en cada carga
+- Datos de tiempo real (préstamos activos, pagos, visitas) no se cachean — siempre frescos
+
+---
+
 ## [0.11.0] — 2026-07-28
 
 ### Agregado / Modificado
