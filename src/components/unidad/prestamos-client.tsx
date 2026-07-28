@@ -458,7 +458,7 @@ export function PrestamosClient({
                       <p className="text-center text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                         Historial de préstamos de
                       </p>
-                      <p className="truncate text-center text-2xl font-black leading-tight">
+                      <p className="truncate text-center text-2xl font-black uppercase leading-tight">
                         {(sheet.loan as ClientLoan).clients?.alias ?? "Sin nombre"}
                       </p>
                     </>
