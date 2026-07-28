@@ -85,6 +85,7 @@ type Props = {
   paymentHistoryByLoan: Record<string, PaymentHistory[]>;
   loanHistoryByClient: Record<string, LoanHistory[]>;
   overdueByLoan: Record<string, number>;
+  adelantadasByLoan: Record<string, number>;
   cobradoHoy: number;
   meta: number;
   totalSaldo: number;
@@ -119,6 +120,13 @@ const noPayReasons = [
 
 function digitsOnly(value: string | null | undefined) {
   return value?.replace(/\D/g, "") ?? "";
+}
+
+function formatCuotas(loan: ClientLoan): string {
+  const pagadas = (loan.total_a_cobrar - loan.saldo) / loan.valor_cuota;
+  const rounded = Math.round(pagadas * 10) / 10;
+  const display = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+  return `${display} / ${loan.numero_cuotas}`;
 }
 
 function whatsappHref(phone: string, alias: string) {
@@ -170,6 +178,7 @@ export function PrestamosClient({
   paymentHistoryByLoan,
   loanHistoryByClient,
   overdueByLoan,
+  adelantadasByLoan,
   cobradoHoy,
   meta
 }: Props) {
@@ -330,6 +339,7 @@ export function PrestamosClient({
             const isVisited = isPaid || isNoPay;
             const name = loan.clients?.alias ?? "Sin nombre";
             const overdue = overdueByLoan[loan.id] ?? 0;
+            const adelantadas = adelantadasByLoan[loan.id] ?? 0;
 
             return (
               <button
@@ -341,7 +351,15 @@ export function PrestamosClient({
                 <span
                   className={cn(
                     "mt-0.5 h-2 w-2 shrink-0 rounded-full",
-                    isPaid ? "bg-primary" : isNoPay ? "bg-destructive" : overdue > 0 ? "bg-orange-500" : "bg-border"
+                    isPaid
+                      ? "bg-primary"
+                      : isNoPay
+                        ? "bg-destructive"
+                        : overdue > 0
+                          ? "bg-orange-500"
+                          : adelantadas > 0
+                            ? "bg-green-500"
+                            : "bg-border"
                   )}
                 />
                 <div className="min-w-0 flex-1">
@@ -358,13 +376,14 @@ export function PrestamosClient({
                       <span className="shrink-0 rounded-full bg-orange-500/10 px-2 py-0.5 text-[10px] font-black text-orange-600">
                         {overdue}d atraso
                       </span>
+                    ) : adelantadas > 0 && !isVisited ? (
+                      <span className="shrink-0 rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-black text-green-600">
+                        {adelantadas} adelantada{adelantadas > 1 ? "s" : ""}
+                      </span>
                     ) : null}
                   </div>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    {[
-                      loan.clients?.barrio,
-                      `${loan.cuotas_pagadas}/${loan.numero_cuotas} cuotas`
-                    ]
+                    {[loan.clients?.barrio, `${formatCuotas(loan)} cuotas`]
                       .filter(Boolean)
                       .join(" · ")}
                   </p>
@@ -448,6 +467,7 @@ export function PrestamosClient({
                   <SheetPayConfirm
                     cuotas={sheet.cuotas}
                     isPending={submittingId === sheet.loan.id}
+                    loan={sheet.loan}
                     metodo={sheet.metodo}
                     monto={sheet.monto}
                     onBack={() => setSheet(backView(sheet))}
@@ -519,7 +539,7 @@ function SheetMain({
       <div className="grid grid-cols-3 rounded-2xl bg-muted p-4 text-center">
         <SheetStat highlight label="Cuota" value={formatCurrency(Number(loan.valor_cuota))} />
         <SheetStat label="Saldo" value={formatCurrency(Number(loan.saldo))} />
-        <SheetStat label="Cuotas" value={`${loan.cuotas_pagadas}/${loan.numero_cuotas}`} />
+        <SheetStat label="Cuotas" value={formatCuotas(loan)} />
       </div>
 
       {hasPhone ? (
@@ -626,6 +646,7 @@ function SheetPay({
 function SheetPayConfirm({
   cuotas,
   isPending,
+  loan,
   metodo,
   monto,
   onBack,
@@ -633,20 +654,34 @@ function SheetPayConfirm({
 }: {
   cuotas: string;
   isPending: boolean;
+  loan: ClientLoan;
   metodo: string;
   monto: string;
   onBack: () => void;
   onConfirm: () => void;
 }) {
+  const montoNum = Number(monto);
+  const esPartial = montoNum < loan.valor_cuota;
+  const cuotasCompletas = Math.floor(montoNum / loan.valor_cuota);
+
   return (
     <div className="space-y-5 px-5">
-      <div className="rounded-2xl bg-primary/10 p-5 text-center">
+      <div
+        className={cn(
+          "rounded-2xl p-5 text-center",
+          esPartial ? "bg-orange-500/10" : "bg-primary/10"
+        )}
+      >
         <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-          Vas a registrar
+          {esPartial ? "Pago parcial" : "Vas a registrar"}
         </p>
-        <p className="mt-2 text-4xl font-black text-primary">{formatCurrency(Number(monto))}</p>
+        <p className={cn("mt-2 text-4xl font-black", esPartial ? "text-orange-600" : "text-primary")}>
+          {formatCurrency(montoNum)}
+        </p>
         <p className="mt-1 text-sm text-muted-foreground">
-          {cuotas} cuota(s) · {metodo}
+          {esPartial
+            ? `No cubre una cuota completa · ${metodo}`
+            : `${cuotasCompletas} cuota(s) · ${metodo}`}
         </p>
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -777,7 +812,7 @@ function SheetInfoDetails({
         <div className="overflow-hidden rounded-2xl border divide-y">
           <DetailRow label="Modalidad" value={loan.modalidad.charAt(0).toUpperCase() + loan.modalidad.slice(1)} />
           <DetailRow label="Interés" value={`${loan.interes}%`} />
-          <DetailRow label="Cuotas parciales" value={String(loan.cuotas_pagadas)} />
+          <DetailRow label="Cuotas pagadas" value={formatCuotas(loan)} />
           <DetailRow label="Fecha de cuota" value={loan.ultima_cuota_fecha} />
           <DetailRow label="Último pago" value={lastPayment?.fecha_pago} />
           <DetailRow label="Fecha de inicio" value={loan.fecha_inicio} />

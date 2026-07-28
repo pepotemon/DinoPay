@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { PrestamosClient } from "@/components/unidad/prestamos-client";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { calcularDiasAtraso } from "@/lib/utils/overdue";
+import { calcularCuotasAdelantadas, calcularDiasAtraso } from "@/lib/utils/overdue";
 
 type RawLoanRow = {
   id: string;
@@ -100,7 +100,7 @@ export default async function PrestamosPage() {
         .eq("tipo", "no_pago"),
       adminClient
         .from("units")
-        .select("pais_codigo")
+        .select("pais_codigo, dias_laborales")
         .eq("id", user.id)
         .single()
     ]);
@@ -112,7 +112,9 @@ export default async function PrestamosPage() {
   const loanIds = loans.map((loan) => loan.id);
   const clientIds = [...new Set(loans.map((loan) => loan.client_id))];
 
-  const countryCode: string | null = (unitData as { pais_codigo: string | null } | null)?.pais_codigo ?? null;
+  const unit = unitData as { pais_codigo: string | null; dias_laborales: number[] | null } | null;
+  const countryCode: string | null = unit?.pais_codigo ?? null;
+  const diasLaborales: number[] = unit?.dias_laborales ?? [];
 
   // Cargar festivos del país desde cache (holidays table)
   let holidaySet = new Set<string>();
@@ -174,14 +176,20 @@ export default async function PrestamosPage() {
   const meta = loans.reduce((s, l) => s + Number(l.valor_cuota), 0);
   const totalSaldo = loans.reduce((s, l) => s + Number(l.saldo), 0);
 
-  // Calcular días de atraso por préstamo
+  // Calcular días de atraso y cuotas adelantadas por préstamo
   const overdueByLoan = loans.reduce<Record<string, number>>((acc, loan) => {
     acc[loan.id] = calcularDiasAtraso(loan.ultima_cuota_fecha, holidaySet);
     return acc;
   }, {});
 
+  const adelantadasByLoan = loans.reduce<Record<string, number>>((acc, loan) => {
+    acc[loan.id] = calcularCuotasAdelantadas(loan.ultima_cuota_fecha, loan.modalidad, diasLaborales);
+    return acc;
+  }, {});
+
   return (
     <PrestamosClient
+      adelantadasByLoan={adelantadasByLoan}
       cobradoHoy={cobradoHoy}
       loans={loans}
       loanHistoryByClient={loanHistoryByClient}

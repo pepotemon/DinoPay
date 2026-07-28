@@ -12,6 +12,23 @@ updated: 2026-07-24
 
 ---
 
+## [0.9.0] — 2026-07-27
+
+### Agregado
+
+**Cuotas adelantadas**
+- `src/lib/utils/overdue.ts`: nueva función `calcularCuotasAdelantadas(ultimaCuotaFecha, modalidad, diasLaborales)` — devuelve cuántas cuotas por adelantado tiene el cliente; 0 cuando está al día o atrasado
+- `/unidad/prestamos/page.tsx`: carga `dias_laborales` de la unidad y calcula `adelantadasByLoan` por préstamo
+- Badge `"X adelantada(s)"` verde en la fila del cliente y punto indicador verde cuando hay cuotas adelantadas (solo visible si no está pagado/no-pago del día)
+
+**Pagos parciales**
+- Nueva migración `013_partial_payments.sql`: `register_payment` calcula `v_full_cuotas = floor(monto / valor_cuota)`; `cuotas_pagadas` solo avanza por cuotas completas; `ultima_cuota_fecha` no avanza si el pago no cubre una cuota completa; `saldo` siempre baja por el monto real
+- Display de cuotas deriva de `(total_a_cobrar - saldo) / valor_cuota` → muestra valores fraccionados como `8.3 / 20` en la lista, el sheet y los detalles
+- Pantalla de confirmación de pago detecta pago parcial (`monto < valor_cuota`): fondo naranja, texto "Pago parcial · No cubre una cuota completa"
+- `SheetInfoDetails`: renombrado "Cuotas parciales" → "Cuotas pagadas" mostrando el valor fraccionado
+
+---
+
 ## [0.8.0] — 2026-07-27
 
 ### Agregado
