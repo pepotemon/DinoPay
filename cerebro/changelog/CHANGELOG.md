@@ -425,6 +425,7 @@ updated: 2026-07-24
 - `.gitignore` actualizado para excluir adjuntos locales de Codex y metadata local de Obsidian.
 - Loader de dinosaurio refinado con silueta pixelada y animación de dos frames inspirada en el Chrome Dino runner.
 - Loader de dinosaurio rehecho como sprite SVG de dos frames completos para que la carrera se lea mejor visualmente.
+- Loader `PageSpinner` cambiado a sprite real del Chrome T-Rex, guardado localmente con licencia BSD en `public/assets`.
 
 ### Verificado
 - `npm run build` pasa correctamente.
