@@ -8,6 +8,8 @@ import {
   ChevronDown,
   ChevronRight,
   CircleSlash,
+  Copy,
+  Download,
   FileText,
   History,
   Layers,
@@ -24,7 +26,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PaymentInputs } from "@/components/unidad/payment-inputs";
@@ -107,6 +109,9 @@ type Props = {
   cobradoHoy: number;
   meta: number;
   totalSaldo: number;
+  countryCode: string | null;
+  zonaHoraria: string;
+  encargado: string;
 };
 
 type SheetState =
@@ -125,7 +130,8 @@ type SheetState =
   | { view: "nopay-confirm"; loan: ClientLoan; reason: string }
   | { view: "info-details"; loan: ClientLoan }
   | { view: "info-payments"; loan: PaymentLoanContext; clientLoan: ClientLoan }
-  | { view: "info-loans"; loan: ClientLoan };
+  | { view: "info-loans"; loan: ClientLoan }
+  | { view: "receipt"; loan: ClientLoan };
 
 const noPayReasons = [
   "No estaba en casa",
@@ -158,6 +164,7 @@ function backView(sheet: Exclude<SheetState, null>): SheetState {
     case "nopay":
     case "info-details":
     case "info-loans":
+    case "receipt":
       return { view: "main", loan: sheet.loan };
     case "info-payments":
       return { view: "main", loan: sheet.clientLoan };
@@ -184,6 +191,8 @@ function sheetSubtitle(view: Exclude<SheetState, null>["view"]) {
       return "Pagos";
     case "info-loans":
       return "Historial";
+    case "receipt":
+      return "Recibo de pago";
     default:
       return null;
   }
@@ -198,11 +207,14 @@ export function PrestamosClient({
   overdueByLoan,
   adelantadasByLoan,
   cobradoHoy,
-  meta
+  meta,
+  countryCode,
+  zonaHoraria,
+  encargado
 }: Props) {
   const router = useRouter();
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"pendientes" | "visitados">("pendientes");
+  const [filter, setFilter] = useState<"todos" | "pendientes" | "visitados">("pendientes");
   const [sheet, setSheet] = useState<SheetState>(null);
   const [, startTransition] = useTransition();
   const [submittingId, setSubmittingId] = useState<string | null>(null);
@@ -216,19 +228,24 @@ export function PrestamosClient({
 
   const progreso = meta > 0 ? Math.min(Math.round((cobradoHoy / meta) * 100), 100) : 0;
   const pendingCount = loans.filter((l) => !visitedSet.has(l.id)).length;
+  const visitedCount = visitedSet.size;
 
   const filtered = useMemo(
     () =>
       loans.filter((loan) => {
-        const matchesFilter =
-          (filter === "pendientes" && !visitedSet.has(loan.id)) ||
-          (filter === "visitados" && visitedSet.has(loan.id));
-        const q = search.toLowerCase();
+        const q = search.toLowerCase().trim();
         const searchable = [loan.clients?.alias, loan.clients?.barrio, loan.clients?.telefono1]
           .filter(Boolean)
           .join(" ")
           .toLowerCase();
-        return matchesFilter && (!q || searchable.includes(q));
+        const matchesSearch = !q || searchable.includes(q);
+        // When searching, ignore the active filter and show all matches
+        if (q) return matchesSearch;
+        const matchesFilter =
+          filter === "todos" ||
+          (filter === "pendientes" && !visitedSet.has(loan.id)) ||
+          (filter === "visitados" && visitedSet.has(loan.id));
+        return matchesFilter;
       }),
     [loans, filter, visitedSet, search]
   );
@@ -267,13 +284,27 @@ export function PrestamosClient({
     <>
       {/* ── Cabecera sticky ── */}
       <div className="sticky top-0 z-40 border-b bg-background">
-        <div className="mx-auto max-w-md space-y-3 px-4 pb-3 pt-5">
+        <div className="mx-auto max-w-md space-y-3 px-4 pb-3 pt-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
-                DinoPay
-              </p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                  DinoPay
+                </p>
+                {countryCode ? (
+                  <span className="text-sm leading-none">{countryFlag(countryCode)}</span>
+                ) : null}
+              </div>
               <h1 className="text-2xl font-black leading-tight">Cuotas del Día</h1>
+              <div className="mt-0.5 flex items-center gap-1.5">
+                <LiveClock zonaHoraria={zonaHoraria} />
+                {encargado ? (
+                  <>
+                    <span className="text-[10px] text-border">·</span>
+                    <span className="text-[10px] font-bold text-muted-foreground">{encargado}</span>
+                  </>
+                ) : null}
+              </div>
             </div>
             <Link
               className="flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-bold text-muted-foreground hover:bg-muted"
@@ -284,15 +315,28 @@ export function PrestamosClient({
             </Link>
           </div>
 
-          <div className="flex items-center gap-2 text-sm">
-            <span className="font-black text-primary">{formatCurrency(cobradoHoy)}</span>
-            <span className="text-muted-foreground">cobrado</span>
-            <span className="text-border">·</span>
-            <span className="font-black">{formatCurrency(meta)}</span>
-            <span className="text-muted-foreground">meta</span>
-            <span className="text-border">·</span>
-            <span className="font-black">{progreso}%</span>
-            <span className="text-muted-foreground">del día</span>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="font-black text-primary">{formatCurrency(cobradoHoy)}</span>
+              <span className="text-muted-foreground">cobrado</span>
+              <span className="text-border">·</span>
+              <span className="font-black">{formatCurrency(meta)}</span>
+              <span className="text-muted-foreground">meta</span>
+              <span className="text-border">·</span>
+              <span className="font-black">{progreso}%</span>
+              <span className="text-muted-foreground">del día</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>
+                <span className="font-black text-foreground">{visitedCount}</span>
+                {"/"}
+                {loans.length} visitados
+              </span>
+              <span className="text-border">·</span>
+              <span>
+                <span className="font-black text-foreground">{pendingCount}</span> pendientes
+              </span>
+            </div>
           </div>
 
           <div className="h-1 overflow-hidden rounded-full bg-muted">
@@ -313,7 +357,19 @@ export function PrestamosClient({
             />
           </div>
 
-          <div className="grid grid-cols-2 rounded-xl bg-muted p-0.5">
+          <div className="grid grid-cols-3 rounded-xl bg-muted p-0.5">
+            <button
+              className={cn(
+                "h-8 rounded-lg text-xs font-black transition-colors",
+                filter === "todos"
+                  ? "bg-background text-primary shadow-sm"
+                  : "text-muted-foreground"
+              )}
+              onClick={() => setFilter("todos")}
+              type="button"
+            >
+              Todos ({loans.length})
+            </button>
             <button
               className={cn(
                 "h-8 rounded-lg text-xs font-black transition-colors",
@@ -336,7 +392,7 @@ export function PrestamosClient({
               onClick={() => setFilter("visitados")}
               type="button"
             >
-              Visitados ({visitedSet.size})
+              Visitados ({visitedCount})
             </button>
           </div>
         </div>
@@ -536,6 +592,13 @@ export function PrestamosClient({
                       setSheet({ view: "info-payments", loan, clientLoan: sheet.loan })
                     }
                   />
+                ) : sheet.view === "receipt" ? (
+                  <SheetReceipt
+                    countryCode={countryCode}
+                    loan={sheet.loan}
+                    payments={paymentHistoryByLoan[sheet.loan.id] ?? []}
+                    zonaHoraria={zonaHoraria}
+                  />
                 ) : null}
               </div>
             </div>
@@ -651,6 +714,11 @@ function SheetMain({
           icon={<History className="h-5 w-5" />}
           label="Historial de Préstamos"
           onClick={() => onSetSheet({ view: "info-loans", loan })}
+        />
+        <SheetAction
+          icon={<Receipt className="h-5 w-5" />}
+          label="Copiar Recibo"
+          onClick={() => onSetSheet({ view: "receipt", loan })}
         />
         <SheetAction
           href={`/unidad/prestamos/${loan.id}/editar-cliente`}
@@ -1244,6 +1312,346 @@ function InfoLine({ label, value }: { label: string; value: string }) {
         {label}
       </p>
       <p className="mt-0.5 font-black">{value}</p>
+    </div>
+  );
+}
+
+// ── Helpers de cabecera ────────────────────────────────────────────────────
+
+function countryFlag(code: string): string {
+  return [...code.toUpperCase()]
+    .map((c) => String.fromCodePoint(0x1f1e0 + c.charCodeAt(0) - 65))
+    .join("");
+}
+
+function LiveClock({ zonaHoraria }: { zonaHoraria: string }) {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+  const date = now.toLocaleDateString("es-419", {
+    timeZone: zonaHoraria,
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+  const time = now.toLocaleTimeString("es-419", {
+    timeZone: zonaHoraria,
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+  return (
+    <span className="text-[10px] font-bold text-muted-foreground">
+      {date} · {time}
+    </span>
+  );
+}
+
+// ── Recibo: idiomas ────────────────────────────────────────────────────────
+
+type ReceiptLang = {
+  title: string;
+  loanSection: string;
+  startDate: string;
+  totalToPay: string;
+  loanValue: string;
+  interest: string;
+  modality: string;
+  installmentSection: string;
+  installmentValue: string;
+  installmentNumber: string;
+  lastPayment: string;
+  summarySection: string;
+  totalPaid: string;
+  balance: string;
+  modalityMap: Record<string, string>;
+};
+
+const LANG_ES: ReceiptLang = {
+  title: "Recibo de Pago",
+  loanSection: "Información del Préstamo",
+  startDate: "Inicio del préstamo",
+  totalToPay: "Valor a pagar",
+  loanValue: "Valor del préstamo",
+  interest: "Interés",
+  modality: "Modalidad",
+  installmentSection: "Detalles de las Cuotas",
+  installmentValue: "Valor de la cuota",
+  installmentNumber: "Cuota actual",
+  lastPayment: "Último pago",
+  summarySection: "Resumen",
+  totalPaid: "Total pagado",
+  balance: "Saldo",
+  modalityMap: { diaria: "Diaria", semanal: "Semanal", quincenal: "Quincenal", mensual: "Mensual" },
+};
+
+const LANG_PT: ReceiptLang = {
+  title: "Recibo de Pagamento",
+  loanSection: "Informações do Empréstimo",
+  startDate: "Início do empréstimo",
+  totalToPay: "Valor a pagar",
+  loanValue: "Valor do empréstimo",
+  interest: "Juros",
+  modality: "Modalidade",
+  installmentSection: "Detalhes das Parcelas",
+  installmentValue: "Valor da parcela",
+  installmentNumber: "Parcela atual",
+  lastPayment: "Último pagamento",
+  summarySection: "Resumo",
+  totalPaid: "Total pago",
+  balance: "Saldo",
+  modalityMap: { diaria: "Diária", semanal: "Semanal", quincenal: "Quinzenal", mensual: "Mensal" },
+};
+
+function getReceiptLang(countryCode: string | null): ReceiptLang {
+  return countryCode === "BR" ? LANG_PT : LANG_ES;
+}
+
+// ── Recibo: canvas ─────────────────────────────────────────────────────────
+
+function drawReceiptCanvas(
+  loan: ClientLoan,
+  payments: PaymentHistory[],
+  countryCode: string | null,
+  zonaHoraria: string
+): HTMLCanvasElement {
+  const lang = getReceiptLang(countryCode);
+  const W = 640;
+  const PAD = 36;
+  const ROW_H = 40;
+  const SEC_H = 34;
+  const SEP_H = 28;
+  const FOOTER_H = 64;
+  const HEADER_H = 130;
+  const CLIENT_H = 94; // gap(28) + name(30) + date+dots(36)
+
+  const sectionBlock = (rows: number) => SEC_H + rows * ROW_H + 16;
+  const H =
+    HEADER_H +
+    CLIENT_H +
+    sectionBlock(5) +
+    SEP_H +
+    sectionBlock(3) +
+    SEP_H +
+    sectionBlock(2) +
+    20 +
+    FOOTER_H;
+
+  const SCALE = 2;
+  const canvas = document.createElement("canvas");
+  canvas.width = W * SCALE;
+  canvas.height = H * SCALE;
+  const ctx = canvas.getContext("2d")!;
+  ctx.scale(SCALE, SCALE);
+
+  const GREEN = "#16a34a";
+  const WHITE = "#ffffff";
+  const DARK = "#09090b";
+  const MUTED = "#71717a";
+  const BORDER = "#e4e4e7";
+  const GREEN_BG = "#f0fdf4";
+  const FONT = (size: number, bold = false) =>
+    `${bold ? 700 : 400} ${size}px -apple-system,"Helvetica Neue",Arial,sans-serif`;
+
+  function txt(
+    t: string,
+    x: number,
+    y: number,
+    size: number,
+    bold = false,
+    color = DARK,
+    align: CanvasTextAlign = "left"
+  ) {
+    ctx.fillStyle = color;
+    ctx.font = FONT(size, bold);
+    ctx.textAlign = align;
+    ctx.fillText(t, x, y);
+  }
+
+  function hline(y: number, dashed = false) {
+    ctx.strokeStyle = BORDER;
+    ctx.lineWidth = 1;
+    ctx.setLineDash(dashed ? [5, 5] : []);
+    ctx.beginPath();
+    ctx.moveTo(PAD, y);
+    ctx.lineTo(W - PAD, y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  function drawRow(label: string, value: string, y: number, highlight = false) {
+    txt(label, PAD, y + 15, 12, false, MUTED);
+    txt(value, W - PAD, y + 15, 13, true, highlight ? GREEN : DARK, "right");
+    return y + ROW_H;
+  }
+
+  function drawSection(title: string, y: number) {
+    ctx.fillStyle = GREEN_BG;
+    ctx.fillRect(0, y, W, SEC_H);
+    txt(title.toUpperCase(), PAD, y + 23, 11, true, GREEN);
+    return y + SEC_H;
+  }
+
+  function drawSep(y: number) {
+    hline(y + SEP_H / 2, true);
+    return y + SEP_H;
+  }
+
+  // Background
+  ctx.fillStyle = WHITE;
+  ctx.fillRect(0, 0, W, H);
+
+  // Header
+  ctx.fillStyle = GREEN;
+  ctx.fillRect(0, 0, W, HEADER_H);
+  txt("● DinoPay ●", W / 2, 44, 11, true, "rgba(255,255,255,0.65)", "center");
+  txt(lang.title, W / 2, 90, 26, true, WHITE, "center");
+
+  let y = HEADER_H + 28;
+
+  // Client name
+  const clientName = (loan.clients?.alias ?? "Sin nombre").toUpperCase();
+  txt(clientName, W / 2, y, 24, true, DARK, "center");
+  y += 30;
+
+  // Date / time
+  const locale = countryCode === "BR" ? "pt-BR" : "es-419";
+  const now = new Date();
+  const dateStr = now.toLocaleDateString(locale, {
+    timeZone: zonaHoraria,
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+  const timeStr = now.toLocaleTimeString(locale, {
+    timeZone: zonaHoraria,
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: countryCode !== "BR",
+  });
+  txt(`${dateStr}  ·  ${timeStr}`, W / 2, y, 13, false, MUTED, "center");
+  y += 36;
+
+  // ── Loan info ──
+  y = drawSection(lang.loanSection, y);
+  y = drawRow(lang.startDate, loan.fecha_inicio ?? "—", y);
+  y = drawRow(lang.totalToPay, formatCurrency(Number(loan.total_a_cobrar)), y, true);
+  y = drawRow(lang.loanValue, formatCurrency(Number(loan.valor_neto)), y);
+  y = drawRow(lang.interest, `${loan.interes}%`, y);
+  y = drawRow(lang.modality, lang.modalityMap[loan.modalidad] ?? loan.modalidad, y);
+  y += 16;
+  y = drawSep(y);
+
+  // ── Installment details ──
+  const lastPaymentMonto = payments[0]?.monto ?? null;
+  y = drawSection(lang.installmentSection, y);
+  y = drawRow(lang.installmentValue, formatCurrency(Number(loan.valor_cuota)), y, true);
+  y = drawRow(lang.installmentNumber, `${loan.cuotas_pagadas} / ${loan.numero_cuotas}`, y);
+  y = drawRow(
+    lang.lastPayment,
+    lastPaymentMonto ? formatCurrency(Number(lastPaymentMonto)) : "—",
+    y
+  );
+  y += 16;
+  y = drawSep(y);
+
+  // ── Summary ──
+  const totalPaid = Number(loan.total_a_cobrar) - Number(loan.saldo);
+  y = drawSection(lang.summarySection, y);
+  y = drawRow(lang.totalPaid, formatCurrency(totalPaid), y, true);
+  y = drawRow(lang.balance, formatCurrency(Number(loan.saldo)), y);
+  y += 20;
+
+  // Footer
+  ctx.fillStyle = GREEN;
+  ctx.fillRect(0, y, W, FOOTER_H);
+  txt("Powered by DinoPay", W / 2, y + FOOTER_H / 2 + 5, 12, true, "rgba(255,255,255,0.75)", "center");
+
+  return canvas;
+}
+
+// ── SheetReceipt ───────────────────────────────────────────────────────────
+
+function SheetReceipt({
+  loan,
+  payments,
+  countryCode,
+  zonaHoraria,
+}: {
+  loan: ClientLoan;
+  payments: PaymentHistory[];
+  countryCode: string | null;
+  zonaHoraria: string;
+}) {
+  const [dataUrl, setDataUrl] = useState<string | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [copying, setCopying] = useState(false);
+
+  useEffect(() => {
+    const canvas = drawReceiptCanvas(loan, payments, countryCode, zonaHoraria);
+    canvasRef.current = canvas;
+    setDataUrl(canvas.toDataURL("image/png"));
+  }, [loan, payments, countryCode, zonaHoraria]);
+
+  async function handleCopy() {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    setCopying(true);
+    try {
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png");
+      });
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+      toast.success("Recibo copiado al portapapeles");
+    } catch {
+      toast.error("No se pudo copiar, intenta descargar");
+    } finally {
+      setCopying(false);
+    }
+  }
+
+  function handleDownload() {
+    if (!dataUrl) return;
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = `recibo-${loan.clients?.alias ?? loan.id}.png`;
+    a.click();
+  }
+
+  return (
+    <div className="space-y-4 px-5">
+      {dataUrl ? (
+        <div className="overflow-hidden rounded-2xl border shadow-sm">
+          <img alt="Recibo de pago" className="w-full" src={dataUrl} />
+        </div>
+      ) : (
+        <div className="flex h-48 items-center justify-center rounded-2xl bg-muted">
+          <p className="text-sm text-muted-foreground">Generando recibo…</p>
+        </div>
+      )}
+      <div className="grid grid-cols-2 gap-3">
+        <Button
+          className="h-12 rounded-2xl font-black"
+          disabled={!dataUrl}
+          onClick={handleDownload}
+          type="button"
+          variant="secondary"
+        >
+          <Download className="h-4 w-4" />
+          Descargar
+        </Button>
+        <Button
+          className="h-12 rounded-2xl font-black shadow-lg shadow-primary/25"
+          disabled={!dataUrl || copying}
+          onClick={handleCopy}
+          type="button"
+        >
+          <Copy className="h-4 w-4" />
+          {copying ? "Copiando…" : "Copiar"}
+        </Button>
+      </div>
     </div>
   );
 }

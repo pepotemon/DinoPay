@@ -105,7 +105,7 @@ export default async function PrestamosPage() {
         .eq("tipo", "no_pago"),
       adminClient
         .from("units")
-        .select("pais_codigo, dias_laborales")
+        .select("pais_codigo, dias_laborales, zona_horaria, nombre_unidad, encargado")
         .eq("id", user.id)
         .single()
     ]);
@@ -117,9 +117,17 @@ export default async function PrestamosPage() {
   const loanIds = loans.map((loan) => loan.id);
   const clientIds = [...new Set(loans.map((loan) => loan.client_id))];
 
-  const unit = unitData as { pais_codigo: string | null; dias_laborales: number[] | null } | null;
+  const unit = unitData as {
+    pais_codigo: string | null;
+    dias_laborales: number[] | null;
+    zona_horaria: string | null;
+    nombre_unidad: string | null;
+    encargado: string | null;
+  } | null;
   const countryCode: string | null = unit?.pais_codigo ?? null;
   const diasLaborales: number[] = unit?.dias_laborales ?? [];
+  const zonaHoraria: string = unit?.zona_horaria ?? "America/Bogota";
+  const encargado: string = unit?.encargado ?? "";
 
   // Cargar festivos del país desde cache; auto-sync si no están cargados
   let holidaySet = new Set<string>();
@@ -231,6 +239,8 @@ export default async function PrestamosPage() {
     <PrestamosClient
       adelantadasByLoan={adelantadasByLoan}
       cobradoHoy={cobradoHoy}
+      countryCode={countryCode}
+      encargado={encargado}
       loans={loans}
       loanHistoryByClient={loanHistoryByClient}
       meta={meta}
@@ -239,6 +249,7 @@ export default async function PrestamosPage() {
       paymentHistoryByLoan={paymentHistoryByLoan}
       paidLoanIds={paidLoanIds}
       totalSaldo={totalSaldo}
+      zonaHoraria={zonaHoraria}
     />
   );
 }

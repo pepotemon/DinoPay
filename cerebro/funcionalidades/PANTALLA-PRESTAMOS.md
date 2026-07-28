@@ -1,7 +1,7 @@
 ---
 tags: [funcionalidad, pantalla, prestamos, cobros, pagos, unidad]
 created: 2026-07-24
-updated: 2026-07-27 (v0.10.0)
+updated: 2026-07-28 (v0.11.0)
 ---
 
 # Pantalla: PRÉSTAMOS — Lista de Trabajo Diaria
@@ -13,7 +13,7 @@ updated: 2026-07-27 (v0.10.0)
 ## Objetivo
 Es la pantalla principal de trabajo de la unidad. Aquí se listan todos los préstamos activos y se registran los pagos del día. Es el corazón de la operación diaria.
 
-Estado de implementación: ✅ Implementada y rediseñada (2026-07-27). Lista conectada a préstamos activos, registro de pago (incluyendo parciales y múltiples por día), no-pago, historial, detalles y edición de cliente operativos. Diseño propio con cabecera sticky + lista compacta + bottom sheet unificado. Badges de atraso (naranja), adelantadas (verde) y estado (verde/rojo). Display de cuotas fraccionado (8.3/20). Historial de pagos y préstamos completamente rediseñados con stats y LoanCard.
+Estado de implementación: ✅ Implementada y rediseñada (v0.11.0 — 2026-07-28). Lista conectada a préstamos activos, registro de pago (incluyendo parciales y múltiples por día), no-pago, historial, detalles y edición de cliente operativos. Diseño propio con cabecera sticky + lista compacta + bottom sheet unificado. Badges de atraso (naranja), adelantadas (verde) y estado (verde/rojo). Display de cuotas fraccionado (8.3/20). Historial de pagos y préstamos completamente rediseñados con stats y LoanCard. Cabecera con reloj en vivo / bandera / encargado. Filtro "Todos". Búsqueda cross-filter. Recibo PNG copiable.
 
 ## Problema que Resuelve
 El cobrador necesita ver rápidamente quién debe pagar hoy, cuánto lleva cobrado, y registrar pagos con el menor número de toques posible.
@@ -24,12 +24,14 @@ El cobrador necesita ver rápidamente quién debe pagar hoy, cuánto lleva cobra
 
 ```
 ┌─────────────────────────────────────┐
-│ DinoPay                 [Enrutar →] │  ← cabecera sticky
+│ DinoPay 🇨🇴              [Enrutar →] │  ← cabecera sticky
 │ Cuotas del Día                      │
+│ lun 28 jul. · 10:40 am · Juan D.   │  ← reloj en vivo + encargado
 │ $124,000 cobrado · $450k meta · 27% │
+│ 12/100 visitados · 88 pendientes    │
 │ ████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  │  ← barra de progreso fina
 │ 🔍 Nombre, barrio o teléfono…       │
-│ [Pendientes (12)]  [Visitados (4)]  │
+│ [Todos(100)][Pendientes(88)][Visit.] │
 ├─────────────────────────────────────┤
 │ ● Juan Carlos Lopez    $15,000  >   │  ← fila por cliente
 │   El Carmen · 3/20 cuotas           │
@@ -209,7 +211,7 @@ Permite modificar los datos personales del cliente (no los del préstamo activo)
 ## Buscador
 - Búsqueda en tiempo real por nombre/alias del cliente
 - Filtra la lista sin recargar la página
-- Mantiene el filtro de Todos/Pendientes/Visitados activo
+- **Cross-filter**: cuando hay texto en la barra de búsqueda, se ignora el filtro activo (Todos/Pendientes/Visitados) y se busca en todos los préstamos — permite encontrar cualquier cliente sin cambiar de pestaña
 
 ---
 
@@ -223,7 +225,7 @@ Los préstamos se muestran en el orden configurado en [[PANTALLA-ENRUTAR]]. El c
 - `src/app/unidad/prestamos/loading.tsx` — skeleton de carga
 - `src/app/unidad/prestamos/[id]/page.tsx` — detalle de préstamo individual
 - `src/app/unidad/prestamos/[id]/editar-cliente/page.tsx` — edición de datos del cliente
-- `src/components/unidad/prestamos-client.tsx` — UI completa (cabecera sticky + lista + bottom sheet unificado con 9 vistas)
+- `src/components/unidad/prestamos-client.tsx` — UI completa (cabecera sticky + lista + bottom sheet unificado con 10 vistas: main, pay, pay-confirm, nopay, nopay-confirm, info-details, info-payments, info-loans, receipt)
 - `src/components/unidad/payment-inputs.tsx` — formulario de cuotas/monto/método (monto editable para parciales)
 - `src/lib/actions/unidad/payments.ts` — Server Actions: `registerPaymentAction`, `markNoPayVisitResult`
 - `src/lib/actions/admin/holidays.ts` — `syncHolidaysAction`: fetcha Nager.Date y cachea en tabla `holidays`

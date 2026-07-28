@@ -12,6 +12,38 @@ updated: 2026-07-24
 
 ---
 
+## [0.11.0] — 2026-07-28
+
+### Agregado / Modificado
+
+**Cabecera con fecha/hora, bandera y nombre de usuario** (pantalla PRÉSTAMOS)
+- Reloj en vivo (`LiveClock`) debajo del título, muestra fecha + hora en la zona horaria de la unidad (campo `zona_horaria` de la tabla `units`)
+- Bandera emoji del país usando Unicode Regional Indicators a partir de `pais_codigo`
+- Nombre del encargado (`encargado`) al lado del reloj
+- Page ahora carga y pasa `zona_horaria` y `encargado` junto con `pais_codigo`
+
+**Contadores de visitados/pendientes en la cabecera**
+- Nueva fila bajo los stats: `X/Y visitados · Z pendientes` con los números en negrita
+
+**Filtro "Todos"**
+- Tabs de filtro ahora son 3: Todos / Pendientes / Visitados (grid-cols-3)
+- "Todos" muestra la lista completa de préstamos activos sin filtrar
+- Tipo del estado cambia de `"pendientes" | "visitados"` a `"todos" | "pendientes" | "visitados"`
+
+**Búsqueda cross-filter**
+- Al escribir en la barra de búsqueda, se ignora el filtro activo y se busca en TODOS los préstamos
+- Permite encontrar un cliente esté donde esté (pendiente o visitado) sin cambiar de pestaña
+
+**Recibo de pago (imagen copiable)**
+- Nueva vista `"receipt"` en el bottom sheet, accesible desde "Copiar Recibo" en las acciones de la ficha
+- Genera una imagen PNG con canvas (`drawReceiptCanvas`) con los colores y estilo de DinoPay
+- Contenido: título, nombre del cliente, fecha/hora actual, información del préstamo (inicio, total a pagar, valor neto, interés, modalidad), detalles de cuotas (valor, número actual X/Y, último pago), resumen (total pagado, saldo)
+- Multiidioma: Brazil (BR) → portugués (`pt-BR`), resto → español (`es-419`); términos traducidos en `LANG_ES` y `LANG_PT`
+- Botones: "Copiar" (Clipboard API `ClipboardItem` PNG) y "Descargar" como fallback
+- El canvas se genera a 2× (retina) para nitidez en pantallas de alta densidad
+
+---
+
 ## [0.10.0] — 2026-07-27
 
 ### Agregado / Modificado
