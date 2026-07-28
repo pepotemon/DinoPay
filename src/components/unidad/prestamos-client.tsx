@@ -455,10 +455,10 @@ export function PrestamosClient({
                 <div className="min-w-0 flex-1">
                   {sheet.view === "info-loans" ? (
                     <>
-                      <p className="text-xs font-bold text-muted-foreground">
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                         Historial de préstamos de
                       </p>
-                      <p className="truncate text-xl font-black">
+                      <p className="truncate text-2xl font-black leading-tight">
                         {(sheet.loan as ClientLoan).clients?.alias ?? "Sin nombre"}
                       </p>
                     </>
