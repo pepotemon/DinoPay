@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   ArrowLeftRight,
   Banknote,
+  CalendarDays,
   ChevronDown,
   ChevronRight,
   CircleSlash,
@@ -499,8 +500,10 @@ export function PrestamosClient({
                   />
                 ) : sheet.view === "info-loans" ? (
                   <SheetInfoLoans
-                    activeLoanId={sheet.loan.id}
+                    activeLoan={sheet.loan}
                     loans={loanHistoryByClient[sheet.loan.client_id] ?? []}
+                    overdue={overdueByLoan[sheet.loan.id] ?? 0}
+                    onViewPayments={() => setSheet({ view: "info-payments", loan: sheet.loan })}
                   />
                 ) : null}
               </div>
@@ -954,47 +957,144 @@ function SheetInfoPayments({
   );
 }
 
+function formatDateNice(dateStr: string | null): string {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
 function SheetInfoLoans({
-  activeLoanId,
-  loans
+  activeLoan,
+  loans,
+  overdue,
+  onViewPayments
 }: {
-  activeLoanId: string;
+  activeLoan: ClientLoan;
   loans: LoanHistory[];
+  overdue: number;
+  onViewPayments: () => void;
 }) {
-  if (loans.length === 0) {
-    return (
-      <div className="px-5">
-        <p className="rounded-2xl border p-5 text-sm text-muted-foreground">
-          Sin historial de préstamos.
-        </p>
-      </div>
-    );
-  }
+  const cuotasFrac = (activeLoan.total_a_cobrar - activeLoan.saldo) / activeLoan.valor_cuota;
+  const previousLoans = loans.filter((l) => l.id !== activeLoan.id);
 
   return (
-    <div className="space-y-3 px-5">
-      {loans.map((loan) => (
-        <div className="rounded-2xl border bg-muted/40 p-4" key={loan.id}>
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="font-black">
-                {loan.id === activeLoanId ? "Activo" : "Anterior"}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {loan.fecha_inicio ?? loan.created_at.slice(0, 10)}
-              </p>
-            </div>
-            <span className="rounded-full bg-background px-3 py-1 text-xs font-black text-primary">
-              {loan.estado}
-            </span>
+    <div className="space-y-5 px-5">
+      <p className="text-center text-sm text-muted-foreground">
+        Tu préstamo actual es de{" "}
+        <span className="font-black text-primary">{formatCurrency(Number(activeLoan.total_a_cobrar))}</span>{" "}
+        y tu cuota es de{" "}
+        <span className="font-black text-primary">{formatCurrency(Number(activeLoan.valor_cuota))}</span>
+      </p>
+
+      <section className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Layers className="h-4 w-4 text-primary" />
+          <p className="font-black">Detalles del Préstamo</p>
+        </div>
+
+        <div className="flex items-center gap-3 rounded-2xl bg-primary/10 px-4 py-3">
+          <CalendarDays className="h-5 w-5 shrink-0 text-primary" />
+          <p className="text-sm leading-snug">
+            Préstamo realizado entre el{" "}
+            <span className="font-black">{formatDateNice(activeLoan.fecha_inicio)}</span>{" "}
+            y{" "}
+            <span className="font-black">{formatDateNice(activeLoan.fecha_fin)}</span>
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-2xl border p-4">
+            <p className="text-xs text-muted-foreground">Valor Total</p>
+            <p className="mt-1 text-xl font-black text-primary">
+              {formatCurrency(Number(activeLoan.total_a_cobrar))}
+            </p>
           </div>
-          <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-            <InfoLine label="Préstamo" value={formatCurrency(Number(loan.valor_neto))} />
-            <InfoLine label="Total" value={formatCurrency(Number(loan.total_a_cobrar))} />
-            <InfoLine label="Saldo" value={formatCurrency(Number(loan.saldo))} />
+          <div className="rounded-2xl border p-4">
+            <p className="text-xs text-muted-foreground">Valor Neto</p>
+            <p className="mt-1 text-xl font-black text-primary">
+              {formatCurrency(Number(activeLoan.valor_neto))}
+            </p>
+          </div>
+          <div className="rounded-2xl border p-4">
+            <p className="text-xs text-muted-foreground">Intereses</p>
+            <p className="mt-1 text-xl font-black text-primary">{activeLoan.interes}%</p>
+          </div>
+          <div className="rounded-2xl border p-4">
+            <p className="text-xs text-muted-foreground">Valor Cuota</p>
+            <p className="mt-1 text-xl font-black text-primary">
+              {formatCurrency(Number(activeLoan.valor_cuota))}
+            </p>
           </div>
         </div>
-      ))}
+      </section>
+
+      <section className="rounded-2xl border p-4">
+        <p className="mb-3 font-black">Resumen</p>
+        <ul className="space-y-2 text-sm">
+          <li className="flex items-start gap-2">
+            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-foreground" />
+            Cuotas parciales: {fmtCuotaNum(cuotasFrac)} / {activeLoan.numero_cuotas}
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-foreground" />
+            Modalidad:{" "}
+            {activeLoan.modalidad.charAt(0).toUpperCase() + activeLoan.modalidad.slice(1)}
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-foreground" />
+            Cantidad de cuotas: {activeLoan.numero_cuotas}
+          </li>
+          {overdue > 0 ? (
+            <li className="flex items-start gap-2">
+              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-destructive" />
+              <span>
+                El cliente lleva{" "}
+                <span className="font-black text-destructive">{overdue} días de atraso</span>
+              </span>
+            </li>
+          ) : null}
+        </ul>
+      </section>
+
+      <Button
+        className="h-12 w-full rounded-2xl font-black shadow-lg shadow-primary/20"
+        onClick={onViewPayments}
+        type="button"
+      >
+        Ver Pagos
+      </Button>
+
+      {previousLoans.length > 0 ? (
+        <section className="space-y-3">
+          <p className="text-xs font-black uppercase tracking-wider text-muted-foreground">
+            Préstamos anteriores
+          </p>
+          {previousLoans.map((loan) => (
+            <div className="rounded-2xl border bg-muted/30 p-4" key={loan.id}>
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-sm font-black">
+                  {formatDateNice(loan.fecha_inicio ?? loan.created_at.slice(0, 10))}
+                </p>
+                <span
+                  className={cn(
+                    "rounded-full px-2 py-0.5 text-xs font-black",
+                    loan.estado === "completado"
+                      ? "bg-primary/10 text-primary"
+                      : "bg-destructive/10 text-destructive"
+                  )}
+                >
+                  {loan.estado}
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <InfoLine label="Neto" value={formatCurrency(Number(loan.valor_neto))} />
+                <InfoLine label="Total" value={formatCurrency(Number(loan.total_a_cobrar))} />
+                <InfoLine label="Cuotas" value={`${loan.cuotas_pagadas}/${loan.numero_cuotas}`} />
+              </div>
+            </div>
+          ))}
+        </section>
+      ) : null}
     </div>
   );
 }
