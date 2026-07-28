@@ -2,6 +2,7 @@
 
 import { CheckCircle2, Copy, Loader2 } from "lucide-react";
 import { useActionState, useState } from "react";
+import { Country, State, City } from "country-state-city";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -19,10 +20,7 @@ type CreateUnitAction = (
   formData: FormData
 ) => Promise<CreateUnitState>;
 
-const initialState: CreateUnitState = {
-  ok: false,
-  message: ""
-};
+const initialState: CreateUnitState = { ok: false, message: "" };
 
 const workDays = [
   { value: 1, label: "Lun" },
@@ -34,10 +32,38 @@ const workDays = [
   { value: 0, label: "Dom" }
 ];
 
+const allCountries = Country.getAllCountries();
+
 export function CreateUnitForm({ createUnit }: { createUnit: CreateUnitAction }) {
   const [state, formAction, pending] = useActionState(createUnit, initialState);
   const [password, setPassword] = useState("DinoPay2026");
   const [confirmPassword, setConfirmPassword] = useState("DinoPay2026");
+
+  const [selectedCountry, setSelectedCountry] = useState("");
+  const [selectedState, setSelectedState] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
+  const [timezone, setTimezone] = useState("");
+
+  const states = selectedCountry ? State.getStatesOfCountry(selectedCountry) : [];
+  const cities = selectedCountry && selectedState
+    ? City.getCitiesOfState(selectedCountry, selectedState)
+    : [];
+
+  function handleCountryChange(code: string) {
+    setSelectedCountry(code);
+    setSelectedState("");
+    setSelectedCity("");
+    const country = allCountries.find((c) => c.isoCode === code);
+    const tz = country?.timezones?.[0]?.zoneName ?? "";
+    setTimezone(tz);
+  }
+
+  function handleStateChange(stateCode: string) {
+    setSelectedState(stateCode);
+    setSelectedCity("");
+  }
+
+  const selectedCountryName = allCountries.find((c) => c.isoCode === selectedCountry)?.name ?? "";
 
   return (
     <form action={formAction} className="space-y-6">
@@ -48,19 +74,19 @@ export function CreateUnitForm({ createUnit }: { createUnit: CreateUnitAction })
         <Field label="Nombre de la unidad">
           <Input name="nombreUnidad" placeholder="Unidad Norte" required />
         </Field>
-        <Field label="Contrasena">
+        <Field label="Contraseña">
           <Input
             name="password"
-            onChange={(event) => setPassword(event.target.value)}
+            onChange={(e) => setPassword(e.target.value)}
             required
             type="password"
             value={password}
           />
         </Field>
-        <Field label="Repetir contrasena">
+        <Field label="Repetir contraseña">
           <Input
             name="confirmPassword"
-            onChange={(event) => setConfirmPassword(event.target.value)}
+            onChange={(e) => setConfirmPassword(e.target.value)}
             required
             type="password"
             value={confirmPassword}
@@ -72,7 +98,7 @@ export function CreateUnitForm({ createUnit }: { createUnit: CreateUnitAction })
         <Field label="Encargado">
           <Input name="encargado" placeholder="Nombre del encargado" required />
         </Field>
-        <Field label="Telefono">
+        <Field label="Teléfono">
           <Input name="telefono" placeholder="+57..." type="tel" />
         </Field>
         <Field label="Capital inicial">
@@ -84,25 +110,108 @@ export function CreateUnitForm({ createUnit }: { createUnit: CreateUnitAction })
       </section>
 
       <section className="grid gap-4 md:grid-cols-2">
-        <Field label="Pais">
-          <Input defaultValue="Colombia" name="pais" required />
+        {/* País */}
+        <Field label="País">
+          <select
+            className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+            onChange={(e) => handleCountryChange(e.target.value)}
+            required
+            value={selectedCountry}
+          >
+            <option value="">Selecciona un país</option>
+            {allCountries.map((c) => (
+              <option key={c.isoCode} value={c.isoCode}>
+                {c.flag} {c.name}
+              </option>
+            ))}
+          </select>
+          {/* Campos ocultos para el server action */}
+          <input name="pais" type="hidden" value={selectedCountryName} />
+          <input name="paisCodigo" type="hidden" value={selectedCountry} />
         </Field>
-        <Field label="Estado/Dpto.">
-          <Input name="estado" placeholder="Antioquia" required />
+
+        {/* Estado / Departamento */}
+        <Field label="Estado / Dpto.">
+          {states.length > 0 ? (
+            <select
+              className="h-10 w-full rounded-md border bg-background px-3 text-sm disabled:opacity-50"
+              disabled={!selectedCountry}
+              onChange={(e) => handleStateChange(e.target.value)}
+              required
+              value={selectedState}
+            >
+              <option value="">Selecciona un estado</option>
+              {states.map((s) => (
+                <option key={s.isoCode} value={s.isoCode}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <Input
+              disabled={!selectedCountry}
+              name="estado"
+              placeholder="Estado o departamento"
+              required
+            />
+          )}
+          {states.length > 0 ? (
+            <input
+              name="estado"
+              type="hidden"
+              value={states.find((s) => s.isoCode === selectedState)?.name ?? ""}
+            />
+          ) : null}
         </Field>
+
+        {/* Ciudad */}
         <Field label="Ciudad">
-          <Input name="ciudad" placeholder="Medellin" required />
+          {cities.length > 0 ? (
+            <select
+              className="h-10 w-full rounded-md border bg-background px-3 text-sm disabled:opacity-50"
+              disabled={!selectedState}
+              onChange={(e) => setSelectedCity(e.target.value)}
+              required
+              value={selectedCity}
+            >
+              <option value="">Selecciona una ciudad</option>
+              {cities.map((c) => (
+                <option key={c.name} value={c.name}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <Input
+              disabled={!selectedCountry}
+              name="ciudad"
+              placeholder="Ciudad"
+              required
+            />
+          )}
+          {cities.length > 0 ? (
+            <input name="ciudad" type="hidden" value={selectedCity} />
+          ) : null}
         </Field>
+
+        {/* Zona horaria (auto-rellena) */}
         <Field label="Zona horaria">
-          <Input defaultValue="America/Bogota" name="zonaHoraria" required />
+          <Input
+            name="zonaHoraria"
+            onChange={(e) => setTimezone(e.target.value)}
+            placeholder="America/Bogota"
+            required
+            value={timezone}
+          />
         </Field>
-        <Field label="Dias bloqueados para eliminar pagos">
+
+        <Field label="Días bloqueados para eliminar pagos">
           <Input defaultValue="0" min="0" name="diasBloqueadosEliminacion" type="number" />
         </Field>
       </section>
 
       <section className="space-y-2">
-        <p className="text-sm font-medium">Dias laborales</p>
+        <p className="text-sm font-medium">Días laborales</p>
         <div className="flex flex-wrap gap-2">
           {workDays.map((day) => (
             <label
@@ -136,16 +245,12 @@ export function CreateUnitForm({ createUnit }: { createUnit: CreateUnitAction })
               <p>{state.message}</p>
               {state.credentials ? (
                 <div className="space-y-1 text-foreground">
-                  <p>
-                    Usuario: <strong>{state.credentials.username}</strong>
-                  </p>
-                  <p>
-                    Email interno: <strong>{state.credentials.loginEmail}</strong>
-                  </p>
+                  <p>Usuario: <strong>{state.credentials.username}</strong></p>
+                  <p>Email interno: <strong>{state.credentials.loginEmail}</strong></p>
                   <Button
                     onClick={() =>
                       navigator.clipboard.writeText(
-                        `Usuario: ${state.credentials?.username}\nContrasena: ${password}`
+                        `Usuario: ${state.credentials?.username}\nContraseña: ${password}`
                       )
                     }
                     size="sm"
@@ -170,13 +275,7 @@ export function CreateUnitForm({ createUnit }: { createUnit: CreateUnitAction })
   );
 }
 
-function Field({
-  children,
-  label
-}: {
-  children: React.ReactNode;
-  label: string;
-}) {
+function Field({ children, label }: { children: React.ReactNode; label: string }) {
   return (
     <label className="space-y-2">
       <span className="text-sm font-medium">{label}</span>

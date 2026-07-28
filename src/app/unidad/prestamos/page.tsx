@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { PrestamosClient } from "@/components/unidad/prestamos-client";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { calcularDiasAtraso } from "@/lib/utils/overdue";
 
 type RawLoanRow = {
   id: string;
@@ -13,7 +14,12 @@ type RawLoanRow = {
   cuotas_pagadas: number;
   numero_cuotas: number;
   modalidad: string;
+  interes: number;
   posicion: number | null;
+  fecha_inicio: string | null;
+  fecha_fin: string | null;
+  ultima_cuota_fecha: string | null;
+  created_at: string;
   clients:
     | {
         alias: string;
@@ -68,29 +74,36 @@ export default async function PrestamosPage() {
 
   const adminClient = createAdminClient();
   const today = new Date().toISOString().slice(0, 10);
+  const currentYear = new Date().getFullYear();
 
-  const [{ data: rawLoans }, { data: paymentsToday }, { data: visitsToday }] = await Promise.all([
-    adminClient
-      .from("loans")
-      .select(
-        "id, client_id, valor_cuota, valor_neto, total_a_cobrar, saldo, cuotas_pagadas, numero_cuotas, modalidad, posicion, clients(alias, nit, direccion1, direccion2, barrio, telefono1, telefono2)"
-      )
-      .eq("unit_id", user.id)
-      .eq("estado", "activo")
-      .order("posicion", { ascending: true }),
-    adminClient
-      .from("payments")
-      .select("loan_id, monto")
-      .eq("unit_id", user.id)
-      .eq("fecha_pago", today)
-      .eq("eliminado", false),
-    adminClient
-      .from("loan_visits")
-      .select("loan_id")
-      .eq("unit_id", user.id)
-      .eq("fecha", today)
-      .eq("tipo", "no_pago")
-  ]);
+  const [{ data: rawLoans }, { data: paymentsToday }, { data: visitsToday }, { data: unitData }] =
+    await Promise.all([
+      adminClient
+        .from("loans")
+        .select(
+          "id, client_id, valor_cuota, valor_neto, total_a_cobrar, saldo, cuotas_pagadas, numero_cuotas, modalidad, interes, posicion, fecha_inicio, fecha_fin, ultima_cuota_fecha, created_at, clients(alias, nit, direccion1, direccion2, barrio, telefono1, telefono2)"
+        )
+        .eq("unit_id", user.id)
+        .eq("estado", "activo")
+        .order("posicion", { ascending: true }),
+      adminClient
+        .from("payments")
+        .select("loan_id, monto")
+        .eq("unit_id", user.id)
+        .eq("fecha_pago", today)
+        .eq("eliminado", false),
+      adminClient
+        .from("loan_visits")
+        .select("loan_id")
+        .eq("unit_id", user.id)
+        .eq("fecha", today)
+        .eq("tipo", "no_pago"),
+      adminClient
+        .from("units")
+        .select("pais_codigo")
+        .eq("id", user.id)
+        .single()
+    ]);
 
   const loans = ((rawLoans ?? []) as unknown as RawLoanRow[]).map((loan) => ({
     ...loan,
@@ -98,6 +111,22 @@ export default async function PrestamosPage() {
   }));
   const loanIds = loans.map((loan) => loan.id);
   const clientIds = [...new Set(loans.map((loan) => loan.client_id))];
+
+  const countryCode: string | null = (unitData as { pais_codigo: string | null } | null)?.pais_codigo ?? null;
+
+  // Cargar festivos del país desde cache (holidays table)
+  let holidaySet = new Set<string>();
+  if (countryCode) {
+    const { data: holidays } = await adminClient
+      .from("holidays")
+      .select("date")
+      .eq("country_code", countryCode)
+      .eq("year", currentYear);
+
+    if (holidays && holidays.length > 0) {
+      holidaySet = new Set(holidays.map((h: { date: string }) => h.date));
+    }
+  }
 
   const [{ data: paymentHistory }, { data: loanHistory }] = await Promise.all([
     loanIds.length > 0
@@ -145,13 +174,20 @@ export default async function PrestamosPage() {
   const meta = loans.reduce((s, l) => s + Number(l.valor_cuota), 0);
   const totalSaldo = loans.reduce((s, l) => s + Number(l.saldo), 0);
 
+  // Calcular días de atraso por préstamo
+  const overdueByLoan = loans.reduce<Record<string, number>>((acc, loan) => {
+    acc[loan.id] = calcularDiasAtraso(loan.ultima_cuota_fecha, holidaySet);
+    return acc;
+  }, {});
+
   return (
     <PrestamosClient
       cobradoHoy={cobradoHoy}
       loans={loans}
+      loanHistoryByClient={loanHistoryByClient}
       meta={meta}
       noPayLoanIds={noPayLoanIds}
-      loanHistoryByClient={loanHistoryByClient}
+      overdueByLoan={overdueByLoan}
       paymentHistoryByLoan={paymentHistoryByLoan}
       paidLoanIds={paidLoanIds}
       totalSaldo={totalSaldo}

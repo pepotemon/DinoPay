@@ -38,7 +38,12 @@ export type ClientLoan = {
   cuotas_pagadas: number;
   numero_cuotas: number;
   modalidad: string;
+  interes: number;
   posicion: number | null;
+  fecha_inicio: string | null;
+  fecha_fin: string | null;
+  ultima_cuota_fecha: string | null;
+  created_at: string;
   clients: {
     alias: string;
     nit: string | null;
@@ -79,6 +84,7 @@ type Props = {
   noPayLoanIds: string[];
   paymentHistoryByLoan: Record<string, PaymentHistory[]>;
   loanHistoryByClient: Record<string, LoanHistory[]>;
+  overdueByLoan: Record<string, number>;
   cobradoHoy: number;
   meta: number;
   totalSaldo: number;
@@ -147,7 +153,7 @@ function sheetSubtitle(view: Exclude<SheetState, null>["view"]) {
     case "nopay-confirm":
       return "Sin pago hoy";
     case "info-details":
-      return "Detalles";
+      return "Información detallada";
     case "info-payments":
       return "Pagos";
     case "info-loans":
@@ -163,6 +169,7 @@ export function PrestamosClient({
   noPayLoanIds,
   paymentHistoryByLoan,
   loanHistoryByClient,
+  overdueByLoan,
   cobradoHoy,
   meta
 }: Props) {
@@ -322,6 +329,7 @@ export function PrestamosClient({
             const isNoPay = noPaySet.has(loan.id) && !isPaid;
             const isVisited = isPaid || isNoPay;
             const name = loan.clients?.alias ?? "Sin nombre";
+            const overdue = overdueByLoan[loan.id] ?? 0;
 
             return (
               <button
@@ -333,18 +341,25 @@ export function PrestamosClient({
                 <span
                   className={cn(
                     "mt-0.5 h-2 w-2 shrink-0 rounded-full",
-                    isPaid ? "bg-primary" : isNoPay ? "bg-destructive" : "bg-border"
+                    isPaid ? "bg-primary" : isNoPay ? "bg-destructive" : overdue > 0 ? "bg-orange-500" : "bg-border"
                   )}
                 />
                 <div className="min-w-0 flex-1">
-                  <p
-                    className={cn(
-                      "truncate font-black",
-                      isVisited && "text-muted-foreground"
-                    )}
-                  >
-                    {name}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p
+                      className={cn(
+                        "truncate font-black",
+                        isVisited && "text-muted-foreground"
+                      )}
+                    >
+                      {name}
+                    </p>
+                    {overdue > 0 && !isVisited ? (
+                      <span className="shrink-0 rounded-full bg-orange-500/10 px-2 py-0.5 text-[10px] font-black text-orange-600">
+                        {overdue}d atraso
+                      </span>
+                    ) : null}
+                  </div>
                   <p className="mt-0.5 text-xs text-muted-foreground">
                     {[
                       loan.clients?.barrio,
@@ -380,7 +395,7 @@ export function PrestamosClient({
         <div className="fixed inset-0 z-50">
           <button
             aria-label="Cerrar"
-            className="absolute inset-0 bg-foreground/40"
+            className="absolute inset-0 bg-foreground/40 backdrop-blur-sm"
             onClick={() => setSheet(null)}
             type="button"
           />
@@ -448,7 +463,10 @@ export function PrestamosClient({
                     reason={sheet.reason}
                   />
                 ) : sheet.view === "info-details" ? (
-                  <SheetInfoDetails loan={sheet.loan} />
+                  <SheetInfoDetails
+                    lastPayment={paymentHistoryByLoan[sheet.loan.id]?.[0] ?? null}
+                    loan={sheet.loan}
+                  />
                 ) : sheet.view === "info-payments" ? (
                   <SheetInfoPayments payments={paymentHistoryByLoan[sheet.loan.id] ?? []} />
                 ) : sheet.view === "info-loans" ? (
@@ -733,30 +751,49 @@ function SheetNoPayConfirm({
   );
 }
 
-function SheetInfoDetails({ loan }: { loan: ClientLoan }) {
+function SheetInfoDetails({
+  lastPayment,
+  loan
+}: {
+  lastPayment: PaymentHistory | null;
+  loan: ClientLoan;
+}) {
   const client = loan.clients;
-  const address = [client?.direccion1, client?.direccion2, client?.barrio]
-    .filter(Boolean)
-    .join(", ");
 
   return (
-    <div className="space-y-4 px-5">
-      <div className="grid grid-cols-2 gap-3 rounded-2xl bg-muted p-4">
-        <InfoLine label="Saldo" value={formatCurrency(Number(loan.saldo))} />
-        <InfoLine label="Cuota" value={formatCurrency(Number(loan.valor_cuota))} />
-        <InfoLine label="Préstamo" value={formatCurrency(Number(loan.valor_neto))} />
-        <InfoLine label="Total" value={formatCurrency(Number(loan.total_a_cobrar))} />
-        <InfoLine label="Cuotas" value={`${loan.cuotas_pagadas}/${loan.numero_cuotas}`} />
-        <InfoLine label="Modalidad" value={loan.modalidad} />
-      </div>
-      {client?.nit || client?.telefono1 || client?.telefono2 || address ? (
-        <div className="space-y-3 rounded-2xl border p-4">
-          {client?.nit ? <InfoLine label="NIT" value={client.nit} /> : null}
-          {client?.telefono1 ? <InfoLine label="Teléfono 1" value={client.telefono1} /> : null}
-          {client?.telefono2 ? <InfoLine label="Teléfono 2" value={client.telefono2} /> : null}
-          {address ? <InfoLine label="Dirección" value={address} /> : null}
+    <div className="space-y-5 px-5">
+      <section>
+        <p className="mb-2 text-sm font-black text-primary">Detalles del cliente</p>
+        <div className="overflow-hidden rounded-2xl border divide-y">
+          <DetailRow label="Dirección 1" value={client?.direccion1} />
+          <DetailRow label="Dirección 2" value={client?.direccion2} />
+          <DetailRow label="Teléfono 1" value={client?.telefono1} />
+          <DetailRow label="Barrio" value={client?.barrio} />
         </div>
-      ) : null}
+      </section>
+
+      <section>
+        <p className="mb-2 text-sm font-black text-primary">Detalles del préstamo</p>
+        <div className="overflow-hidden rounded-2xl border divide-y">
+          <DetailRow label="Modalidad" value={loan.modalidad.charAt(0).toUpperCase() + loan.modalidad.slice(1)} />
+          <DetailRow label="Interés" value={`${loan.interes}%`} />
+          <DetailRow label="Cuotas parciales" value={String(loan.cuotas_pagadas)} />
+          <DetailRow label="Fecha de cuota" value={loan.ultima_cuota_fecha} />
+          <DetailRow label="Último pago" value={lastPayment?.fecha_pago} />
+          <DetailRow label="Fecha de inicio" value={loan.fecha_inicio} />
+          <DetailRow label="Fecha de fin" value={loan.fecha_fin} />
+          <DetailRow label="Fecha de creación" value={loan.created_at.slice(0, 10)} />
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string | null | undefined }) {
+  return (
+    <div className="flex items-center justify-between px-4 py-3">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-sm font-black">{value ?? "—"}</span>
     </div>
   );
 }

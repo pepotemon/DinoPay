@@ -12,6 +12,31 @@ updated: 2026-07-24
 
 ---
 
+## [0.8.0] — 2026-07-27
+
+### Agregado
+
+**Sistema de días de atraso**
+- Nueva migración `011_add_pais_codigo.sql`: agrega columna `pais_codigo TEXT` a `units` (código ISO 2 letras, ej: `"CO"`, `"BR"`) y tabla `holidays(country_code, year, date, name)` para cache de festivos
+- `src/lib/utils/overdue.ts`: función `calcularDiasAtraso(ultimaCuotaFecha, holidaySet)` — cuenta días hábiles vencidos excluyendo domingos y festivos del país de la unidad
+- `src/lib/actions/admin/holidays.ts`: server action `syncHolidaysAction` — consulta la API gratuita Nager.Date y guarda los festivos en Supabase; skipea si el año ya está cacheado
+- `/unidad/prestamos/page.tsx`: carga `pais_codigo` de la unidad, lee festivos desde cache y calcula `overdueByLoan` (días de atraso por préstamo) antes de renderizar
+- Badge `"Xd atraso"` naranja en la fila de cada cliente de la lista cuando tiene cuotas vencidas; punto del indicador también cambia a naranja
+- **IMPORTANTE**: ejecutar `011_add_pais_codigo.sql` en Supabase; poblar festivos vía `syncHolidaysAction` o directamente en la tabla `holidays`
+
+**Selector de país/estado/ciudad en formulario de nueva unidad**
+- Instalado `country-state-city@3.2.1` — datos offline, ~250 países, sin API key
+- `CreateUnitForm` reemplaza los 4 inputs de texto libre (país, estado, ciudad, zona horaria) con selectores en cascada: País → Estado → Ciudad; zona horaria se auto-rellena al elegir el país
+- El código ISO del país (`paisCodigo`) se guarda en el campo oculto y se persiste en `units.pais_codigo`
+- `createUnitAction` actualizado para recibir y guardar `pais_codigo`
+
+**"Ver Detalles" rediseñado**
+- Dos secciones: "Detalles del cliente" (Dirección 1, Dirección 2, Teléfono, Barrio) y "Detalles del préstamo" (Modalidad, Interés, Cuotas parciales, Fecha de cuota, Último pago, Fecha de inicio, Fecha de fin, Fecha de creación)
+- Layout de filas label/valor con bordes, inspirado en la referencia del usuario
+- Query de préstamos ampliada para incluir `interes`, `fecha_inicio`, `fecha_fin`, `ultima_cuota_fecha`, `created_at`
+
+---
+
 ## [0.7.0] — 2026-07-27
 
 ### Modificado
