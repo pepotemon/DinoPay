@@ -119,7 +119,8 @@ export async function createClientLoanAction(
     };
   }
 
-  redirect("/unidad/prestamos");
+  const enrutar = formData.get("enrutar") === "1";
+  redirect(enrutar ? "/unidad/enrutar" : "/unidad/prestamos");
 }
 
 export async function createExistingClientLoanAction(
