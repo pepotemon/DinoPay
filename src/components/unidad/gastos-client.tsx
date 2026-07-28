@@ -16,6 +16,7 @@ import { useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { createExpenseAction, deleteExpenseAction } from "@/lib/actions/unidad/gastos";
 import { cn, formatCurrency } from "@/lib/utils";
+import { PageDino } from "@/components/unidad/page-dino";
 
 const CATEGORIES = [
   "Gasolina / Combustible",
@@ -84,7 +85,7 @@ export function GastosClient({ expenses }: { expenses: GastoRow[] }) {
           <h1 className="text-4xl font-black">Gastos</h1>
           <p className="text-lg font-bold text-primary">Diarios {formatCurrency(totalRango)}</p>
         </div>
-        <span className="select-none text-5xl">🧾</span>
+        <PageDino label="Gastos diarios" variant="expenses" />
       </div>
 
       <div className="space-y-4">

@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { NuevoClienteForm } from "@/components/unidad/nuevo-cliente-form";
+import { PageDino } from "@/components/unidad/page-dino";
 import { createClient } from "@/lib/supabase/server";
 import { createClientLoanAction } from "@/lib/actions/unidad/nuevo";
 import { getUnitMeta } from "@/lib/data/unit";
@@ -15,7 +16,7 @@ export default function NuevoPrestamoPage() {
           <h1 className="text-4xl font-black">Nuevo</h1>
           <p className="text-lg font-bold text-primary">Cliente</p>
         </div>
-        <span className="select-none text-5xl">💸</span>
+        <PageDino label="Nuevo cliente" variant="new" />
       </div>
 
       <Suspense fallback={<FormSkeleton />}>

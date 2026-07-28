@@ -19,6 +19,7 @@ import { useActionState, useEffect, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { createAjusteAction, type AjusteState } from "@/lib/actions/unidad/ajustes";
 import { cn, formatCurrency } from "@/lib/utils";
+import { PageDino } from "@/components/unidad/page-dino";
 
 export type FlujoPayment = { monto: number; metodo_pago: string; fecha_pago: string };
 export type FlujoLoan = { valor_neto: number; fecha: string };
@@ -229,7 +230,7 @@ export function FlujoSemanalClient({ data }: { data: FlujoData }) {
           <h1 className="text-4xl font-black">Flujo</h1>
           <p className="text-4xl font-black text-primary">Semanal</p>
         </div>
-        <span className="select-none text-6xl">👻</span>
+        <PageDino label="Flujo semanal" variant="flow" />
       </div>
 
       <div className="space-y-4">

@@ -3,6 +3,7 @@
 import { CalendarDays, Receipt, TrendingUp } from "lucide-react";
 import { useMemo, useState } from "react";
 import { cn, formatCurrency } from "@/lib/utils";
+import { PageDino } from "@/components/unidad/page-dino";
 
 export type ReporteLoan = {
   id: string;
@@ -77,7 +78,7 @@ export function ReportesClient({
           <h1 className="text-4xl font-black">Reportes</h1>
           <p className="capitalize text-lg font-bold text-primary">{formatDateNice(fecha)}</p>
         </div>
-        <span className="select-none text-5xl">📊</span>
+        <PageDino label="Reportes" variant="reports" />
       </div>
 
       <div className="space-y-4">

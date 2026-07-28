@@ -427,6 +427,7 @@ updated: 2026-07-24
 - Loader de dinosaurio rehecho como sprite SVG de dos frames completos para que la carrera se lea mejor visualmente.
 - Loader `PageSpinner` cambiado a sprite real del Chrome T-Rex, guardado localmente con licencia BSD en `public/assets`.
 - Loader `PageSpinner` centrado en la altura útil móvil para que no quede pegado arriba durante cargas.
+- Iconos emoji grandes de pantallas internas reemplazados por `PageDino`, un dino animado por seccion usando el sprite local.
 
 ### Verificado
 - `npm run build` pasa correctamente.

@@ -1,4 +1,5 @@
 import { RouteSorter } from "@/components/unidad/route-sorter";
+import { PageDino } from "@/components/unidad/page-dino";
 import { updateRouteAction } from "@/lib/actions/unidad/ruta";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -53,7 +54,7 @@ export default async function EnrutarPage({
             {routeLoans.length} cliente{routeLoans.length !== 1 ? "s" : ""}
           </p>
         </div>
-        <span className="select-none text-5xl">🗺️</span>
+        <PageDino label="Enrutar clientes" variant="route" />
       </div>
 
       {params?.error ? (

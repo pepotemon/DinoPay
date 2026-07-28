@@ -7,6 +7,7 @@ import {
   type AvailableClient,
   type CompletedLoan
 } from "@/components/unidad/disponibles-client";
+import { PageDino } from "@/components/unidad/page-dino";
 
 type ClientRow = {
   id: string;
@@ -31,7 +32,7 @@ export default function ClientesDisponiblesPage() {
           <h1 className="text-4xl font-black">Clientes</h1>
           <p className="text-lg font-bold text-primary">Disponibles</p>
         </div>
-        <span className="select-none text-5xl">🤝</span>
+        <PageDino label="Clientes disponibles" variant="available" />
       </div>
 
       <Suspense fallback={<ListSkeleton />}>
