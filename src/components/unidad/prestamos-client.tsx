@@ -391,7 +391,7 @@ export function PrestamosClient({
       </div>
 
       {/* ── Lista ── */}
-      <div className="mx-auto w-full max-w-md space-y-4 px-4 py-4">
+      <div className="mx-auto w-full max-w-md space-y-3 px-4 py-3">
         {filtered.length === 0 ? (
           <p className="py-12 text-center text-sm text-muted-foreground">
             {loans.length === 0
@@ -580,28 +580,28 @@ function LoanListCard({
   return (
     <article
       className={cn(
-        "rounded-[1.75rem] border bg-background p-5 shadow-sm transition-colors",
+        "rounded-3xl border bg-background p-4 shadow-sm transition-colors",
         isVisited && "bg-muted/20"
       )}
     >
-      <div className="flex items-start gap-3">
-        <div className="relative grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-primary/10 text-lg font-black text-primary">
+      <div className="flex items-start gap-2.5">
+        <div className="relative grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-base font-black text-primary">
           {clientInitials(name)}
           {showOverdue ? (
-            <span className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full border-2 border-background bg-destructive" />
+            <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-background bg-destructive" />
           ) : null}
         </div>
 
         <div className="min-w-0 flex-1">
-          <h2 className="text-2xl font-black leading-tight tracking-normal text-foreground">
+          <h2 className="text-xl font-black leading-tight tracking-normal text-foreground">
             {name}
           </h2>
           {showOverdue ? (
-            <p className="mt-1 inline-flex rounded-full bg-destructive/10 px-2.5 py-1 text-xs font-black text-destructive">
+            <p className="mt-1 inline-flex rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-black text-destructive">
               {overdue} cuota{overdue !== 1 ? "s" : ""} - {overdue} dia{overdue !== 1 ? "s" : ""} atrasado{overdue !== 1 ? "s" : ""}
             </p>
           ) : showAdvanced ? (
-            <p className="mt-1 inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-xs font-black text-primary">
+            <p className="mt-1 inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-black text-primary">
               {adelantadas} adelantada{adelantadas > 1 ? "s" : ""}
             </p>
           ) : null}
@@ -610,7 +610,7 @@ function LoanListCard({
         <div className="flex shrink-0 items-center gap-1">
           <button
             aria-label={`Opciones de ${name}`}
-            className="grid h-10 w-10 place-items-center rounded-full text-foreground transition-colors active:bg-muted"
+            className="grid h-9 w-9 place-items-center rounded-full text-foreground transition-colors active:bg-muted"
             onClick={onMenu}
             type="button"
           >
@@ -619,38 +619,38 @@ function LoanListCard({
         </div>
       </div>
 
-      <div className="mt-5 rounded-2xl bg-muted/60 px-4 py-4">
-        <div className="flex items-center justify-between gap-4">
+      <div className="mt-4 rounded-2xl bg-muted/60 px-3.5 py-3">
+        <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">
               Cuota de hoy
             </p>
-            <p className="mt-2 text-4xl font-black leading-none">
+            <p className="mt-1.5 text-3xl font-black leading-none">
               {formatCurrency(Number(loan.valor_cuota))}
             </p>
           </div>
           <div className="text-right">
-            <p className="text-[11px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">
               Cuotas
             </p>
-            <p className="mt-2 text-2xl font-black leading-none">{formatCuotas(loan)}</p>
-            <p className="mt-2 inline-flex rounded-xl bg-primary/10 px-2.5 py-1 text-xs font-black text-primary">
+            <p className="mt-1.5 text-xl font-black leading-none">{formatCuotas(loan)}</p>
+            <p className="mt-1.5 inline-flex rounded-lg bg-primary/10 px-2 py-0.5 text-[11px] font-black text-primary">
               {modalidadLabel(loan.modalidad)}
             </p>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 px-2 py-4 text-center">
+      <div className="grid grid-cols-3 gap-2 px-1.5 py-3 text-center">
         <CardMetric label="Saldo" value={formatCurrency(Number(loan.saldo))} />
         <CardMetric label="Prestamo" value={formatCurrency(Number(loan.total_a_cobrar))} />
         <CardMetric highlight label="Pagado" value={formatCurrency(totalPagado)} />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-2.5">
         <button
           className={cn(
-            "flex h-14 items-center justify-center gap-2 rounded-2xl border border-destructive/20 bg-destructive/10 text-base font-black text-destructive shadow-sm transition active:scale-[0.99]",
+            "flex h-12 items-center justify-center gap-2 rounded-2xl border border-destructive/20 bg-destructive/10 text-sm font-black text-destructive shadow-sm transition active:scale-[0.99]",
             isNoPay && "bg-destructive/15"
           )}
           onClick={onNoPay}
@@ -661,7 +661,7 @@ function LoanListCard({
         </button>
         <button
           className={cn(
-            "flex h-14 items-center justify-center gap-2 rounded-2xl bg-primary text-base font-black text-primary-foreground shadow-lg shadow-primary/25 transition active:scale-[0.99]",
+            "flex h-12 items-center justify-center gap-2 rounded-2xl bg-primary text-sm font-black text-primary-foreground shadow-lg shadow-primary/25 transition active:scale-[0.99]",
             isPaid && "opacity-80"
           )}
           onClick={onPay}
@@ -689,7 +689,7 @@ function CardMetric({
       <p className="text-[11px] font-black uppercase tracking-[0.12em] text-muted-foreground">
         {label}
       </p>
-      <p className={cn("mt-1 text-lg font-black", highlight && "text-primary")}>{value}</p>
+      <p className={cn("mt-0.5 text-base font-black", highlight && "text-primary")}>{value}</p>
     </div>
   );
 }
