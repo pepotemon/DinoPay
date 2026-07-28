@@ -1,7 +1,7 @@
 ---
 tags: [funcionalidad, pantalla, prestamos, cobros, pagos, unidad]
 created: 2026-07-24
-updated: 2026-07-24
+updated: 2026-07-27
 ---
 
 # Pantalla: PRÉSTAMOS — Lista de Trabajo Diaria
@@ -13,7 +13,7 @@ updated: 2026-07-24
 ## Objetivo
 Es la pantalla principal de trabajo de la unidad. Aquí se listan todos los préstamos activos y se registran los pagos del día. Es el corazón de la operación diaria.
 
-Estado de implementación: ✅ Implementada y rediseñada (2026-07-27). Lista conectada a préstamos activos, registro de pago, no-pago, historial, detalles y edición de cliente operativos. Diseño propio con cabecera sticky + lista compacta + bottom sheet unificado.
+Estado de implementación: ✅ Implementada y rediseñada (2026-07-27). Lista conectada a préstamos activos, registro de pago (incluyendo parciales), no-pago, historial, detalles y edición de cliente operativos. Diseño propio con cabecera sticky + lista compacta + bottom sheet unificado. Badges de atraso (naranja), adelantadas (verde) y estado (verde/rojo). Display de cuotas fraccionado (8.3/20).
 
 ## Problema que Resuelve
 El cobrador necesita ver rápidamente quién debe pagar hoy, cuánto lleva cobrado, y registrar pagos con el menor número de toques posible.
@@ -88,31 +88,33 @@ El bottom sheet evoluciona internamente entre vistas (main → pagar → confirm
 
 ---
 
-## Tarjeta de Préstamo
+## Fila de Préstamo (lista compacta)
 
-### Información Principal
 ```
-┌─────────────────────────────────────────┐
-│ [ALIAS CLIENTE]          [CUOTA DE HOY] │
-│ Cuota: 2/20              $25,000        │
-│ Saldo: $480,000                         │
-│ Préstamo: $500,000  Pagado: $20,000     │
-├─────────────────────────────────────────┤
-│ [📋 Copiar] [📍 Mapa] [⋮ Más opciones] │
-│                                         │
-│           [No Pagó] [Pagar]             │
-└─────────────────────────────────────────┘
+● Juan Carlos Lopez    [Xd atraso]   $15,000  >
+  El Carmen · 3 / 20 cuotas
+
+● Maria Perez          [X adelantadas] $8,000  >
+  Centro · 8.3 / 20 cuotas
 ```
 
-### Campos de la Tarjeta
-| Campo | Descripción |
+### Indicador de color (punto izquierdo)
+| Color | Significado |
 |-------|-------------|
-| Alias cliente | Nombre del cliente |
-| Cuota de hoy | Valor de UNA cuota |
-| Cuota N/Total | Número de cuota actual sobre total (ej: 2/20) |
-| Saldo | Dinero que aún debe el cliente |
-| Préstamo | Capital original prestado |
-| Pagado | Total pagado hasta ahora |
+| Verde (primary) | Pago registrado hoy |
+| Rojo (destructive) | Sin pago hoy |
+| Naranja | Cuotas vencidas (atraso) |
+| Verde claro | Cuotas adelantadas |
+| Gris | Pendiente sin novedad |
+
+### Badges
+| Badge | Condición |
+|-------|-----------|
+| `Xd atraso` (naranja) | `ultima_cuota_fecha` en el pasado; X = días hábiles vencidos excluyendo domingos y festivos |
+| `X adelantada(s)` (verde) | `ultima_cuota_fecha` en el futuro más de un período |
+
+### Cuotas: display fraccionado
+El valor se calcula siempre como `(total_a_cobrar - saldo) / valor_cuota`. Muestra decimales cuando hay pagos parciales (ej: `8.3 / 20`).
 
 ### Botones de Acción
 
@@ -159,8 +161,16 @@ Implementación: se registra en `loan_visits` con `tipo = 'no_pago'`, no en `pay
 - **Método de pago**: efectivo o transferencia (afecta reportes pero no la caja total)
 - Al registrar: se crea un registro en `payments`, se actualiza `cuotas_pagadas` y `saldo` en `loans`
 
+### Pago parcial
+Si el monto ingresado es menor al `valor_cuota`:
+- `saldo` baja por el monto real pagado
+- `cuotas_pagadas` **no** avanza (solo avanzan cuotas completas: `floor(monto / valor_cuota)`)
+- `ultima_cuota_fecha` no se mueve — la próxima cuota sigue siendo la misma fecha
+- La pantalla de confirmación muestra fondo naranja y el aviso "No cubre una cuota completa"
+- El display de cuotas refleja el pago: `8.3 / 20`
+
 ### Caso especial: Pago completa el préstamo
-Si `cuotas_pagadas + cuotas_este_pago >= numero_cuotas`, el préstamo se marca como `completado` y el cliente se mueve automáticamente a [[PANTALLA-CLIENTES-DISPONIBLES]].
+Si `saldo - monto <= 0`, el préstamo se marca como `completado` y el cliente se mueve automáticamente a [[PANTALLA-CLIENTES-DISPONIBLES]].
 
 ---
 
@@ -205,13 +215,17 @@ Los préstamos se muestran en el orden configurado en [[PANTALLA-ENRUTAR]]. El c
 ---
 
 ## Archivos Involucrados
-- `src/app/unidad/prestamos/page.tsx` — Server Component, carga datos de Supabase
+- `src/app/unidad/prestamos/page.tsx` — Server Component: carga datos, auto-sync festivos, calcula `overdueByLoan` y `adelantadasByLoan`
 - `src/app/unidad/prestamos/loading.tsx` — skeleton de carga
 - `src/app/unidad/prestamos/[id]/page.tsx` — detalle de préstamo individual
 - `src/app/unidad/prestamos/[id]/editar-cliente/page.tsx` — edición de datos del cliente
-- `src/components/unidad/prestamos-client.tsx` — UI completa (cabecera + lista + bottom sheet)
-- `src/components/unidad/payment-inputs.tsx` — formulario de cuotas/monto/método
+- `src/components/unidad/prestamos-client.tsx` — UI completa (cabecera sticky + lista + bottom sheet unificado con 9 vistas)
+- `src/components/unidad/payment-inputs.tsx` — formulario de cuotas/monto/método (monto editable para parciales)
 - `src/lib/actions/unidad/payments.ts` — Server Actions: `registerPaymentAction`, `markNoPayVisitResult`
+- `src/lib/actions/admin/holidays.ts` — `syncHolidaysAction`: fetcha Nager.Date y cachea en tabla `holidays`
+- `src/lib/utils/overdue.ts` — `calcularDiasAtraso` y `calcularCuotasAdelantadas`
+- `supabase/migrations/012_fix_ultima_cuota_fecha.sql` — `next_due_date()` + corrige `ultima_cuota_fecha` en todas las funciones RPC
+- `supabase/migrations/013_partial_payments.sql` — `register_payment` con soporte pagos parciales
 
 ---
 
@@ -220,6 +234,10 @@ Los préstamos se muestran en el orden configurado en [[PANTALLA-ENRUTAR]]. El c
 - Un pago eliminado genera un registro en `box_adjustments`
 - Los pagos solo se pueden eliminar dentro de los `dias_bloqueados_eliminacion` configurados en la unidad
 - El saldo no puede quedar negativo
+- `ultima_cuota_fecha` = PRÓXIMA fecha de cuota (no la última pagada). Se pone `null` al completar el préstamo
+- `cuotas_pagadas` avanza solo por cuotas completas. Los pagos parciales reducen el saldo pero no mueven el contador
+- Días de atraso: cuenta días hábiles desde `ultima_cuota_fecha` hasta hoy, excluyendo domingos y festivos del país de la unidad (`holidays` table)
+- Festivos se sincronizan automáticamente desde Nager.Date al cargar la pantalla si no están cacheados
 
 ---
 

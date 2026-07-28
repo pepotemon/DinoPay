@@ -10,7 +10,7 @@ updated: 2026-07-24
 
 ---
 
-## Estado General: 🔄 Módulo Unidad casi completo — Fase 3 en progreso
+## Estado General: 🔄 Módulo Unidad casi completo — Fase 3 completada, Fase 4 en progreso
 
 ---
 
@@ -25,8 +25,8 @@ updated: 2026-07-24
 | Middleware de rutas por rol | ✅ Completado | 🔴 Alta |
 | Panel Admin: crear unidad | ✅ Implementado | 🔴 Alta |
 | Unidad: pantalla NUEVO (cliente + préstamo) | ✅ Implementado | 🔴 Alta |
-| Unidad: pantalla PRÉSTAMOS (lista + cobros) | ✅ Implementado y mejorado | 🔴 Alta |
-| Unidad: registro de pago | ✅ Implementado | 🔴 Alta |
+| Unidad: pantalla PRÉSTAMOS (lista + cobros) | ✅ Implementado y mejorado (diseño propio, bottom sheet, badges) | 🔴 Alta |
+| Unidad: registro de pago | ✅ Implementado (incluye pagos parciales) | 🔴 Alta |
 | Completar préstamo automáticamente | ✅ Implementado en RPC | 🔴 Alta |
 | Cálculo de caja en tiempo real | ✅ Implementado en Reporte Diario | 🔴 Alta |
 
@@ -48,6 +48,10 @@ updated: 2026-07-24
 | Botón WhatsApp desde tarjeta | ✅ Implementado | 🟡 Media |
 | Botón llamar desde tarjeta | ✅ Implementado | 🟡 Media |
 | Abrir Maps desde detalle de préstamo | ✅ Implementado | 🟡 Media |
+| Cuotas adelantadas (badge verde en lista) | ✅ Implementado | 🟡 Media |
+| Pagos parciales (display fraccionado 8.3/20) | ✅ Implementado | 🟡 Media |
+| Sistema de días de atraso (badge naranja) | ✅ Implementado + auto-sync festivos Nager.Date | 🟡 Media |
+| Selector de país/estado/ciudad en nueva unidad | ✅ Implementado (country-state-city offline) | 🟡 Media |
 | Integración Google Maps (ubicar cliente al crear) | ⏳ Pendiente | 🟢 Baja |
 
 ---

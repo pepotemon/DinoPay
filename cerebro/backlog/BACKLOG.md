@@ -1,7 +1,7 @@
 ---
 tags: [backlog, pendiente, tareas, prioridades]
 created: 2026-07-24
-updated: 2026-07-24
+updated: 2026-07-27
 ---
 
 # Backlog — DinoPay
@@ -128,6 +128,10 @@ updated: 2026-07-24
 - `Viewport` export nombrado en `layout.tsx` causa ChunkLoadError en Next.js 15.5.x con Webpack. Usar `<meta>` directo en `<head>` en su lugar.
 - `reverse_payment` RPC en `010_reverse_payment.sql` debe ejecutarse en Supabase antes de usar la función de anular pago.
 - Tipos TypeScript pendientes de generar: `npx supabase gen types typescript --project-id <ID> > src/types/database.ts`
+
+## Migraciones Pendientes de Ejecutar en Supabase
+- [ ] **`012_fix_ultima_cuota_fecha.sql`** — corrige `ultima_cuota_fecha` para que almacene la PRÓXIMA cuota; backfill de préstamos activos sin fecha
+- [ ] **`013_partial_payments.sql`** — soporte para pagos parciales en `register_payment`: `cuotas_pagadas` y `ultima_cuota_fecha` solo avanzan por cuotas completas
 
 ---
 

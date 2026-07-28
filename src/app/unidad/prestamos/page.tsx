@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { PrestamosClient } from "@/components/unidad/prestamos-client";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { syncHolidaysAction } from "@/lib/actions/admin/holidays";
 import { calcularCuotasAdelantadas, calcularDiasAtraso } from "@/lib/utils/overdue";
 
 type RawLoanRow = {
@@ -116,7 +117,7 @@ export default async function PrestamosPage() {
   const countryCode: string | null = unit?.pais_codigo ?? null;
   const diasLaborales: number[] = unit?.dias_laborales ?? [];
 
-  // Cargar festivos del país desde cache (holidays table)
+  // Cargar festivos del país desde cache; auto-sync si no están cargados
   let holidaySet = new Set<string>();
   if (countryCode) {
     const { data: holidays } = await adminClient
@@ -127,6 +128,19 @@ export default async function PrestamosPage() {
 
     if (holidays && holidays.length > 0) {
       holidaySet = new Set(holidays.map((h: { date: string }) => h.date));
+    } else {
+      // Primera visita o festivos no cacheados → sincroniza con Nager.Date
+      const syncResult = await syncHolidaysAction(countryCode, currentYear);
+      if (syncResult.ok) {
+        const { data: freshHolidays } = await adminClient
+          .from("holidays")
+          .select("date")
+          .eq("country_code", countryCode)
+          .eq("year", currentYear);
+        if (freshHolidays && freshHolidays.length > 0) {
+          holidaySet = new Set(freshHolidays.map((h: { date: string }) => h.date));
+        }
+      }
     }
   }
 
