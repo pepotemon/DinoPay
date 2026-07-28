@@ -343,19 +343,19 @@ function CreditCardPreview({
       {/* Center: cuota + plazo */}
       <div className="relative mt-3 flex items-end justify-between gap-2">
         <div>
-          <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/50">
+          <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/75">
             Valor por cuota
           </p>
           <p className="mt-0.5 text-2xl font-black leading-none">{formatCurrency(cuota)}</p>
         </div>
         <div className="text-right">
-          <p className="text-[9px] text-white/50">plazo</p>
+          <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/75">plazo</p>
           <p className="text-sm font-black">{modalidad}</p>
         </div>
       </div>
 
       {/* Dirección */}
-      <p className="relative mt-2 truncate text-[9px] text-white/40">
+      <p className="relative mt-2 truncate text-[9px] font-semibold text-white/70">
         {direccion1 || "Dirección —"}
       </p>
 
@@ -365,10 +365,10 @@ function CreditCardPreview({
           <p className="truncate text-[11px] font-black uppercase tracking-widest">
             {alias || "NOMBRE DEL CLIENTE"}
           </p>
-          <p className="text-[9px] text-white/50">{nit || "••••••••"}</p>
+          <p className="text-[9px] font-semibold text-white/75">{nit || "••••••••"}</p>
         </div>
         <div className="shrink-0 text-right">
-          <p className="text-[9px] text-white/50">total</p>
+          <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/75">total</p>
           <p className="text-sm font-black">{formatCurrency(total)}</p>
         </div>
       </div>
