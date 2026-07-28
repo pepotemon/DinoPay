@@ -429,6 +429,7 @@ updated: 2026-07-24
 - Loader `PageSpinner` centrado en la altura útil móvil para que no quede pegado arriba durante cargas.
 - Iconos emoji grandes de pantallas internas reemplazados por `PageDino`, un dino animado por seccion usando el sprite local.
 - `PageDino` simplificado como escena sin tarjeta ni colores por pantalla; cada vista muestra simbolos contextuales animados alrededor del dino.
+- Pantalla de prestamos actualizada con fichas moviles completas: resumen de cuota, saldo/prestamo/pagado, acciones visibles de pago/no pago y menu `...` para opciones secundarias.
 
 ### Verificado
 - `npm run build` pasa correctamente.

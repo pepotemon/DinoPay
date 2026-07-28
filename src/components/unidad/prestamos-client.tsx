@@ -6,7 +6,6 @@ import {
   Banknote,
   CalendarDays,
   ChevronDown,
-  ChevronRight,
   CircleSlash,
   Copy,
   Download,
@@ -16,6 +15,7 @@ import {
   Lock,
   MapPinned,
   MessageCircle,
+  MoreVertical,
   Phone,
   Receipt,
   Search,
@@ -150,6 +150,23 @@ function formatCuotas(loan: ClientLoan): string {
   const rounded = Math.round(pagadas * 10) / 10;
   const display = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
   return `${display} / ${loan.numero_cuotas}`;
+}
+
+function clientInitials(name: string): string {
+  const parts = name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parts.length === 0) return "--";
+  return parts
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+}
+
+function modalidadLabel(modalidad: string): string {
+  return modalidad.charAt(0).toUpperCase() + modalidad.slice(1);
 }
 
 function whatsappHref(phone: string, alias: string) {
@@ -374,7 +391,7 @@ export function PrestamosClient({
       </div>
 
       {/* ── Lista ── */}
-      <div className="mx-auto w-full max-w-md divide-y px-4">
+      <div className="mx-auto w-full max-w-md space-y-4 px-4 py-4">
         {filtered.length === 0 ? (
           <p className="py-12 text-center text-sm text-muted-foreground">
             {loans.length === 0
@@ -391,68 +408,19 @@ export function PrestamosClient({
             const adelantadas = adelantadasByLoan[loan.id] ?? 0;
 
             return (
-              <button
-                className="flex w-full items-center gap-3.5 py-4 text-left transition-colors active:bg-muted/50"
+              <LoanListCard
+                adelantadas={adelantadas}
+                isNoPay={isNoPay}
+                isPaid={isPaid}
+                isVisited={isVisited}
                 key={loan.id}
-                onClick={() => setSheet({ view: "main", loan })}
-                type="button"
-              >
-                <span
-                  className={cn(
-                    "mt-0.5 h-2 w-2 shrink-0 rounded-full",
-                    isPaid
-                      ? "bg-primary"
-                      : isNoPay
-                        ? "bg-destructive"
-                        : overdue > 0
-                          ? "bg-orange-500"
-                          : adelantadas > 0
-                            ? "bg-green-500"
-                            : "bg-border"
-                  )}
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p
-                      className={cn(
-                        "truncate font-black",
-                        isVisited && "text-muted-foreground"
-                      )}
-                    >
-                      {name}
-                    </p>
-                    {overdue > 0 && !isVisited ? (
-                      <span className="shrink-0 rounded-full bg-orange-500/10 px-2 py-0.5 text-[10px] font-black text-orange-600">
-                        {overdue}d atraso
-                      </span>
-                    ) : adelantadas > 0 && !isVisited ? (
-                      <span className="shrink-0 rounded-full bg-green-500/10 px-2 py-0.5 text-[10px] font-black text-green-600">
-                        {adelantadas} adelantada{adelantadas > 1 ? "s" : ""}
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {[loan.clients?.barrio, `${formatCuotas(loan)} cuotas`]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-1">
-                  <p
-                    className={cn(
-                      "text-sm font-black",
-                      isPaid
-                        ? "text-primary"
-                        : isNoPay
-                          ? "text-muted-foreground line-through"
-                          : "text-foreground"
-                    )}
-                  >
-                    {formatCurrency(Number(loan.valor_cuota))}
-                  </p>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
-                </div>
-              </button>
+                loan={loan}
+                name={name}
+                overdue={overdue}
+                onMenu={() => setSheet({ view: "main", loan })}
+                onNoPay={() => setSheet({ view: "nopay", loan })}
+                onPay={() => setSheet({ view: "pay", loan })}
+              />
             );
           })
         )}
@@ -520,8 +488,6 @@ export function PrestamosClient({
               <div className="pb-8">
                 {sheet.view === "main" ? (
                   <SheetMain
-                    isPaid={paidSet.has(sheet.loan.id)}
-                    isNoPay={noPaySet.has(sheet.loan.id) && !paidSet.has(sheet.loan.id)}
                     loan={sheet.loan}
                     onSetSheet={setSheet}
                   />
@@ -584,14 +550,154 @@ export function PrestamosClient({
   );
 }
 
-function SheetMain({
-  isPaid,
+function LoanListCard({
+  adelantadas,
   isNoPay,
+  isPaid,
+  isVisited,
+  loan,
+  name,
+  overdue,
+  onMenu,
+  onNoPay,
+  onPay
+}: {
+  adelantadas: number;
+  isNoPay: boolean;
+  isPaid: boolean;
+  isVisited: boolean;
+  loan: ClientLoan;
+  name: string;
+  overdue: number;
+  onMenu: () => void;
+  onNoPay: () => void;
+  onPay: () => void;
+}) {
+  const totalPagado = Number(loan.total_a_cobrar) - Number(loan.saldo);
+  const showOverdue = overdue > 0 && !isVisited;
+  const showAdvanced = adelantadas > 0 && !isVisited && !showOverdue;
+
+  return (
+    <article
+      className={cn(
+        "rounded-[1.75rem] border bg-background p-5 shadow-sm transition-colors",
+        isVisited && "bg-muted/20"
+      )}
+    >
+      <div className="flex items-start gap-3">
+        <div className="relative grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-primary/10 text-lg font-black text-primary">
+          {clientInitials(name)}
+          {showOverdue ? (
+            <span className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full border-2 border-background bg-destructive" />
+          ) : null}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <h2 className="text-2xl font-black leading-tight tracking-normal text-foreground">
+            {name}
+          </h2>
+          {showOverdue ? (
+            <p className="mt-1 inline-flex rounded-full bg-destructive/10 px-2.5 py-1 text-xs font-black text-destructive">
+              {overdue} cuota{overdue !== 1 ? "s" : ""} - {overdue} dia{overdue !== 1 ? "s" : ""} atrasado{overdue !== 1 ? "s" : ""}
+            </p>
+          ) : showAdvanced ? (
+            <p className="mt-1 inline-flex rounded-full bg-primary/10 px-2.5 py-1 text-xs font-black text-primary">
+              {adelantadas} adelantada{adelantadas > 1 ? "s" : ""}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="flex shrink-0 items-center gap-1">
+          <button
+            aria-label={`Opciones de ${name}`}
+            className="grid h-10 w-10 place-items-center rounded-full text-foreground transition-colors active:bg-muted"
+            onClick={onMenu}
+            type="button"
+          >
+            <MoreVertical className="h-5 w-5" />
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-5 rounded-2xl bg-muted/60 px-4 py-4">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+              Cuota de hoy
+            </p>
+            <p className="mt-2 text-4xl font-black leading-none">
+              {formatCurrency(Number(loan.valor_cuota))}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-[11px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+              Cuotas
+            </p>
+            <p className="mt-2 text-2xl font-black leading-none">{formatCuotas(loan)}</p>
+            <p className="mt-2 inline-flex rounded-xl bg-primary/10 px-2.5 py-1 text-xs font-black text-primary">
+              {modalidadLabel(loan.modalidad)}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 px-2 py-4 text-center">
+        <CardMetric label="Saldo" value={formatCurrency(Number(loan.saldo))} />
+        <CardMetric label="Prestamo" value={formatCurrency(Number(loan.total_a_cobrar))} />
+        <CardMetric highlight label="Pagado" value={formatCurrency(totalPagado)} />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <button
+          className={cn(
+            "flex h-14 items-center justify-center gap-2 rounded-2xl border border-destructive/20 bg-destructive/10 text-base font-black text-destructive shadow-sm transition active:scale-[0.99]",
+            isNoPay && "bg-destructive/15"
+          )}
+          onClick={onNoPay}
+          type="button"
+        >
+          <CircleSlash className="h-5 w-5" />
+          No Pago
+        </button>
+        <button
+          className={cn(
+            "flex h-14 items-center justify-center gap-2 rounded-2xl bg-primary text-base font-black text-primary-foreground shadow-lg shadow-primary/25 transition active:scale-[0.99]",
+            isPaid && "opacity-80"
+          )}
+          onClick={onPay}
+          type="button"
+        >
+          <Banknote className="h-5 w-5" />
+          Pagar
+        </button>
+      </div>
+    </article>
+  );
+}
+
+function CardMetric({
+  highlight,
+  label,
+  value
+}: {
+  highlight?: boolean;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div>
+      <p className="text-[11px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+        {label}
+      </p>
+      <p className={cn("mt-1 text-lg font-black", highlight && "text-primary")}>{value}</p>
+    </div>
+  );
+}
+
+function SheetMain({
   loan,
   onSetSheet
 }: {
-  isPaid: boolean;
-  isNoPay: boolean;
   loan: ClientLoan;
   onSetSheet: (state: SheetState) => void;
 }) {
@@ -600,81 +706,12 @@ function SheetMain({
   const hasPhone = digitsOnly(phone).length > 0;
   const clientName = client?.alias ?? "Sin nombre";
   const address = [client?.direccion1, client?.barrio].filter(Boolean).join(", ");
-  const isVisited = isPaid || isNoPay;
 
   return (
     <div className="space-y-4 px-5">
       {address ? <p className="text-sm text-muted-foreground">{address}</p> : null}
 
-      {isPaid ? (
-        <span className="inline-flex rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
-          Pago registrado hoy
-        </span>
-      ) : isNoPay ? (
-        <span className="inline-flex rounded-full bg-destructive/10 px-3 py-1 text-xs font-bold text-destructive">
-          No pagó hoy
-        </span>
-      ) : null}
-
-      <div className="grid grid-cols-3 rounded-2xl bg-muted p-4 text-center">
-        <SheetStat highlight label="Cuota" value={formatCurrency(Number(loan.valor_cuota))} />
-        <SheetStat label="Saldo" value={formatCurrency(Number(loan.saldo))} />
-        <SheetStat label="Cuotas" value={formatCuotas(loan)} />
-      </div>
-
-      {hasPhone ? (
-        <div className="grid grid-cols-2 gap-3">
-          <a
-            className="flex h-11 items-center justify-center gap-2 rounded-xl border text-sm font-bold"
-            href={`tel:${digitsOnly(phone)}`}
-          >
-            <Phone className="h-4 w-4" />
-            Llamar
-          </a>
-          <a
-            className="flex h-11 items-center justify-center gap-2 rounded-xl border text-sm font-bold"
-            href={whatsappHref(phone, clientName)}
-            rel="noreferrer"
-            target="_blank"
-          >
-            <MessageCircle className="h-4 w-4 text-primary" />
-            WhatsApp
-          </a>
-        </div>
-      ) : null}
-
-      {isVisited ? (
-        <Button
-          className="h-12 w-full rounded-2xl font-black shadow-lg shadow-primary/25"
-          onClick={() => onSetSheet({ view: "pay", loan })}
-          type="button"
-        >
-          <WalletCards className="h-5 w-5" />
-          Registrar otro pago
-        </Button>
-      ) : (
-        <div className="grid grid-cols-2 gap-3">
-          <Button
-            className="h-12 rounded-2xl border border-destructive/20 bg-destructive/10 font-black text-destructive hover:bg-destructive/15"
-            onClick={() => onSetSheet({ view: "nopay", loan })}
-            type="button"
-            variant="secondary"
-          >
-            <CircleSlash className="h-5 w-5" />
-            No Pago
-          </Button>
-          <Button
-            className="h-12 rounded-2xl font-black shadow-lg shadow-primary/25"
-            onClick={() => onSetSheet({ view: "pay", loan })}
-            type="button"
-          >
-            <WalletCards className="h-5 w-5" />
-            Pagar
-          </Button>
-        </div>
-      )}
-
-      <div className="space-y-0.5 border-t pt-2">
+      <div className="space-y-1 rounded-2xl bg-muted/60 p-2">
         <SheetAction
           icon={<FileText className="h-5 w-5" />}
           label="Ver Detalles"
@@ -687,7 +724,7 @@ function SheetMain({
         />
         <SheetAction
           icon={<History className="h-5 w-5" />}
-          label="Historial de Préstamos"
+          label="Historial de Prestamos"
           onClick={() => onSetSheet({ view: "info-loans", loan })}
         />
         <SheetAction
@@ -700,11 +737,24 @@ function SheetMain({
           icon={<UserPen className="h-5 w-5" />}
           label="Editar Cliente"
         />
+        {hasPhone ? (
+          <>
+            <SheetAction
+              href={`tel:${digitsOnly(phone)}`}
+              icon={<Phone className="h-5 w-5" />}
+              label="Llamar"
+            />
+            <SheetAction
+              href={whatsappHref(phone, clientName)}
+              icon={<MessageCircle className="h-5 w-5" />}
+              label="WhatsApp"
+            />
+          </>
+        ) : null}
       </div>
     </div>
   );
 }
-
 function SheetPay({
   loan,
   onSetSheet
@@ -1230,25 +1280,6 @@ function SheetInfoLoans({
   );
 }
 
-function SheetStat({
-  highlight,
-  label,
-  value
-}: {
-  highlight?: boolean;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div>
-      <p className="text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">
-        {label}
-      </p>
-      <p className={cn("mt-1 text-base font-black", highlight && "text-primary")}>{value}</p>
-    </div>
-  );
-}
-
 function SheetAction({
   href,
   icon,
@@ -1264,6 +1295,20 @@ function SheetAction({
     "flex h-12 w-full items-center gap-3 rounded-xl px-2 text-sm font-bold text-muted-foreground transition-colors hover:bg-muted active:bg-muted";
 
   if (href) {
+    if (href.startsWith("http") || href.startsWith("tel:")) {
+      return (
+        <a
+          className={cls}
+          href={href}
+          rel={href.startsWith("http") ? "noreferrer" : undefined}
+          target={href.startsWith("http") ? "_blank" : undefined}
+        >
+          {icon}
+          {label}
+        </a>
+      );
+    }
+
     return (
       <Link className={cls} href={href}>
         {icon}
