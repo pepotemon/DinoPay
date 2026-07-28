@@ -423,6 +423,7 @@ updated: 2026-07-24
 - Modales de pago y no pago actualizados con paso de confirmación final antes de ejecutar la acción.
 - Loader global `PageSpinner` reemplazado por un dinosaurio SVG pequeño estilo Chrome, caminando sobre una línea de suelo.
 - `.gitignore` actualizado para excluir adjuntos locales de Codex y metadata local de Obsidian.
+- Loader de dinosaurio refinado con silueta pixelada y animación de dos frames inspirada en el Chrome Dino runner.
 
 ### Verificado
 - `npm run build` pasa correctamente.
