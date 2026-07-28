@@ -1,37 +1,33 @@
-import { PlusCircle } from "lucide-react";
-
 export default function Loading() {
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between gap-3">
+    <div className="pb-6">
+      <div className="flex items-end justify-between px-1 pb-6 pt-2">
         <div>
-          <h1 className="text-2xl font-semibold">Clientes disponibles</h1>
-          <p className="text-sm text-muted-foreground">Clientes activos sin préstamo activo.</p>
+          <h1 className="text-4xl font-black">Clientes</h1>
+          <p className="text-lg font-bold text-primary">Disponibles</p>
         </div>
-        <div className="flex items-center gap-1.5 rounded-md border bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground opacity-60">
-          <PlusCircle className="h-4 w-4" />
-          Nuevo
-        </div>
+        <span className="select-none text-5xl">🤝</span>
       </div>
 
-      <div className="animate-pulse space-y-3">
-        <div className="h-24 rounded-lg bg-muted" />
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="overflow-hidden rounded-lg border">
-            <div className="space-y-3 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1.5">
-                  <div className="h-5 w-40 rounded bg-muted" />
-                  <div className="h-3.5 w-56 rounded bg-muted" />
-                  <div className="h-3.5 w-28 rounded bg-muted" />
+      <div className="animate-pulse space-y-4">
+        <div className="h-4 w-40 rounded bg-muted" />
+        <div className="h-12 rounded-xl bg-muted" />
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="rounded-2xl border p-4">
+              <div className="flex items-start gap-3">
+                <div className="h-11 w-11 rounded-full bg-muted" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-36 rounded bg-muted" />
+                  <div className="h-3 w-28 rounded bg-muted" />
+                  <div className="h-3 w-44 rounded bg-muted" />
+                  <div className="h-3 w-52 rounded bg-muted" />
                 </div>
-                <div className="h-6 w-16 rounded-md bg-muted" />
               </div>
-              <div className="h-20 rounded-md bg-muted" />
-              <div className="h-12 w-full rounded-md bg-muted" />
+              <div className="mt-3 h-11 rounded-xl bg-muted" />
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );
