@@ -79,9 +79,21 @@ type LoanHistory = {
   saldo: number;
   cuotas_pagadas: number;
   numero_cuotas: number;
+  valor_cuota: number;
+  interes: number;
+  modalidad: string;
   estado: string;
   fecha_inicio: string | null;
+  fecha_fin: string | null;
   created_at: string;
+};
+
+type PaymentLoanContext = {
+  id: string;
+  valor_cuota: number;
+  total_a_cobrar: number;
+  saldo: number;
+  numero_cuotas: number;
 };
 
 type Props = {
@@ -112,7 +124,7 @@ type SheetState =
   | { view: "nopay"; loan: ClientLoan }
   | { view: "nopay-confirm"; loan: ClientLoan; reason: string }
   | { view: "info-details"; loan: ClientLoan }
-  | { view: "info-payments"; loan: ClientLoan }
+  | { view: "info-payments"; loan: PaymentLoanContext; clientLoan: ClientLoan }
   | { view: "info-loans"; loan: ClientLoan };
 
 const noPayReasons = [
@@ -141,18 +153,18 @@ function whatsappHref(phone: string, alias: string) {
 }
 
 function backView(sheet: Exclude<SheetState, null>): SheetState {
-  const { loan } = sheet;
   switch (sheet.view) {
     case "pay":
     case "nopay":
     case "info-details":
-    case "info-payments":
     case "info-loans":
-      return { view: "main", loan };
+      return { view: "main", loan: sheet.loan };
+    case "info-payments":
+      return { view: "main", loan: sheet.clientLoan };
     case "pay-confirm":
-      return { view: "pay", loan };
+      return { view: "pay", loan: sheet.loan };
     case "nopay-confirm":
-      return { view: "nopay", loan };
+      return { view: "nopay", loan: sheet.loan };
     default:
       return null;
   }
@@ -442,7 +454,9 @@ export function PrestamosClient({
                 ) : null}
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xl font-black">
-                    {sheet.loan.clients?.alias ?? "Sin nombre"}
+                    {sheet.view === "info-payments"
+                      ? (sheet.clientLoan.clients?.alias ?? "Sin nombre")
+                      : ((sheet.loan as ClientLoan).clients?.alias ?? "Sin nombre")}
                   </p>
                   {sheetSubtitle(sheet.view) ? (
                     <p className="text-xs font-bold text-muted-foreground">
@@ -498,12 +512,16 @@ export function PrestamosClient({
                     loan={sheet.loan}
                     payments={paymentHistoryByLoan[sheet.loan.id] ?? []}
                   />
+
                 ) : sheet.view === "info-loans" ? (
                   <SheetInfoLoans
                     activeLoan={sheet.loan}
                     loans={loanHistoryByClient[sheet.loan.client_id] ?? []}
                     overdue={overdueByLoan[sheet.loan.id] ?? 0}
-                    onViewPayments={() => setSheet({ view: "info-payments", loan: sheet.loan })}
+                    paymentHistoryByLoan={paymentHistoryByLoan}
+                    onViewPayments={(loan) =>
+                      setSheet({ view: "info-payments", loan, clientLoan: sheet.loan })
+                    }
                   />
                 ) : null}
               </div>
@@ -614,7 +632,7 @@ function SheetMain({
         <SheetAction
           icon={<WalletCards className="h-5 w-5" />}
           label="Historial de Pagos"
-          onClick={() => onSetSheet({ view: "info-payments", loan })}
+          onClick={() => onSetSheet({ view: "info-payments", loan, clientLoan: loan })}
         />
         <SheetAction
           icon={<History className="h-5 w-5" />}
@@ -863,7 +881,7 @@ function SheetInfoPayments({
   loan,
   payments
 }: {
-  loan: ClientLoan;
+  loan: PaymentLoanContext;
   payments: PaymentHistory[];
 }) {
   const totalPagado = loan.total_a_cobrar - loan.saldo;
@@ -966,104 +984,116 @@ function SheetInfoPayments({
   );
 }
 
-function formatDateNice(dateStr: string | null): string {
+function formatDateNice(dateStr: string | null | undefined): string {
   if (!dateStr) return "—";
-  const d = new Date(dateStr + "T00:00:00");
+  const d = new Date(dateStr.slice(0, 10) + "T00:00:00");
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-function SheetInfoLoans({
-  activeLoan,
-  loans,
-  overdue,
+function LoanCard({
+  loan,
+  payments,
+  overdueActiveDays,
+  isActive,
   onViewPayments
 }: {
-  activeLoan: ClientLoan;
-  loans: LoanHistory[];
-  overdue: number;
+  loan: ClientLoan | LoanHistory;
+  payments: PaymentHistory[];
+  overdueActiveDays?: number;
+  isActive: boolean;
   onViewPayments: () => void;
 }) {
-  const cuotasFrac = (activeLoan.total_a_cobrar - activeLoan.saldo) / activeLoan.valor_cuota;
-  const previousLoans = loans.filter((l) => l.id !== activeLoan.id);
+  const cuotasFrac = (loan.total_a_cobrar - loan.saldo) / loan.valor_cuota;
+
+  // Cuotas parciales = pagos donde monto < valor_cuota
+  const cuotasParciales = payments.filter(
+    (p) => Number(p.monto) < Number(loan.valor_cuota) - 0.01
+  ).length;
+
+  // Días de atraso al completar (para préstamos completados)
+  let diasAtrasoAlCompletar = 0;
+  if (!isActive && loan.fecha_fin && payments.length > 0) {
+    const lastPaymentDate = new Date(payments[0].fecha_pago + "T00:00:00");
+    const fechaFin = new Date(loan.fecha_fin + "T00:00:00");
+    const diff = Math.round((lastPaymentDate.getTime() - fechaFin.getTime()) / (1000 * 60 * 60 * 24));
+    diasAtrasoAlCompletar = Math.max(0, diff);
+  }
 
   return (
-    <div className="space-y-5 px-5">
-      <p className="text-center text-sm text-muted-foreground">
-        Tu préstamo actual es de{" "}
-        <span className="font-black text-primary">{formatCurrency(Number(activeLoan.total_a_cobrar))}</span>{" "}
-        y tu cuota es de{" "}
-        <span className="font-black text-primary">{formatCurrency(Number(activeLoan.valor_cuota))}</span>
-      </p>
+    <div className="space-y-3">
+      <div className="flex items-center gap-3 rounded-2xl bg-primary/10 px-4 py-3">
+        <CalendarDays className="h-5 w-5 shrink-0 text-primary" />
+        <p className="text-sm leading-snug">
+          Préstamo realizado entre el{" "}
+          <span className="font-black">{formatDateNice(loan.fecha_inicio)}</span>{" "}
+          y{" "}
+          <span className="font-black">{formatDateNice(loan.fecha_fin)}</span>
+        </p>
+      </div>
 
-      <section className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Layers className="h-4 w-4 text-primary" />
-          <p className="font-black">Detalles del Préstamo</p>
-        </div>
-
-        <div className="flex items-center gap-3 rounded-2xl bg-primary/10 px-4 py-3">
-          <CalendarDays className="h-5 w-5 shrink-0 text-primary" />
-          <p className="text-sm leading-snug">
-            Préstamo realizado entre el{" "}
-            <span className="font-black">{formatDateNice(activeLoan.fecha_inicio)}</span>{" "}
-            y{" "}
-            <span className="font-black">{formatDateNice(activeLoan.fecha_fin)}</span>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-2xl border p-4">
+          <p className="text-xs text-muted-foreground">Valor Total</p>
+          <p className="mt-1 text-xl font-black text-primary">
+            {formatCurrency(Number(loan.total_a_cobrar))}
           </p>
         </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-2xl border p-4">
-            <p className="text-xs text-muted-foreground">Valor Total</p>
-            <p className="mt-1 text-xl font-black text-primary">
-              {formatCurrency(Number(activeLoan.total_a_cobrar))}
-            </p>
-          </div>
-          <div className="rounded-2xl border p-4">
-            <p className="text-xs text-muted-foreground">Valor Neto</p>
-            <p className="mt-1 text-xl font-black text-primary">
-              {formatCurrency(Number(activeLoan.valor_neto))}
-            </p>
-          </div>
-          <div className="rounded-2xl border p-4">
-            <p className="text-xs text-muted-foreground">Intereses</p>
-            <p className="mt-1 text-xl font-black text-primary">{activeLoan.interes}%</p>
-          </div>
-          <div className="rounded-2xl border p-4">
-            <p className="text-xs text-muted-foreground">Valor Cuota</p>
-            <p className="mt-1 text-xl font-black text-primary">
-              {formatCurrency(Number(activeLoan.valor_cuota))}
-            </p>
-          </div>
+        <div className="rounded-2xl border p-4">
+          <p className="text-xs text-muted-foreground">Valor Neto</p>
+          <p className="mt-1 text-xl font-black text-primary">
+            {formatCurrency(Number(loan.valor_neto))}
+          </p>
         </div>
-      </section>
+        <div className="rounded-2xl border p-4">
+          <p className="text-xs text-muted-foreground">Intereses</p>
+          <p className="mt-1 text-xl font-black text-primary">{loan.interes}%</p>
+        </div>
+        <div className="rounded-2xl border p-4">
+          <p className="text-xs text-muted-foreground">Valor Cuota</p>
+          <p className="mt-1 text-xl font-black text-primary">
+            {formatCurrency(Number(loan.valor_cuota))}
+          </p>
+        </div>
+      </div>
 
-      <section className="rounded-2xl border p-4">
+      <div className="rounded-2xl border p-4">
         <p className="mb-3 font-black">Resumen</p>
         <ul className="space-y-2 text-sm">
           <li className="flex items-start gap-2">
             <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-foreground" />
-            Cuotas parciales: {fmtCuotaNum(cuotasFrac)} / {activeLoan.numero_cuotas}
+            Cuotas parciales: {cuotasParciales}
           </li>
           <li className="flex items-start gap-2">
             <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-foreground" />
             Modalidad:{" "}
-            {activeLoan.modalidad.charAt(0).toUpperCase() + activeLoan.modalidad.slice(1)}
+            {loan.modalidad.charAt(0).toUpperCase() + loan.modalidad.slice(1)}
           </li>
           <li className="flex items-start gap-2">
             <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-foreground" />
-            Cantidad de cuotas: {activeLoan.numero_cuotas}
+            Cantidad de cuotas: {loan.numero_cuotas}
           </li>
-          {overdue > 0 ? (
+          {isActive && (overdueActiveDays ?? 0) > 0 ? (
             <li className="flex items-start gap-2">
               <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-destructive" />
               <span>
                 El cliente lleva{" "}
-                <span className="font-black text-destructive">{overdue} días de atraso</span>
+                <span className="font-black text-destructive">{overdueActiveDays} días de atraso</span>
+              </span>
+            </li>
+          ) : null}
+          {!isActive && diasAtrasoAlCompletar > 0 ? (
+            <li className="flex items-start gap-2">
+              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-destructive" />
+              <span>
+                El cliente pagó su préstamo con{" "}
+                <span className="font-black text-destructive">
+                  {diasAtrasoAlCompletar} días de atraso
+                </span>
               </span>
             </li>
           ) : null}
         </ul>
-      </section>
+      </div>
 
       <Button
         className="h-12 w-full rounded-2xl font-black shadow-lg shadow-primary/20"
@@ -1072,21 +1102,67 @@ function SheetInfoLoans({
       >
         Ver Pagos
       </Button>
+    </div>
+  );
+}
+
+function SheetInfoLoans({
+  activeLoan,
+  loans,
+  overdue,
+  paymentHistoryByLoan,
+  onViewPayments
+}: {
+  activeLoan: ClientLoan;
+  loans: LoanHistory[];
+  overdue: number;
+  paymentHistoryByLoan: Record<string, PaymentHistory[]>;
+  onViewPayments: (loan: PaymentLoanContext) => void;
+}) {
+  const previousLoans = loans.filter((l) => l.id !== activeLoan.id);
+
+  return (
+    <div className="space-y-5 px-5">
+      <p className="text-center text-sm text-muted-foreground">
+        Tu préstamo actual es de{" "}
+        <span className="font-black text-primary">
+          {formatCurrency(Number(activeLoan.total_a_cobrar))}
+        </span>{" "}
+        y tu cuota es de{" "}
+        <span className="font-black text-primary">
+          {formatCurrency(Number(activeLoan.valor_cuota))}
+        </span>
+      </p>
+
+      <section className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Layers className="h-4 w-4 text-primary" />
+          <p className="font-black">Detalles del Préstamo</p>
+        </div>
+        <LoanCard
+          isActive
+          loan={activeLoan}
+          overdueActiveDays={overdue}
+          payments={paymentHistoryByLoan[activeLoan.id] ?? []}
+          onViewPayments={() => onViewPayments(activeLoan)}
+        />
+      </section>
 
       {previousLoans.length > 0 ? (
-        <section className="space-y-3">
+        <section className="space-y-5">
           <p className="text-xs font-black uppercase tracking-wider text-muted-foreground">
             Préstamos anteriores
           </p>
           {previousLoans.map((loan) => (
-            <div className="rounded-2xl border bg-muted/30 p-4" key={loan.id}>
-              <div className="mb-3 flex items-center justify-between">
-                <p className="text-sm font-black">
+            <div className="space-y-3" key={loan.id}>
+              <div className="flex items-center gap-2">
+                <Layers className="h-4 w-4 text-muted-foreground" />
+                <p className="font-black text-muted-foreground">
                   {formatDateNice(loan.fecha_inicio ?? loan.created_at.slice(0, 10))}
                 </p>
                 <span
                   className={cn(
-                    "rounded-full px-2 py-0.5 text-xs font-black",
+                    "ml-auto rounded-full px-2 py-0.5 text-xs font-black",
                     loan.estado === "completado"
                       ? "bg-primary/10 text-primary"
                       : "bg-destructive/10 text-destructive"
@@ -1095,11 +1171,12 @@ function SheetInfoLoans({
                   {loan.estado}
                 </span>
               </div>
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <InfoLine label="Neto" value={formatCurrency(Number(loan.valor_neto))} />
-                <InfoLine label="Total" value={formatCurrency(Number(loan.total_a_cobrar))} />
-                <InfoLine label="Cuotas" value={`${loan.cuotas_pagadas}/${loan.numero_cuotas}`} />
-              </div>
+              <LoanCard
+                isActive={false}
+                loan={loan}
+                payments={paymentHistoryByLoan[loan.id] ?? []}
+                onViewPayments={() => onViewPayments(loan)}
+              />
             </div>
           ))}
         </section>

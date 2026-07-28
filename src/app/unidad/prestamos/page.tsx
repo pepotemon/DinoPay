@@ -61,8 +61,12 @@ type LoanHistoryRow = {
   saldo: number;
   cuotas_pagadas: number;
   numero_cuotas: number;
+  valor_cuota: number;
+  interes: number;
+  modalidad: string;
   estado: string;
   fecha_inicio: string | null;
+  fecha_fin: string | null;
   created_at: string;
 };
 
@@ -144,7 +148,7 @@ export default async function PrestamosPage() {
     }
   }
 
-  const [{ data: paymentHistory }, { data: loanHistory }] = await Promise.all([
+  const [{ data: activePaymentHistory }, { data: loanHistory }] = await Promise.all([
     loanIds.length > 0
       ? adminClient
           .from("payments")
@@ -159,7 +163,7 @@ export default async function PrestamosPage() {
       ? adminClient
           .from("loans")
           .select(
-            "id, client_id, valor_neto, total_a_cobrar, saldo, cuotas_pagadas, numero_cuotas, estado, fecha_inicio, created_at"
+            "id, client_id, valor_neto, total_a_cobrar, saldo, cuotas_pagadas, numero_cuotas, valor_cuota, interes, modalidad, estado, fecha_inicio, fecha_fin, created_at"
           )
           .eq("unit_id", user.id)
           .in("client_id", clientIds)
@@ -167,12 +171,34 @@ export default async function PrestamosPage() {
       : { data: [] }
   ]);
 
-  const paymentHistoryByLoan = ((paymentHistory ?? []) as PaymentHistoryRow[]).reduce<
-    Record<string, PaymentHistoryRow[]>
-  >((acc, payment) => {
-    acc[payment.loan_id] = [...(acc[payment.loan_id] ?? []), payment];
-    return acc;
-  }, {});
+  // También traemos pagos de préstamos anteriores (completados)
+  const prevLoanIds = ((loanHistory ?? []) as LoanHistoryRow[])
+    .map((l) => l.id)
+    .filter((id) => !loanIds.includes(id));
+
+  const { data: prevPaymentHistory } = prevLoanIds.length > 0
+    ? await adminClient
+        .from("payments")
+        .select("id, loan_id, monto, numero_cuotas, metodo_pago, fecha_pago, hora_registro")
+        .in("loan_id", prevLoanIds)
+        .eq("unit_id", user.id)
+        .eq("eliminado", false)
+        .order("fecha_pago", { ascending: false })
+        .order("hora_registro", { ascending: false })
+    : { data: [] };
+
+  const allPayments = [
+    ...((activePaymentHistory ?? []) as PaymentHistoryRow[]),
+    ...((prevPaymentHistory ?? []) as PaymentHistoryRow[])
+  ];
+
+  const paymentHistoryByLoan = allPayments.reduce<Record<string, PaymentHistoryRow[]>>(
+    (acc, payment) => {
+      acc[payment.loan_id] = [...(acc[payment.loan_id] ?? []), payment];
+      return acc;
+    },
+    {}
+  );
 
   const loanHistoryByClient = ((loanHistory ?? []) as LoanHistoryRow[]).reduce<
     Record<string, LoanHistoryRow[]>
