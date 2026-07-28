@@ -1,10 +1,15 @@
 import {
+  Banknote,
   BarChart3,
+  CalendarRange,
   ClipboardList,
+  MapPin,
   PlusCircle,
   Receipt,
   Route,
-  Users
+  UserRound,
+  Users,
+  type LucideIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -16,119 +21,116 @@ type PageDinoProps = {
   className?: string;
 };
 
-const VARIANT_STYLE: Record<
-  PageDinoVariant,
-  {
-    bg: string;
-    accent: string;
-    badge: string;
-    icon: typeof Users;
-    frame: string;
-    animation: string;
-    shadow: string;
-  }
-> = {
+type VariantScene = {
+  frame: string;
+  dinoMotion: string;
+  symbols: [LucideIcon, LucideIcon, LucideIcon];
+};
+
+const SCENES: Record<PageDinoVariant, VariantScene> = {
   available: {
-    bg: "bg-emerald-50",
-    accent: "bg-emerald-400",
-    badge: "bg-emerald-500 text-white",
-    icon: Users,
     frame: "0 0",
-    animation: "dino-page-wiggle 1.8s ease-in-out infinite",
-    shadow: "shadow-emerald-200/80"
+    dinoMotion: "dino-scene-look 1.8s ease-in-out infinite",
+    symbols: [UserRound, Users, PlusCircle]
   },
   new: {
-    bg: "bg-violet-50",
-    accent: "bg-primary",
-    badge: "bg-primary text-white",
-    icon: PlusCircle,
     frame: "-132px 0",
-    animation: "dino-page-hop 1.1s ease-in-out infinite",
-    shadow: "shadow-primary/20"
+    dinoMotion: "dino-scene-hop 1.15s ease-in-out infinite",
+    symbols: [PlusCircle, Banknote, UserRound]
   },
   route: {
-    bg: "bg-sky-50",
-    accent: "bg-sky-400",
-    badge: "bg-sky-500 text-white",
-    icon: Route,
     frame: "-88px 0",
-    animation: "dino-page-run 0.26s steps(1) infinite",
-    shadow: "shadow-sky-200/80"
+    dinoMotion: "dino-scene-run 0.26s steps(1) infinite",
+    symbols: [Users, Route, MapPin]
   },
   expenses: {
-    bg: "bg-rose-50",
-    accent: "bg-rose-400",
-    badge: "bg-rose-500 text-white",
-    icon: Receipt,
     frame: "-176px 0",
-    animation: "dino-page-wiggle 1.5s ease-in-out infinite",
-    shadow: "shadow-rose-200/80"
+    dinoMotion: "dino-scene-look 1.5s ease-in-out infinite",
+    symbols: [Receipt, Banknote, PlusCircle]
   },
   reports: {
-    bg: "bg-amber-50",
-    accent: "bg-amber-400",
-    badge: "bg-amber-500 text-white",
-    icon: BarChart3,
     frame: "-220px 0",
-    animation: "dino-page-hop 1.4s ease-in-out infinite",
-    shadow: "shadow-amber-200/80"
+    dinoMotion: "dino-scene-hop 1.35s ease-in-out infinite",
+    symbols: [BarChart3, Receipt, CalendarRange]
   },
   flow: {
-    bg: "bg-fuchsia-50",
-    accent: "bg-fuchsia-400",
-    badge: "bg-fuchsia-500 text-white",
-    icon: ClipboardList,
     frame: "-88px 0",
-    animation: "dino-page-run 0.3s steps(1) infinite",
-    shadow: "shadow-fuchsia-200/80"
+    dinoMotion: "dino-scene-run 0.3s steps(1) infinite",
+    symbols: [ClipboardList, Banknote, BarChart3]
   }
 };
 
 export function PageDino({ variant, label, className }: PageDinoProps) {
-  const style = VARIANT_STYLE[variant];
-  const Icon = style.icon;
+  const scene = SCENES[variant];
+  const [FirstIcon, SecondIcon, ThirdIcon] = scene.symbols;
 
   return (
     <div
       aria-label={label}
-      className={cn(
-        "relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl shadow-lg",
-        style.bg,
-        style.shadow,
-        className
-      )}
+      className={cn("relative h-[74px] w-[92px] shrink-0 overflow-visible", className)}
       role="img"
     >
       <style>{`
-        @keyframes dino-page-run {
+        @keyframes dino-scene-run {
           0%, 49% { background-position: -88px 0; }
           50%, 100% { background-position: -132px 0; }
         }
-        @keyframes dino-page-hop {
+        @keyframes dino-scene-hop {
           0%, 100% { transform: translateY(0); }
-          45% { transform: translateY(-4px); }
+          45% { transform: translateY(-5px); }
         }
-        @keyframes dino-page-wiggle {
+        @keyframes dino-scene-look {
           0%, 100% { transform: rotate(0deg); }
-          35% { transform: rotate(-4deg); }
-          70% { transform: rotate(3deg); }
+          40% { transform: rotate(-3deg); }
+          72% { transform: rotate(2deg); }
         }
-        @keyframes dino-page-ground {
+        @keyframes dino-scene-ground {
           from { transform: translateX(0); }
-          to { transform: translateX(-22px); }
+          to { transform: translateX(-24px); }
+        }
+        @keyframes dino-scene-symbol-one {
+          0%, 18%, 100% { opacity: 0; transform: translate3d(4px, 8px, 0) scale(.7); }
+          30%, 54% { opacity: 1; transform: translate3d(-2px, -2px, 0) scale(1); }
+          70% { opacity: 0; transform: translate3d(-12px, -12px, 0) scale(.86); }
+        }
+        @keyframes dino-scene-symbol-two {
+          0%, 36%, 100% { opacity: 0; transform: translate3d(-6px, 7px, 0) scale(.72); }
+          48%, 68% { opacity: 1; transform: translate3d(0, -3px, 0) scale(1); }
+          84% { opacity: 0; transform: translate3d(10px, -13px, 0) scale(.86); }
+        }
+        @keyframes dino-scene-symbol-three {
+          0%, 55%, 100% { opacity: 0; transform: translate3d(0, 6px, 0) scale(.72); }
+          66%, 82% { opacity: 1; transform: translate3d(0, -2px, 0) scale(1); }
+          96% { opacity: 0; transform: translate3d(7px, -12px, 0) scale(.86); }
         }
       `}</style>
 
-      <span className={cn("absolute left-2 top-2 h-2 w-2 rounded-full", style.accent)} />
-      <span className={cn("absolute right-2 top-2 h-2 w-5 rounded-full", style.accent)} />
+      <span className="pointer-events-none absolute left-0 top-1 text-primary">
+        <FirstIcon
+          className="h-4 w-4"
+          style={{ animation: "dino-scene-symbol-one 2.6s ease-in-out infinite" }}
+        />
+      </span>
+      <span className="pointer-events-none absolute right-2 top-0 text-primary">
+        <SecondIcon
+          className="h-4 w-4"
+          style={{ animation: "dino-scene-symbol-two 2.6s ease-in-out infinite" }}
+        />
+      </span>
+      <span className="pointer-events-none absolute right-0 top-7 text-primary">
+        <ThirdIcon
+          className="h-4 w-4"
+          style={{ animation: "dino-scene-symbol-three 2.6s ease-in-out infinite" }}
+        />
+      </span>
 
-      <span className="absolute bottom-2 left-1/2 h-[47px] w-[44px] -translate-x-1/2">
+      <span className="absolute bottom-3 left-6 h-[47px] w-[44px]">
         <span
           className="block h-[47px] w-[44px]"
           style={{
-            animation: style.animation,
+            animation: scene.dinoMotion,
             backgroundImage: "url('/assets/chrome-trex.png')",
-            backgroundPosition: style.frame,
+            backgroundPosition: scene.frame,
             backgroundRepeat: "no-repeat",
             backgroundSize: "264px 47px",
             imageRendering: "pixelated"
@@ -136,24 +138,16 @@ export function PageDino({ variant, label, className }: PageDinoProps) {
         />
       </span>
 
-      <span className="absolute bottom-1 left-0 right-0 overflow-hidden">
+      <span className="absolute bottom-1 left-1 right-0 overflow-hidden">
         <span
-          className="flex w-28 gap-2"
-          style={{ animation: "dino-page-ground 0.8s linear infinite" }}
+          className="flex w-32 gap-2"
+          style={{ animation: "dino-scene-ground 0.72s linear infinite" }}
         >
-          <span className="h-0.5 w-6 bg-border/80" />
-          <span className="h-0.5 w-8 bg-border/80" />
-          <span className="h-0.5 w-5 bg-border/80" />
+          <span className="h-0.5 w-6 bg-border" />
+          <span className="h-0.5 w-8 bg-border" />
+          <span className="h-0.5 w-5 bg-border" />
+          <span className="h-0.5 w-7 bg-border" />
         </span>
-      </span>
-
-      <span
-        className={cn(
-          "absolute bottom-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full",
-          style.badge
-        )}
-      >
-        <Icon className="h-3.5 w-3.5" />
       </span>
     </div>
   );

@@ -428,6 +428,7 @@ updated: 2026-07-24
 - Loader `PageSpinner` cambiado a sprite real del Chrome T-Rex, guardado localmente con licencia BSD en `public/assets`.
 - Loader `PageSpinner` centrado en la altura útil móvil para que no quede pegado arriba durante cargas.
 - Iconos emoji grandes de pantallas internas reemplazados por `PageDino`, un dino animado por seccion usando el sprite local.
+- `PageDino` simplificado como escena sin tarjeta ni colores por pantalla; cada vista muestra simbolos contextuales animados alrededor del dino.
 
 ### Verificado
 - `npm run build` pasa correctamente.
