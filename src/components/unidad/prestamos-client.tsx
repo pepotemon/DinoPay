@@ -574,7 +574,16 @@ function SheetMain({
         </div>
       ) : null}
 
-      {!isVisited ? (
+      {isVisited ? (
+        <Button
+          className="h-12 w-full rounded-2xl font-black shadow-lg shadow-primary/25"
+          onClick={() => onSetSheet({ view: "pay", loan })}
+          type="button"
+        >
+          <WalletCards className="h-5 w-5" />
+          Registrar otro pago
+        </Button>
+      ) : (
         <div className="grid grid-cols-2 gap-3">
           <Button
             className="h-12 rounded-2xl border border-destructive/20 bg-destructive/10 font-black text-destructive hover:bg-destructive/15"
@@ -594,7 +603,7 @@ function SheetMain({
             Pagar
           </Button>
         </div>
-      ) : null}
+      )}
 
       <div className="space-y-0.5 border-t pt-2">
         <SheetAction
