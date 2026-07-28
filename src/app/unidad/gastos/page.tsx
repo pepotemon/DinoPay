@@ -1,237 +1,85 @@
-import { ClipboardList, Pencil, PlusCircle, ReceiptText, Trash2 } from "lucide-react";
-import Link from "next/link";
-import { createExpenseAction, deleteExpenseAction } from "@/lib/actions/unidad/gastos";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Suspense } from "react";
+import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { cn, formatCurrency } from "@/lib/utils";
+import { GastosClient, type GastoRow } from "@/components/unidad/gastos-client";
 
-const expenseCategories = [
-  "Gasolina / Combustible",
-  "Alimentacion",
-  "Transporte",
-  "Papeleria",
-  "Comunicaciones",
-  "Otros"
-];
-
-type ExpenseRow = {
-  id: string;
-  categoria: string;
-  monto: number;
-  nota: string | null;
-  estado: "pendiente" | "aprobado" | "rechazado";
-  fecha: string;
-  created_at: string;
-};
-
-function statusLabel(status: ExpenseRow["estado"]) {
-  if (status === "aprobado") return "Aprobado";
-  if (status === "rechazado") return "Rechazado";
-  return "Pendiente";
-}
-
-function statusClassName(status: ExpenseRow["estado"]) {
-  return cn(
-    "inline-flex rounded-md px-2 py-1 text-xs font-medium",
-    status === "pendiente" && "bg-amber-100 text-amber-900",
-    status === "aprobado" && "bg-emerald-100 text-emerald-900",
-    status === "rechazado" && "bg-destructive/10 text-destructive"
+export default function GastosPage() {
+  return (
+    <div className="pb-6">
+      <Suspense fallback={<GastosSkeleton />}>
+        <GastosContent />
+      </Suspense>
+    </div>
   );
 }
 
-export default async function GastosPage({
-  searchParams
-}: {
-  searchParams?: Promise<{ ok?: string; error?: string }>;
-}) {
-  const params = await searchParams;
+async function GastosContent() {
   const supabase = await createClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const since = new Date();
+  since.setDate(since.getDate() - 90);
+  const sinceStr = since.toISOString().slice(0, 10);
 
   const adminClient = createAdminClient();
-  const { data: expenses } = user
-    ? await adminClient
-        .from("expenses")
-        .select("id, categoria, monto, nota, estado, fecha, created_at")
-        .eq("unit_id", user.id)
-        .order("fecha", { ascending: false })
-        .order("created_at", { ascending: false })
-        .limit(30)
-    : { data: [] };
+  const { data: expenses } = await adminClient
+    .from("expenses")
+    .select("id, categoria, monto, nota, estado, fecha")
+    .eq("unit_id", user.id)
+    .gte("fecha", sinceStr)
+    .order("fecha", { ascending: false })
+    .order("created_at", { ascending: false });
 
-  const rows = (expenses ?? []) as ExpenseRow[];
-  const pendingRows = rows.filter((e) => e.estado === "pendiente");
-  const approvedRows = rows.filter((e) => e.estado === "aprobado");
-  const pendingTotal = pendingRows.reduce((sum, e) => sum + Number(e.monto), 0);
-  const approvedTotal = approvedRows.reduce((sum, e) => sum + Number(e.monto), 0);
+  const rows = (expenses ?? []) as GastoRow[];
 
+  return <GastosClient expenses={rows} />;
+}
+
+function GastosSkeleton() {
   return (
-    <div className="space-y-5 pb-8">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold">Gastos</h1>
-          <p className="text-sm text-muted-foreground">
-            Registra gastos operativos para que el admin los apruebe.
-          </p>
+    <div className="animate-pulse space-y-4">
+      {/* Hero */}
+      <div className="flex items-end justify-between px-1 pb-4 pt-2">
+        <div className="space-y-2">
+          <div className="h-10 w-36 rounded-xl bg-muted" />
+          <div className="h-6 w-28 rounded-lg bg-muted" />
         </div>
-        <div className="rounded-md bg-muted p-2">
-          <ReceiptText className="h-5 w-5 text-primary" />
-        </div>
+        <div className="h-12 w-12 rounded-xl bg-muted" />
       </div>
 
-      {params?.ok ? (
-        <div className="rounded-md border border-primary/30 bg-primary/10 p-3 text-sm text-primary">
-          {params.ok}
-        </div>
-      ) : null}
+      {/* Button */}
+      <div className="h-14 rounded-2xl bg-muted" />
 
-      {params?.error ? (
-        <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-          {params.error}
-        </div>
-      ) : null}
+      {/* Date pickers */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="h-12 rounded-xl bg-muted" />
+        <div className="h-12 rounded-xl bg-muted" />
+      </div>
 
-      <section className="grid grid-cols-2 gap-3">
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Pendiente</p>
-            <p className="mt-1 text-xl font-semibold">{formatCurrency(pendingTotal)}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{pendingRows.length} gastos</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Aprobado</p>
-            <p className="mt-1 text-xl font-semibold">{formatCurrency(approvedTotal)}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{approvedRows.length} gastos</p>
-          </CardContent>
-        </Card>
-      </section>
+      {/* Notice */}
+      <div className="h-16 rounded-2xl bg-muted" />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <PlusCircle className="h-5 w-5" />
-            Nuevo gasto
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form action={createExpenseAction} className="space-y-4">
-            <label className="block space-y-2 text-sm font-medium">
-              <span>Categoria</span>
-              <select
-                className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                defaultValue=""
-                name="categoria"
-                required
-              >
-                <option disabled value="">
-                  Seleccionar
-                </option>
-                {expenseCategories.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="block space-y-2 text-sm font-medium">
-              <span>Monto</span>
-              <Input
-                inputMode="decimal"
-                min="0.01"
-                name="monto"
-                placeholder="0"
-                required
-                step="0.01"
-                type="number"
-              />
-            </label>
-
-            <label className="block space-y-2 text-sm font-medium">
-              <span>Nota</span>
-              <textarea
-                className="min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                name="nota"
-                placeholder="Opcional"
-              />
-            </label>
-
-            <Button className="h-11 w-full" type="submit">
-              Guardar gasto
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      <section className="space-y-3">
-        <div className="flex items-center gap-2">
-          <ClipboardList className="h-5 w-5 text-muted-foreground" />
-          <h2 className="font-semibold">Gastos recientes</h2>
-        </div>
-
-        {rows.map((expense) => (
-          <Card key={expense.id}>
-            <CardContent className="space-y-3 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-semibold">{expense.categoria}</p>
-                  <p className="text-sm text-muted-foreground">{expense.fecha}</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-semibold">{formatCurrency(Number(expense.monto))}</p>
-                  <span className={statusClassName(expense.estado)}>
-                    {statusLabel(expense.estado)}
-                  </span>
-                </div>
+      {/* Cards */}
+      <div className="space-y-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="rounded-2xl border p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1.5">
+                <div className="h-4 w-32 rounded bg-muted" />
+                <div className="h-3 w-20 rounded bg-muted" />
               </div>
-
-              {expense.nota ? (
-                <p className="rounded-md bg-muted/60 p-3 text-sm text-muted-foreground">
-                  {expense.nota}
-                </p>
-              ) : null}
-
-              {expense.estado === "pendiente" ? (
-                <div className="flex gap-2">
-                  <Button asChild className="flex-1" size="sm" variant="secondary">
-                    <Link href={`/unidad/gastos/${expense.id}/editar`}>
-                      <Pencil className="h-3.5 w-3.5" />
-                      Editar
-                    </Link>
-                  </Button>
-                  <form action={deleteExpenseAction} className="flex-1">
-                    <input name="expenseId" type="hidden" value={expense.id} />
-                    <Button
-                      className="w-full"
-                      size="sm"
-                      type="submit"
-                      variant="secondary"
-                    >
-                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                      <span className="text-destructive">Eliminar</span>
-                    </Button>
-                  </form>
-                </div>
-              ) : null}
-            </CardContent>
-          </Card>
+              <div className="space-y-1.5 text-right">
+                <div className="h-5 w-20 rounded bg-muted" />
+                <div className="h-4 w-16 rounded-full bg-muted" />
+              </div>
+            </div>
+          </div>
         ))}
-
-        {rows.length === 0 ? (
-          <Card>
-            <CardContent className="p-6 text-sm text-muted-foreground">
-              Todavia no hay gastos registrados para esta unidad.
-            </CardContent>
-          </Card>
-        ) : null}
-      </section>
+      </div>
     </div>
   );
 }

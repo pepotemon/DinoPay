@@ -12,6 +12,22 @@ updated: 2026-07-24
 
 ---
 
+## [0.13.0] — 2026-07-28
+
+### Agregado / Modificado
+
+**Rediseño completo de la pantalla Gastos** (`/unidad/gastos`)
+- Nueva arquitectura: shell servidor con Suspense + `GastosClient` (cliente)
+- Hero: "Gastos / Diarios $X" con emoji 🧾, totalizador en tiempo real del rango filtrado
+- "Nuevo gasto" → bottom sheet (`showSheet`) con select de categoría + monto + nota textarea; usa `useFormStatus` para estado de carga
+- Filtro de fecha: dos `<input type="date">` con bg-green-50, filtra localmente (sin roundtrip al servidor)
+- Aviso informativo: tarjeta `border-primary/20 bg-primary/5` explicando que los pendientes no afectan el cierre de caja
+- Tarjeta de gasto: categoría, fecha formateada, monto, badge de estado (píldora), nota opcional, botones Editar/Eliminar solo si pendiente
+- Carga 90 días de datos del servidor y filtra en cliente para que cambios de rango sean instantáneos
+- Skeleton propio en `loading.tsx` con hero + botón + date pickers + aviso + tarjetas
+
+---
+
 ## [0.12.0] — 2026-07-28
 
 ### Agregado / Modificado

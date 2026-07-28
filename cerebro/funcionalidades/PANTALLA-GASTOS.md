@@ -11,9 +11,10 @@ updated: 2026-07-24
 ---
 
 ## Estado de Implementacion
-- Ruta `/unidad/gastos` creada con resumen, formulario de registro y listado de gastos recientes.
+- Rediseñada en v0.13.0 con hero estilo design system, bottom sheet "Nuevo gasto", filtro de fecha local (90 días cargados del servidor), tarjetas con badge de estado.
 - Los gastos se insertan en `expenses` con estado inicial `pendiente`.
-- Queda pendiente editar/eliminar gastos desde unidad y aprobacion/rechazo desde admin.
+- Editar/eliminar gastos pendientes disponible desde las tarjetas.
+- Queda pendiente: aprobacion/rechazo desde admin, rediseño de la página `/unidad/gastos/[id]/editar`.
 
 ---
 
