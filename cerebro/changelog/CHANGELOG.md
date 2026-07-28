@@ -12,6 +12,21 @@ updated: 2026-07-24
 
 ---
 
+## [0.14.0] — 2026-07-28
+
+### Agregado / Modificado
+
+**Rediseño y optimización de velocidad en pantalla Reportes** (`/unidad/reportes`)
+- Eliminado el botón "Ver" — el date picker ahora filtra al instante (sin roundtrip al servidor)
+- Tabs "Préstamos / Abonos" ahora son cliente-side (`useState`) — cambio de tab instantáneo sin navegación
+- Arquitectura: server carga 30 días de datos (loans + payments) en un solo request al montar; `ReportesClient` filtra localmente por fecha y tab
+- Hero actualizado: "Reportes / fecha larga", emoji 📊, diseño coherente con el resto del design system
+- Tarjetas rediseñadas: `rounded-2xl border bg-background shadow-sm` sin Card/shadcn
+- Totalizadores también sin Card/shadcn
+- Skeleton en `loading.tsx` actualizado al nuevo hero
+
+---
+
 ## [0.13.0] — 2026-07-28
 
 ### Agregado / Modificado
