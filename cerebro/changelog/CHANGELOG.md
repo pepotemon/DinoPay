@@ -432,6 +432,7 @@ updated: 2026-07-24
 - Pantalla de prestamos actualizada con fichas moviles completas: resumen de cuota, saldo/prestamo/pagado, acciones visibles de pago/no pago y menu `...` para opciones secundarias.
 - Fichas de prestamos compactadas para reducir altura en movil sin perder acciones visibles ni resumen principal.
 - Pantalla de prestamos ajustada para aprovechar mejor el ancho movil, reduciendo margenes laterales duplicados del layout.
+- Fichas de prestamos rediseñadas en formato ticket compacto para diferenciarse de la referencia inicial y mostrar mas tarjetas por pantalla.
 
 ### Verificado
 - `npm run build` pasa correctamente.

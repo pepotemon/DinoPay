@@ -391,7 +391,7 @@ export function PrestamosClient({
       </div>
 
       {/* ── Lista ── */}
-      <div className="-mx-4 space-y-3 px-3 py-3 sm:mx-auto sm:max-w-lg">
+      <div className="-mx-4 space-y-2.5 px-3 py-3 sm:mx-auto sm:max-w-lg">
         {filtered.length === 0 ? (
           <p className="py-12 text-center text-sm text-muted-foreground">
             {loans.length === 0
@@ -580,28 +580,28 @@ function LoanListCard({
   return (
     <article
       className={cn(
-        "rounded-3xl border bg-background p-4 shadow-sm transition-colors",
+        "rounded-2xl border bg-background p-3 shadow-sm transition-colors",
         isVisited && "bg-muted/20"
       )}
     >
       <div className="flex items-start gap-2.5">
-        <div className="relative grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-base font-black text-primary">
+        <div className="relative grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-sm font-black text-primary">
           {clientInitials(name)}
           {showOverdue ? (
-            <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-background bg-destructive" />
+            <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-background bg-destructive" />
           ) : null}
         </div>
 
         <div className="min-w-0 flex-1">
-          <h2 className="text-xl font-black leading-tight tracking-normal text-foreground">
+          <h2 className="truncate text-lg font-black leading-tight tracking-normal text-foreground">
             {name}
           </h2>
           {showOverdue ? (
-            <p className="mt-1 inline-flex rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-black text-destructive">
+            <p className="mt-0.5 inline-flex rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-black text-destructive">
               {overdue} cuota{overdue !== 1 ? "s" : ""} - {overdue} dia{overdue !== 1 ? "s" : ""} atrasado{overdue !== 1 ? "s" : ""}
             </p>
           ) : showAdvanced ? (
-            <p className="mt-1 inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-black text-primary">
+            <p className="mt-0.5 inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-black text-primary">
               {adelantadas} adelantada{adelantadas > 1 ? "s" : ""}
             </p>
           ) : null}
@@ -610,64 +610,59 @@ function LoanListCard({
         <div className="flex shrink-0 items-center gap-1">
           <button
             aria-label={`Opciones de ${name}`}
-            className="grid h-9 w-9 place-items-center rounded-full text-foreground transition-colors active:bg-muted"
+            className="grid h-8 w-8 place-items-center rounded-full text-foreground transition-colors active:bg-muted"
             onClick={onMenu}
             type="button"
           >
-            <MoreVertical className="h-5 w-5" />
+            <MoreVertical className="h-[18px] w-[18px]" />
           </button>
         </div>
       </div>
 
-      <div className="mt-4 rounded-2xl bg-muted/60 px-3.5 py-3">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">
-              Cuota de hoy
-            </p>
-            <p className="mt-1.5 text-3xl font-black leading-none">
-              {formatCurrency(Number(loan.valor_cuota))}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">
-              Cuotas
-            </p>
-            <p className="mt-1.5 text-xl font-black leading-none">{formatCuotas(loan)}</p>
-            <p className="mt-1.5 inline-flex rounded-lg bg-primary/10 px-2 py-0.5 text-[11px] font-black text-primary">
+      <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-muted/60 px-3 py-2.5">
+        <div className="min-w-0">
+          <p className="text-[9px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+            Cuota hoy
+          </p>
+          <p className="mt-1 text-2xl font-black leading-none">
+            {formatCurrency(Number(loan.valor_cuota))}
+          </p>
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="text-lg font-black leading-none">{formatCuotas(loan)}</p>
+          <p className="mt-1 inline-flex rounded-md bg-background px-2 py-0.5 text-[10px] font-black text-primary shadow-sm">
               {modalidadLabel(loan.modalidad)}
-            </p>
-          </div>
+          </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 px-1.5 py-3 text-center">
+      <div className="grid grid-cols-3 gap-1.5 px-1 py-2.5 text-center">
         <CardMetric label="Saldo" value={formatCurrency(Number(loan.saldo))} />
         <CardMetric label="Prestamo" value={formatCurrency(Number(loan.total_a_cobrar))} />
         <CardMetric highlight label="Pagado" value={formatCurrency(totalPagado)} />
       </div>
 
-      <div className="grid grid-cols-2 gap-2.5">
+      <div className="grid grid-cols-2 gap-2">
         <button
           className={cn(
-            "flex h-12 items-center justify-center gap-2 rounded-2xl border border-destructive/20 bg-destructive/10 text-sm font-black text-destructive shadow-sm transition active:scale-[0.99]",
+            "flex h-10 items-center justify-center gap-1.5 rounded-xl border border-destructive/20 bg-destructive/10 text-sm font-black text-destructive shadow-sm transition active:scale-[0.99]",
             isNoPay && "bg-destructive/15"
           )}
           onClick={onNoPay}
           type="button"
         >
-          <CircleSlash className="h-5 w-5" />
+          <CircleSlash className="h-4 w-4" />
           No Pago
         </button>
         <button
           className={cn(
-            "flex h-12 items-center justify-center gap-2 rounded-2xl bg-primary text-sm font-black text-primary-foreground shadow-lg shadow-primary/25 transition active:scale-[0.99]",
+            "flex h-10 items-center justify-center gap-1.5 rounded-xl bg-primary text-sm font-black text-primary-foreground shadow-md shadow-primary/20 transition active:scale-[0.99]",
             isPaid && "opacity-80"
           )}
           onClick={onPay}
           type="button"
         >
-          <Banknote className="h-5 w-5" />
+          <Banknote className="h-4 w-4" />
           Pagar
         </button>
       </div>
@@ -686,10 +681,10 @@ function CardMetric({
 }) {
   return (
     <div>
-      <p className="text-[11px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+      <p className="text-[9px] font-black uppercase tracking-[0.1em] text-muted-foreground">
         {label}
       </p>
-      <p className={cn("mt-0.5 text-base font-black", highlight && "text-primary")}>{value}</p>
+      <p className={cn("mt-0.5 text-sm font-black", highlight && "text-primary")}>{value}</p>
     </div>
   );
 }
