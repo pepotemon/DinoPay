@@ -2,14 +2,19 @@
 
 import {
   ArrowLeft,
+  ArrowLeftRight,
+  Banknote,
   ChevronDown,
   ChevronRight,
   CircleSlash,
   FileText,
   History,
+  Layers,
+  Lock,
   MapPinned,
   MessageCircle,
   Phone,
+  Receipt,
   Search,
   UserPen,
   WalletCards,
@@ -488,7 +493,10 @@ export function PrestamosClient({
                     loan={sheet.loan}
                   />
                 ) : sheet.view === "info-payments" ? (
-                  <SheetInfoPayments payments={paymentHistoryByLoan[sheet.loan.id] ?? []} />
+                  <SheetInfoPayments
+                    loan={sheet.loan}
+                    payments={paymentHistoryByLoan[sheet.loan.id] ?? []}
+                  />
                 ) : sheet.view === "info-loans" ? (
                   <SheetInfoLoans
                     activeLoanId={sheet.loan.id}
@@ -833,33 +841,115 @@ function DetailRow({ label, value }: { label: string; value: string | null | und
   );
 }
 
-function SheetInfoPayments({ payments }: { payments: PaymentHistory[] }) {
-  if (payments.length === 0) {
-    return (
-      <div className="px-5">
+function fmtCuotaNum(n: number): string {
+  const r = Math.round(n * 100) / 100;
+  if (Number.isInteger(r)) return String(r);
+  return r.toFixed(2).replace(".", ",");
+}
+
+function SheetInfoPayments({
+  loan,
+  payments
+}: {
+  loan: ClientLoan;
+  payments: PaymentHistory[];
+}) {
+  const totalPagado = loan.total_a_cobrar - loan.saldo;
+  const cuotasFrac = totalPagado / loan.valor_cuota;
+  const nextWhole = Math.ceil(cuotasFrac);
+  const faltaMonto =
+    nextWhole > cuotasFrac && cuotasFrac > 0
+      ? (nextWhole - cuotasFrac) * loan.valor_cuota
+      : 0;
+
+  // Cuota acumulada por pago (más reciente primero)
+  let running = cuotasFrac;
+  const paymentsTagged = payments.map((p) => {
+    const tag = running;
+    running = running - p.monto / loan.valor_cuota;
+    return { ...p, cuotaTag: tag };
+  });
+
+  return (
+    <div className="space-y-4 px-5">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-2xl border-2 border-primary/25 bg-primary/5 p-4">
+          <div className="mb-2 flex items-center gap-1.5 text-xs font-bold text-primary">
+            <Banknote className="h-4 w-4" />
+            Total Pagado
+          </div>
+          <p className="text-2xl font-black">{formatCurrency(totalPagado)}</p>
+        </div>
+
+        <div className="rounded-2xl border p-4">
+          <div className="mb-2 flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
+            <Lock className="h-4 w-4" />
+            Saldo
+          </div>
+          <p className="text-2xl font-black">{formatCurrency(Number(loan.saldo))}</p>
+        </div>
+
+        <div className="rounded-2xl border p-4">
+          <div className="mb-2 flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
+            <Layers className="h-4 w-4" />
+            Cuotas Pagadas
+          </div>
+          <p className="text-2xl font-black">{fmtCuotaNum(cuotasFrac)}</p>
+          {faltaMonto > 0.01 ? (
+            <p className="mt-1.5 text-[11px] leading-tight text-muted-foreground">
+              Faltan{" "}
+              <span className="font-black text-primary">{formatCurrency(faltaMonto)}</span>{" "}
+              para completar la cuota{" "}
+              <span className="font-black text-primary">#{nextWhole}</span>
+            </p>
+          ) : null}
+        </div>
+
+        <div className="rounded-2xl border p-4">
+          <div className="mb-2 flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
+            <Receipt className="h-4 w-4" />
+            Pagos Realizados
+          </div>
+          <p className="text-2xl font-black">{payments.length}</p>
+        </div>
+      </div>
+
+      {payments.length === 0 ? (
         <p className="rounded-2xl border p-5 text-sm text-muted-foreground">
           Sin pagos registrados todavía.
         </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-3 px-5">
-      {payments.map((payment) => (
-        <div
-          className="flex items-center justify-between rounded-2xl border bg-muted/40 p-4"
-          key={payment.id}
-        >
-          <div>
-            <p className="font-black">{payment.fecha_pago}</p>
-            <p className="text-sm text-muted-foreground">
-              {payment.numero_cuotas} cuota(s) · {payment.metodo_pago}
-            </p>
-          </div>
-          <p className="font-black text-primary">{formatCurrency(Number(payment.monto))}</p>
+      ) : (
+        <div className="space-y-3">
+          {paymentsTagged.map((payment) => (
+            <div className="rounded-2xl border p-4" key={payment.id}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-muted">
+                    {payment.metodo_pago === "transferencia" ? (
+                      <ArrowLeftRight className="h-4 w-4 text-primary" />
+                    ) : (
+                      <Banknote className="h-4 w-4 text-primary" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-black capitalize">{payment.metodo_pago}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {payment.fecha_pago} {payment.hora_registro}
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Cuotas pagadas: {payment.numero_cuotas}
+                    </p>
+                  </div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="text-sm font-black text-primary">#{fmtCuotaNum(payment.cuotaTag)}</p>
+                  <p className="text-lg font-black">{formatCurrency(Number(payment.monto))}</p>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </div>
   );
 }
