@@ -12,6 +12,21 @@ updated: 2026-07-24
 
 ---
 
+## [0.15.0] — 2026-07-28
+
+### Agregado / Modificado
+
+**Rediseño completo de "Caja del Día"** (`/unidad/reporte-diario`)
+- Nuevo componente `CajaDelDiaClient` con navegación de fechas `< DD/MM/YYYY >` totalmente client-side (sin roundtrips al cambiar día)
+- Server precarga todo el historial (pagos, préstamos creados, gastos aprobados, movimientos de capital, visitas 180 días) en una sola petición paralela de 7 queries
+- **8 tarjetas en grilla 2×4**: Caja Inicial · Caja Final · Cobrado · Préstamos(N) · Ingresos · Gastos · Retiros · Cuadres de caja
+- **Sección Clientes**: Programados · Visitados (2 col) + Pendientes (ancho completo, fondo negro)
+- Caja Inicial = capital_inicial + cobrado_antes - prestado_antes - gastos_antes + ingresos_antes - retiros_antes
+- Caja Final = Caja Inicial + movimientos del día seleccionado
+- Cuadres de caja en $0 (placeholder — tabla `box_adjustments` no implementada aún)
+
+---
+
 ## [0.14.0] — 2026-07-28
 
 ### Agregado / Modificado
