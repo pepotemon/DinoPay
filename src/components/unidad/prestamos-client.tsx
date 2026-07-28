@@ -1123,17 +1123,6 @@ function SheetInfoLoans({
 
   return (
     <div className="space-y-5 px-5">
-      <p className="text-center text-sm text-muted-foreground">
-        Tu préstamo actual es de{" "}
-        <span className="font-black text-primary">
-          {formatCurrency(Number(activeLoan.total_a_cobrar))}
-        </span>{" "}
-        y tu cuota es de{" "}
-        <span className="font-black text-primary">
-          {formatCurrency(Number(activeLoan.valor_cuota))}
-        </span>
-      </p>
-
       <section className="space-y-3">
         <div className="flex items-center gap-2">
           <Layers className="h-4 w-4 text-primary" />
