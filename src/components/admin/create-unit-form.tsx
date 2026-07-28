@@ -43,6 +43,7 @@ export function CreateUnitForm({ createUnit }: { createUnit: CreateUnitAction })
   const [selectedState, setSelectedState] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
   const [timezone, setTimezone] = useState("");
+  const [countryTimezones, setCountryTimezones] = useState<string[]>([]);
 
   const states = selectedCountry ? State.getStatesOfCountry(selectedCountry) : [];
   const cities = selectedCountry && selectedState
@@ -54,8 +55,9 @@ export function CreateUnitForm({ createUnit }: { createUnit: CreateUnitAction })
     setSelectedState("");
     setSelectedCity("");
     const country = allCountries.find((c) => c.isoCode === code);
-    const tz = country?.timezones?.[0]?.zoneName ?? "";
-    setTimezone(tz);
+    const tzList = (country?.timezones ?? []).map((t) => t.zoneName).filter(Boolean);
+    setCountryTimezones(tzList);
+    setTimezone(tzList[0] ?? "");
   }
 
   function handleStateChange(stateCode: string) {
@@ -194,15 +196,33 @@ export function CreateUnitForm({ createUnit }: { createUnit: CreateUnitAction })
           ) : null}
         </Field>
 
-        {/* Zona horaria (auto-rellena) */}
+        {/* Zona horaria */}
         <Field label="Zona horaria">
-          <Input
-            name="zonaHoraria"
-            onChange={(e) => setTimezone(e.target.value)}
-            placeholder="America/Bogota"
-            required
-            value={timezone}
-          />
+          {countryTimezones.length > 1 ? (
+            <select
+              className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+              name="zonaHoraria"
+              onChange={(e) => setTimezone(e.target.value)}
+              required
+              value={timezone}
+            >
+              {countryTimezones.map((tz) => (
+                <option key={tz} value={tz}>
+                  {tz}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <Input
+              disabled={!selectedCountry}
+              name="zonaHoraria"
+              placeholder="Selecciona un país primero"
+              readOnly={countryTimezones.length === 1}
+              required
+              value={timezone}
+              onChange={(e) => setTimezone(e.target.value)}
+            />
+          )}
         </Field>
 
         <Field label="Días bloqueados para eliminar pagos">
