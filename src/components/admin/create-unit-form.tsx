@@ -36,8 +36,8 @@ const allCountries = Country.getAllCountries();
 
 export function CreateUnitForm({ createUnit }: { createUnit: CreateUnitAction }) {
   const [state, formAction, pending] = useActionState(createUnit, initialState);
-  const [password, setPassword] = useState("DinoPay2026");
-  const [confirmPassword, setConfirmPassword] = useState("DinoPay2026");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const [selectedCountry, setSelectedCountry] = useState("");
   const [selectedState, setSelectedState] = useState("");
