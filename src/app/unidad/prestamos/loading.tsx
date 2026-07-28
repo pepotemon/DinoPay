@@ -9,10 +9,11 @@ export default function Loading() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
-                DinoPay
+                Cuotas del Día
               </p>
-              <h1 className="text-2xl font-black leading-tight">Cuotas del Día</h1>
-              <div className="mt-0.5 h-2.5 w-36 animate-pulse rounded bg-muted" />
+              <div className="flex items-baseline gap-1.5">
+                <div className="h-7 w-20 animate-pulse rounded bg-muted" />
+              </div>
             </div>
             <div className="flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-bold text-muted-foreground">
               <MapPinned className="h-4 w-4" />

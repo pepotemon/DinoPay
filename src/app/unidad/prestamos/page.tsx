@@ -240,7 +240,6 @@ export default async function PrestamosPage() {
       adelantadasByLoan={adelantadasByLoan}
       cobradoHoy={cobradoHoy}
       countryCode={countryCode}
-      encargado={encargado}
       loans={loans}
       loanHistoryByClient={loanHistoryByClient}
       meta={meta}

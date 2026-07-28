@@ -111,7 +111,6 @@ type Props = {
   totalSaldo: number;
   countryCode: string | null;
   zonaHoraria: string;
-  encargado: string;
 };
 
 type SheetState =
@@ -209,8 +208,7 @@ export function PrestamosClient({
   cobradoHoy,
   meta,
   countryCode,
-  zonaHoraria,
-  encargado
+  zonaHoraria
 }: Props) {
   const router = useRouter();
   const [search, setSearch] = useState("");
@@ -287,24 +285,14 @@ export function PrestamosClient({
         <div className="mx-auto max-w-md space-y-3 px-4 pb-3 pt-4">
           <div className="flex items-center justify-between">
             <div>
-              <div className="flex items-center gap-1.5">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
-                  DinoPay
-                </p>
-                {countryCode ? (
-                  <span className="text-sm leading-none">{countryFlag(countryCode)}</span>
-                ) : null}
-              </div>
-              <h1 className="text-2xl font-black leading-tight">Cuotas del Día</h1>
-              <div className="mt-0.5 flex items-center gap-1.5">
-                <LiveClock zonaHoraria={zonaHoraria} />
-                {encargado ? (
-                  <>
-                    <span className="text-[10px] text-border">·</span>
-                    <span className="text-[10px] font-bold text-muted-foreground">{encargado}</span>
-                  </>
-                ) : null}
-              </div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                Cuotas del Día
+              </p>
+              <h1 className="text-2xl font-black leading-tight">
+                <span className="font-black text-primary">{visitedCount}</span>
+                <span className="text-muted-foreground">/{loans.length}</span>
+                <span className="ml-2 text-lg font-bold text-muted-foreground">visitados</span>
+              </h1>
             </div>
             <Link
               className="flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-bold text-muted-foreground hover:bg-muted"
@@ -315,28 +303,15 @@ export function PrestamosClient({
             </Link>
           </div>
 
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-sm">
-              <span className="font-black text-primary">{formatCurrency(cobradoHoy)}</span>
-              <span className="text-muted-foreground">cobrado</span>
-              <span className="text-border">·</span>
-              <span className="font-black">{formatCurrency(meta)}</span>
-              <span className="text-muted-foreground">meta</span>
-              <span className="text-border">·</span>
-              <span className="font-black">{progreso}%</span>
-              <span className="text-muted-foreground">del día</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>
-                <span className="font-black text-foreground">{visitedCount}</span>
-                {"/"}
-                {loans.length} visitados
-              </span>
-              <span className="text-border">·</span>
-              <span>
-                <span className="font-black text-foreground">{pendingCount}</span> pendientes
-              </span>
-            </div>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="font-black text-primary">{formatCurrency(cobradoHoy)}</span>
+            <span className="text-muted-foreground">cobrado</span>
+            <span className="text-border">·</span>
+            <span className="font-black">{formatCurrency(meta)}</span>
+            <span className="text-muted-foreground">meta</span>
+            <span className="text-border">·</span>
+            <span className="font-black">{progreso}%</span>
+            <span className="text-muted-foreground">del día</span>
           </div>
 
           <div className="h-1 overflow-hidden rounded-full bg-muted">
