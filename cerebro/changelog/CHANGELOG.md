@@ -12,6 +12,14 @@ updated: 2026-07-24
 
 ---
 
+## [0.17.1] -- 2026-07-28
+
+### Modificado
+
+**Ajuste de color principal**
+- Verde primary reforzado para que botones, iconos, textos activos y focus rings tengan mas presencia visual.
+
+---
 ## [0.17.0] -- 2026-07-28
 
 ### Agregado / Modificado
