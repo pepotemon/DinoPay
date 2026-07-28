@@ -426,6 +426,7 @@ updated: 2026-07-24
 - Loader de dinosaurio refinado con silueta pixelada y animación de dos frames inspirada en el Chrome Dino runner.
 - Loader de dinosaurio rehecho como sprite SVG de dos frames completos para que la carrera se lea mejor visualmente.
 - Loader `PageSpinner` cambiado a sprite real del Chrome T-Rex, guardado localmente con licencia BSD en `public/assets`.
+- Loader `PageSpinner` centrado en la altura útil móvil para que no quede pegado arriba durante cargas.
 
 ### Verificado
 - `npm run build` pasa correctamente.

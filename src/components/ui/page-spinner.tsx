@@ -1,6 +1,6 @@
 export function PageSpinner() {
   return (
-    <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3">
+    <div className="flex min-h-[calc(100dvh-8rem)] flex-col items-center justify-center gap-3 px-4">
       <style>{`
         @keyframes chrome-trex-run {
           0%, 49% { background-position: -176px 0; }
