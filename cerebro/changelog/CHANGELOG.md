@@ -421,6 +421,7 @@ updated: 2026-07-24
 - Menú `...` de préstamo agregado con WhatsApp, llamada, detalles, historial de pagos, historial de préstamos y editar cliente; los accesos informativos abren modales.
 - Modal de pago rediseñado con stepper de cuotas, monto y selector de método; `No Pago` ahora abre modal con razón obligatoria guardada en `loan_visits.nota`.
 - Modales de pago y no pago actualizados con paso de confirmación final antes de ejecutar la acción.
+- Loader global `PageSpinner` reemplazado por un dinosaurio SVG pequeño estilo Chrome, caminando sobre una línea de suelo.
 
 ### Verificado
 - `npm run build` pasa correctamente.

@@ -2,65 +2,64 @@ export function PageSpinner() {
   return (
     <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3">
       <svg
+        aria-label="Cargando"
+        className="h-20 w-28"
         fill="none"
-        height="126"
-        viewBox="0 0 200 140"
-        width="180"
+        role="img"
+        viewBox="0 0 160 110"
         xmlns="http://www.w3.org/2000/svg"
       >
         <style>{`
-          @keyframes dino-chomp {
-            0%, 100% { transform: rotate(0deg); }
-            50%       { transform: rotate(16deg); }
+          @keyframes dino-walk {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
           }
-          .dino-jaw {
-            animation: dino-chomp 0.48s ease-in-out infinite;
-            transform-origin: 112px 82px;
+          @keyframes leg-a {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(9px); }
+          }
+          @keyframes leg-b {
+            0%, 100% { transform: translateY(9px); }
+            50% { transform: translateY(0); }
+          }
+          @keyframes ground {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-36px); }
+          }
+          .dino-body {
+            animation: dino-walk 0.5s ease-in-out infinite;
+          }
+          .leg-a {
+            animation: leg-a 0.5s steps(1) infinite;
+          }
+          .leg-b {
+            animation: leg-b 0.5s steps(1) infinite;
+          }
+          .ground {
+            animation: ground 0.7s linear infinite;
           }
         `}</style>
 
-        {/* ── Head ── */}
-        <rect fill="hsl(var(--primary))" height="95" rx="22" width="108" x="8" y="12" />
+        <g className="ground" stroke="hsl(var(--border))" strokeLinecap="round" strokeWidth="5">
+          <path d="M8 94H42" />
+          <path d="M58 94H98" />
+          <path d="M116 94H158" />
+          <path d="M174 94H212" />
+        </g>
 
-        {/* ── Brow ── */}
-        <path
-          d="M38,32 Q52,25 65,32"
-          fill="none"
-          stroke="#166534"
-          strokeLinecap="round"
-          strokeWidth="4.5"
-        />
-
-        {/* ── Eye ── */}
-        <circle cx="52" cy="47" fill="white" r="16" />
-        <circle cx="55" cy="49" fill="#111" r="10" />
-        <circle cx="58" cy="46" fill="white" r="4" />
-
-        {/* ── Upper snout ── */}
-        <rect fill="hsl(var(--primary))" height="24" rx="10" width="76" x="108" y="58" />
-
-        {/* ── Nostril ── */}
-        <circle cx="166" cy="67" fill="#166534" r="5" />
-
-        {/* ── Upper teeth (fixed, point down) ── */}
-        <polygon fill="white" points="116,82 120,93 124,82" />
-        <polygon fill="white" points="127,82 131,93 135,82" />
-        <polygon fill="white" points="138,82 142,93 146,82" />
-        <polygon fill="white" points="149,82 153,93 157,82" />
-        <polygon fill="white" points="160,82 164,93 168,82" />
-
-        {/* ── Lower jaw (chomps) ── */}
-        <g className="dino-jaw">
-          <rect fill="hsl(var(--primary))" height="20" rx="10" width="76" x="108" y="84" />
-          {/* Lower teeth (point up) */}
-          <polygon fill="white" points="118,84 122,73 126,84" />
-          <polygon fill="white" points="129,84 133,73 137,84" />
-          <polygon fill="white" points="140,84 144,73 148,84" />
-          <polygon fill="white" points="151,84 155,73 159,84" />
+        <g className="dino-body" fill="hsl(var(--primary))">
+          <path d="M36 62H52V48H64V34H86V22H124V34H132V54H110V62H96V76H86V86H74V76H54V86H42V76H36V62Z" />
+          <rect height="10" width="12" x="116" y="54" />
+          <rect height="8" width="10" x="26" y="56" />
+          <rect height="8" width="8" x="18" y="48" />
+          <rect height="7" width="7" x="110" y="31" fill="white" />
+          <rect height="4" width="4" x="113" y="34" fill="hsl(var(--foreground))" />
+          <rect className="leg-a" height="16" width="9" x="57" y="78" />
+          <rect className="leg-b" height="16" width="9" x="78" y="78" />
         </g>
       </svg>
 
-      <p className="animate-pulse text-xs font-bold text-muted-foreground">Cargando…</p>
+      <p className="animate-pulse text-xs font-bold text-muted-foreground">Cargando...</p>
     </div>
   );
 }
