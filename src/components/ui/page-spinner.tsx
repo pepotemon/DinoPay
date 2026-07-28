@@ -1,62 +1,98 @@
+function PixelDino({ frame }: { frame: "a" | "b" }) {
+  const legA = frame === "a";
+
+  return (
+    <g fill="hsl(var(--primary))">
+      <rect height="6" width="6" x="18" y="52" />
+      <rect height="6" width="6" x="24" y="48" />
+      <rect height="6" width="6" x="30" y="44" />
+      <rect height="6" width="6" x="36" y="40" />
+
+      <rect height="24" width="42" x="42" y="34" />
+      <rect height="12" width="54" x="36" y="40" />
+      <rect height="12" width="12" x="78" y="28" />
+
+      <rect height="30" width="36" x="84" y="10" />
+      <rect height="18" width="24" x="120" y="16" />
+      <rect height="6" width="12" x="114" y="34" />
+      <rect height="6" width="6" x="138" y="34" />
+      <rect height="6" width="6" x="108" y="16" fill="hsl(var(--background))" />
+      <rect height="3" width="3" x="111" y="19" fill="hsl(var(--foreground))" />
+
+      <rect height="6" width="12" x="84" y="46" />
+      <rect height="6" width="6" x="96" y="52" />
+
+      {legA ? (
+        <>
+          <rect height="16" width="7" x="48" y="58" />
+          <rect height="5" width="15" x="48" y="72" />
+          <rect height="10" width="7" x="72" y="58" />
+          <rect height="5" width="8" x="79" y="68" />
+        </>
+      ) : (
+        <>
+          <rect height="10" width="7" x="48" y="58" />
+          <rect height="5" width="10" x="38" y="68" />
+          <rect height="16" width="7" x="72" y="58" />
+          <rect height="5" width="15" x="64" y="72" />
+        </>
+      )}
+    </g>
+  );
+}
+
 export function PageSpinner() {
   return (
     <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3">
       <svg
         aria-label="Cargando"
-        className="h-16 w-28"
+        className="h-16 w-32"
         fill="none"
         role="img"
-        viewBox="0 0 128 72"
+        viewBox="0 0 164 92"
         xmlns="http://www.w3.org/2000/svg"
       >
         <style>{`
-          @keyframes dino-hop {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-2px); }
-          }
-          @keyframes run-a {
+          @keyframes dino-frame-a {
             0%, 49% { opacity: 1; }
             50%, 100% { opacity: 0; }
           }
-          @keyframes run-b {
+          @keyframes dino-frame-b {
             0%, 49% { opacity: 0; }
             50%, 100% { opacity: 1; }
           }
+          @keyframes dino-bob {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-2px); }
+          }
           @keyframes track {
             from { transform: translateX(0); }
-            to { transform: translateX(-32px); }
+            to { transform: translateX(-34px); }
           }
-          .track { animation: track 0.55s linear infinite; }
-          .dino { animation: dino-hop 0.34s steps(2) infinite; }
-          .run-a { animation: run-a 0.34s steps(1) infinite; }
-          .run-b { animation: run-b 0.34s steps(1) infinite; }
+          .dino {
+            animation: dino-bob 0.36s steps(2) infinite;
+            transform-box: fill-box;
+            transform-origin: center;
+          }
+          .frame-a { animation: dino-frame-a 0.36s steps(1) infinite; }
+          .frame-b { animation: dino-frame-b 0.36s steps(1) infinite; }
+          .track { animation: track 0.62s linear infinite; }
         `}</style>
 
         <g className="track" stroke="hsl(var(--border))" strokeLinecap="square" strokeWidth="3">
-          <path d="M0 63H24" />
-          <path d="M36 63H68" />
-          <path d="M82 63H116" />
-          <path d="M132 63H164" />
+          <path d="M4 82H28" />
+          <path d="M42 82H72" />
+          <path d="M88 82H122" />
+          <path d="M138 82H170" />
+          <path d="M184 82H218" />
         </g>
 
-        <g className="dino" fill="hsl(var(--primary))">
-          <path d="M28 46H36V38H44V30H52V18H60V10H92V18H100V34H84V38H72V46H64V54H52V50H40V46H32V54H24V50H16V46H8V42H16V38H24V42H28V46Z" />
-          <rect height="8" width="12" x="92" y="26" />
-          <rect height="4" width="4" x="84" y="18" fill="hsl(var(--background))" />
-          <rect height="3" width="3" x="88" y="21" fill="hsl(var(--foreground))" />
-
-          <g className="run-a">
-            <rect height="10" width="6" x="42" y="52" />
-            <rect height="4" width="12" x="42" y="60" />
-            <rect height="10" width="6" x="60" y="52" />
-            <rect height="4" width="6" x="66" y="60" />
+        <g className="dino">
+          <g className="frame-a">
+            <PixelDino frame="a" />
           </g>
-
-          <g className="run-b">
-            <rect height="10" width="6" x="42" y="52" />
-            <rect height="4" width="6" x="36" y="60" />
-            <rect height="10" width="6" x="60" y="52" />
-            <rect height="4" width="12" x="54" y="60" />
+          <g className="frame-b">
+            <PixelDino frame="b" />
           </g>
         </g>
       </svg>
