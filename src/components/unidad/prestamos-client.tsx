@@ -453,16 +453,29 @@ export function PrestamosClient({
                   </button>
                 ) : null}
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-xl font-black">
-                    {sheet.view === "info-payments"
-                      ? (sheet.clientLoan.clients?.alias ?? "Sin nombre")
-                      : ((sheet.loan as ClientLoan).clients?.alias ?? "Sin nombre")}
-                  </p>
-                  {sheetSubtitle(sheet.view) ? (
-                    <p className="text-xs font-bold text-muted-foreground">
-                      {sheetSubtitle(sheet.view)}
-                    </p>
-                  ) : null}
+                  {sheet.view === "info-loans" ? (
+                    <>
+                      <p className="text-xs font-bold text-muted-foreground">
+                        Historial de préstamos de
+                      </p>
+                      <p className="truncate text-xl font-black">
+                        {(sheet.loan as ClientLoan).clients?.alias ?? "Sin nombre"}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="truncate text-xl font-black">
+                        {sheet.view === "info-payments"
+                          ? (sheet.clientLoan.clients?.alias ?? "Sin nombre")
+                          : ((sheet.loan as ClientLoan).clients?.alias ?? "Sin nombre")}
+                      </p>
+                      {sheetSubtitle(sheet.view) ? (
+                        <p className="text-xs font-bold text-muted-foreground">
+                          {sheetSubtitle(sheet.view)}
+                        </p>
+                      ) : null}
+                    </>
+                  )}
                 </div>
                 <button
                   className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-muted text-muted-foreground"
