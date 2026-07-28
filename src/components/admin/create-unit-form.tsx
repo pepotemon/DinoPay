@@ -34,6 +34,48 @@ const workDays = [
 
 const allCountries = Country.getAllCountries();
 
+// Mapeo manual para países con múltiples zonas horarias en LATAM
+const STATE_TIMEZONES: Record<string, Record<string, string>> = {
+  BR: {
+    AC: "America/Rio_Branco",
+    AM: "America/Manaus",
+    RR: "America/Boa_Vista",
+    RO: "America/Porto_Velho",
+    PA: "America/Belem",
+    AP: "America/Belem",
+    TO: "America/Araguaina",
+    MA: "America/Fortaleza",
+    PI: "America/Fortaleza",
+    CE: "America/Fortaleza",
+    RN: "America/Fortaleza",
+    PB: "America/Fortaleza",
+    PE: "America/Recife",
+    AL: "America/Maceio",
+    SE: "America/Maceio",
+    BA: "America/Bahia",
+    MT: "America/Cuiaba",
+    MS: "America/Campo_Grande",
+    GO: "America/Sao_Paulo",
+    DF: "America/Sao_Paulo",
+    MG: "America/Sao_Paulo",
+    ES: "America/Sao_Paulo",
+    RJ: "America/Sao_Paulo",
+    SP: "America/Sao_Paulo",
+    PR: "America/Sao_Paulo",
+    SC: "America/Sao_Paulo",
+    RS: "America/Sao_Paulo"
+  },
+  MX: {
+    BC: "America/Tijuana",
+    BS: "America/Mazatlan",
+    SI: "America/Mazatlan",
+    SO: "America/Hermosillo",
+    CH: "America/Chihuahua",
+    NA: "America/Bahia_Banderas",
+    QR: "America/Cancun"
+  }
+};
+
 export function CreateUnitForm({ createUnit }: { createUnit: CreateUnitAction }) {
   const [state, formAction, pending] = useActionState(createUnit, initialState);
   const [password, setPassword] = useState("");
@@ -43,7 +85,6 @@ export function CreateUnitForm({ createUnit }: { createUnit: CreateUnitAction })
   const [selectedState, setSelectedState] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
   const [timezone, setTimezone] = useState("");
-  const [countryTimezones, setCountryTimezones] = useState<string[]>([]);
 
   const states = selectedCountry ? State.getStatesOfCountry(selectedCountry) : [];
   const cities = selectedCountry && selectedState
@@ -55,14 +96,15 @@ export function CreateUnitForm({ createUnit }: { createUnit: CreateUnitAction })
     setSelectedState("");
     setSelectedCity("");
     const country = allCountries.find((c) => c.isoCode === code);
-    const tzList = (country?.timezones ?? []).map((t) => t.zoneName).filter(Boolean);
-    setCountryTimezones(tzList);
-    setTimezone(tzList[0] ?? "");
+    const tz = country?.timezones?.[0]?.zoneName ?? "";
+    setTimezone(tz);
   }
 
   function handleStateChange(stateCode: string) {
     setSelectedState(stateCode);
     setSelectedCity("");
+    const stateSpecificTz = STATE_TIMEZONES[selectedCountry]?.[stateCode];
+    if (stateSpecificTz) setTimezone(stateSpecificTz);
   }
 
   const selectedCountryName = allCountries.find((c) => c.isoCode === selectedCountry)?.name ?? "";
@@ -196,33 +238,16 @@ export function CreateUnitForm({ createUnit }: { createUnit: CreateUnitAction })
           ) : null}
         </Field>
 
-        {/* Zona horaria */}
+        {/* Zona horaria — se auto-rellena con país/estado */}
         <Field label="Zona horaria">
-          {countryTimezones.length > 1 ? (
-            <select
-              className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-              name="zonaHoraria"
-              onChange={(e) => setTimezone(e.target.value)}
-              required
-              value={timezone}
-            >
-              {countryTimezones.map((tz) => (
-                <option key={tz} value={tz}>
-                  {tz}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <Input
-              disabled={!selectedCountry}
-              name="zonaHoraria"
-              placeholder="Selecciona un país primero"
-              readOnly={countryTimezones.length === 1}
-              required
-              value={timezone}
-              onChange={(e) => setTimezone(e.target.value)}
-            />
-          )}
+          <Input
+            className="bg-muted text-muted-foreground"
+            name="zonaHoraria"
+            placeholder="Se completa al elegir el país"
+            readOnly
+            required
+            value={timezone}
+          />
         </Field>
 
         <Field label="Días bloqueados para eliminar pagos">
