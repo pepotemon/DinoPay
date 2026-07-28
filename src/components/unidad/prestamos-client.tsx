@@ -298,8 +298,8 @@ export function PrestamosClient({
   return (
     <>
       {/* ── Cabecera sticky ── */}
-      <div className="sticky top-0 z-40 border-b bg-background">
-        <div className="mx-auto max-w-md space-y-3 px-4 pb-3 pt-4">
+      <div className="sticky top-0 z-40 -mx-4 border-b bg-background sm:mx-auto">
+        <div className="mx-auto max-w-lg space-y-3 px-3 pb-3 pt-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
@@ -391,7 +391,7 @@ export function PrestamosClient({
       </div>
 
       {/* ── Lista ── */}
-      <div className="mx-auto w-full max-w-md space-y-3 px-4 py-3">
+      <div className="-mx-4 space-y-3 px-3 py-3 sm:mx-auto sm:max-w-lg">
         {filtered.length === 0 ? (
           <p className="py-12 text-center text-sm text-muted-foreground">
             {loans.length === 0
@@ -436,7 +436,7 @@ export function PrestamosClient({
             type="button"
           />
           <div className="absolute bottom-0 left-0 right-0 max-h-[90vh] overflow-y-auto rounded-t-3xl bg-background shadow-2xl">
-            <div className="mx-auto max-w-md">
+            <div className="mx-auto max-w-lg">
               <div className="flex justify-center pb-1 pt-3">
                 <div className="h-1 w-10 rounded-full bg-border" />
               </div>
