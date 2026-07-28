@@ -391,7 +391,7 @@ export function PrestamosClient({
       </div>
 
       {/* ── Lista ── */}
-      <div className="-mx-4 space-y-2.5 px-3 py-3 sm:mx-auto sm:max-w-lg">
+      <div className="-mx-4 space-y-2 px-2.5 py-2.5 sm:mx-auto sm:max-w-lg">
         {filtered.length === 0 ? (
           <p className="py-12 text-center text-sm text-muted-foreground">
             {loans.length === 0
@@ -435,20 +435,20 @@ export function PrestamosClient({
             onClick={() => setSheet(null)}
             type="button"
           />
-          <div className="absolute bottom-0 left-0 right-0 max-h-[90vh] overflow-y-auto rounded-t-3xl bg-background shadow-2xl">
+          <div className="absolute bottom-0 left-0 right-0 max-h-[82vh] overflow-y-auto rounded-t-2xl bg-background shadow-2xl">
             <div className="mx-auto max-w-lg">
-              <div className="flex justify-center pb-1 pt-3">
-                <div className="h-1 w-10 rounded-full bg-border" />
+              <div className="flex justify-center pb-0.5 pt-2">
+                <div className="h-1 w-8 rounded-full bg-border" />
               </div>
 
-              <div className="flex items-center gap-2 px-5 py-3">
+              <div className="flex items-center gap-2 px-3 py-2">
                 {sheet.view !== "main" ? (
                   <button
-                    className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-muted text-muted-foreground"
+                    className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground"
                     onClick={() => setSheet(backView(sheet))}
                     type="button"
                   >
-                    <ArrowLeft className="h-5 w-5" />
+                    <ArrowLeft className="h-4 w-4" />
                   </button>
                 ) : null}
                 <div className="min-w-0 flex-1">
@@ -463,13 +463,13 @@ export function PrestamosClient({
                     </>
                   ) : (
                     <>
-                      <p className="truncate text-xl font-black">
+                      <p className="truncate text-base font-black">
                         {sheet.view === "info-payments"
                           ? (sheet.clientLoan.clients?.alias ?? "Sin nombre")
                           : ((sheet.loan as ClientLoan).clients?.alias ?? "Sin nombre")}
                       </p>
                       {sheetSubtitle(sheet.view) ? (
-                        <p className="text-xs font-bold text-muted-foreground">
+                        <p className="text-[11px] font-bold text-muted-foreground">
                           {sheetSubtitle(sheet.view)}
                         </p>
                       ) : null}
@@ -477,15 +477,15 @@ export function PrestamosClient({
                   )}
                 </div>
                 <button
-                  className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-muted text-muted-foreground"
+                  className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground"
                   onClick={() => setSheet(null)}
                   type="button"
                 >
-                  <X className="h-5 w-5" />
+                  <X className="h-4 w-4" />
                 </button>
               </div>
 
-              <div className="pb-8">
+              <div className="pb-4">
                 {sheet.view === "main" ? (
                   <SheetMain
                     loan={sheet.loan}
@@ -580,28 +580,28 @@ function LoanListCard({
   return (
     <article
       className={cn(
-        "rounded-2xl border bg-background p-3 shadow-sm transition-colors",
+        "rounded-2xl border bg-background p-2.5 shadow-sm transition-colors",
         isVisited && "bg-muted/20"
       )}
     >
-      <div className="flex items-start gap-2.5">
-        <div className="relative grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10 text-sm font-black text-primary">
+      <div className="flex items-center gap-2">
+        <div className="relative grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary/10 text-xs font-black text-primary">
           {clientInitials(name)}
           {showOverdue ? (
-            <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-background bg-destructive" />
+            <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-destructive" />
           ) : null}
         </div>
 
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-lg font-black leading-tight tracking-normal text-foreground">
+          <h2 className="truncate text-base font-black leading-tight tracking-normal text-foreground">
             {name}
           </h2>
           {showOverdue ? (
-            <p className="mt-0.5 inline-flex rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-black text-destructive">
+            <p className="mt-0.5 inline-flex rounded-full bg-destructive/10 px-1.5 py-0.5 text-[9px] font-black text-destructive">
               {overdue} cuota{overdue !== 1 ? "s" : ""} - {overdue} dia{overdue !== 1 ? "s" : ""} atrasado{overdue !== 1 ? "s" : ""}
             </p>
           ) : showAdvanced ? (
-            <p className="mt-0.5 inline-flex rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-black text-primary">
+            <p className="mt-0.5 inline-flex rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-black text-primary">
               {adelantadas} adelantada{adelantadas > 1 ? "s" : ""}
             </p>
           ) : null}
@@ -610,59 +610,57 @@ function LoanListCard({
         <div className="flex shrink-0 items-center gap-1">
           <button
             aria-label={`Opciones de ${name}`}
-            className="grid h-8 w-8 place-items-center rounded-full text-foreground transition-colors active:bg-muted"
+            className="grid h-7 w-7 place-items-center rounded-full text-foreground transition-colors active:bg-muted"
             onClick={onMenu}
             type="button"
           >
-            <MoreVertical className="h-[18px] w-[18px]" />
+            <MoreVertical className="h-4 w-4" />
           </button>
         </div>
       </div>
 
-      <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-muted/60 px-3 py-2.5">
+      <div className="mt-2 flex items-center justify-between gap-3 rounded-xl bg-muted/60 px-2.5 py-2">
         <div className="min-w-0">
-          <p className="text-[9px] font-black uppercase tracking-[0.12em] text-muted-foreground">
-            Cuota hoy
-          </p>
-          <p className="mt-1 text-2xl font-black leading-none">
+          <p className="text-[9px] font-black uppercase tracking-[0.1em] text-muted-foreground">Cuota</p>
+          <p className="mt-0.5 text-xl font-black leading-none">
             {formatCurrency(Number(loan.valor_cuota))}
           </p>
         </div>
         <div className="shrink-0 text-right">
-          <p className="text-lg font-black leading-none">{formatCuotas(loan)}</p>
-          <p className="mt-1 inline-flex rounded-md bg-background px-2 py-0.5 text-[10px] font-black text-primary shadow-sm">
-              {modalidadLabel(loan.modalidad)}
+          <p className="text-base font-black leading-none">{formatCuotas(loan)}</p>
+          <p className="mt-0.5 inline-flex rounded-md bg-background px-1.5 py-0.5 text-[9px] font-black text-primary shadow-sm">
+            {modalidadLabel(loan.modalidad)}
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-1.5 px-1 py-2.5 text-center">
+      <div className="grid grid-cols-3 gap-1 px-0.5 py-2 text-center">
         <CardMetric label="Saldo" value={formatCurrency(Number(loan.saldo))} />
         <CardMetric label="Prestamo" value={formatCurrency(Number(loan.total_a_cobrar))} />
         <CardMetric highlight label="Pagado" value={formatCurrency(totalPagado)} />
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-1.5">
         <button
           className={cn(
-            "flex h-10 items-center justify-center gap-1.5 rounded-xl border border-destructive/20 bg-destructive/10 text-sm font-black text-destructive shadow-sm transition active:scale-[0.99]",
+            "flex h-9 items-center justify-center gap-1.5 rounded-xl border border-destructive/20 bg-destructive/10 text-xs font-black text-destructive shadow-sm transition active:scale-[0.99]",
             isNoPay && "bg-destructive/15"
           )}
           onClick={onNoPay}
           type="button"
         >
-          <CircleSlash className="h-4 w-4" />
+          <CircleSlash className="h-3.5 w-3.5" />
           No Pago
         </button>
         <button
           className={cn(
-            "flex h-10 items-center justify-center gap-1.5 rounded-xl bg-primary text-sm font-black text-primary-foreground shadow-md shadow-primary/20 transition active:scale-[0.99]",
+            "flex h-9 items-center justify-center gap-1.5 rounded-xl bg-primary text-xs font-black text-primary-foreground shadow-md shadow-primary/20 transition active:scale-[0.99]",
             isPaid && "opacity-80"
           )}
           onClick={onPay}
           type="button"
         >
-          <Banknote className="h-4 w-4" />
+          <Banknote className="h-3.5 w-3.5" />
           Pagar
         </button>
       </div>
@@ -681,10 +679,10 @@ function CardMetric({
 }) {
   return (
     <div>
-      <p className="text-[9px] font-black uppercase tracking-[0.1em] text-muted-foreground">
+      <p className="text-[8px] font-black uppercase tracking-[0.08em] text-muted-foreground">
         {label}
       </p>
-      <p className={cn("mt-0.5 text-sm font-black", highlight && "text-primary")}>{value}</p>
+      <p className={cn("mt-0.5 text-xs font-black", highlight && "text-primary")}>{value}</p>
     </div>
   );
 }
@@ -703,7 +701,7 @@ function SheetMain({
   const address = [client?.direccion1, client?.barrio].filter(Boolean).join(", ");
 
   return (
-    <div className="space-y-4 px-5">
+    <div className="space-y-3 px-3">
       {address ? <p className="text-sm text-muted-foreground">{address}</p> : null}
 
       <div className="space-y-1 rounded-2xl bg-muted/60 p-2">
@@ -759,7 +757,7 @@ function SheetPay({
 }) {
   return (
     <form
-      className="space-y-4 px-5"
+      className="space-y-3 px-3"
       onSubmit={(e) => {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
@@ -804,28 +802,28 @@ function SheetPayConfirm({
   const cuotasCompletas = Math.floor(montoNum / loan.valor_cuota);
 
   return (
-    <div className="space-y-5 px-5">
+    <div className="space-y-3 px-3">
       <div
         className={cn(
-          "rounded-2xl p-5 text-center",
+          "rounded-xl px-4 py-3 text-center",
           esPartial ? "bg-orange-500/10" : "bg-primary/10"
         )}
       >
-        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
           {esPartial ? "Pago parcial" : "Vas a registrar"}
         </p>
-        <p className={cn("mt-2 text-4xl font-black", esPartial ? "text-orange-600" : "text-primary")}>
+        <p className={cn("mt-1 text-2xl font-black", esPartial ? "text-orange-600" : "text-primary")}>
           {formatCurrency(montoNum)}
         </p>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-0.5 text-xs text-muted-foreground">
           {esPartial
             ? `No cubre una cuota completa · ${metodo}`
             : `${cuotasCompletas} cuota(s) · ${metodo}`}
         </p>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-2">
         <Button
-          className="h-14 rounded-2xl font-black"
+          className="h-10 rounded-xl text-sm font-black"
           disabled={isPending}
           onClick={onBack}
           type="button"
@@ -834,7 +832,7 @@ function SheetPayConfirm({
           Volver
         </Button>
         <Button
-          className="h-14 rounded-2xl font-black shadow-lg shadow-primary/20"
+          className="h-10 rounded-xl text-sm font-black shadow-md shadow-primary/20"
           disabled={isPending}
           onClick={onConfirm}
           type="button"
@@ -856,12 +854,12 @@ function SheetNoPay({
   const [reason, setReason] = useState(noPayReasons[0]);
 
   return (
-    <div className="space-y-4 px-5">
-      <label className="block space-y-2">
-        <span className="text-sm font-bold">Razón</span>
+    <div className="space-y-3 px-3">
+      <label className="block space-y-1.5">
+        <span className="text-xs font-bold">Razón</span>
         <div className="relative">
           <select
-            className="h-12 w-full appearance-none rounded-xl bg-destructive/10 px-4 pr-10 text-sm font-medium outline-none"
+            className="h-10 w-full appearance-none rounded-xl bg-destructive/10 px-3 pr-9 text-sm font-medium outline-none"
             onChange={(e) => setReason(e.target.value)}
             value={reason}
           >
@@ -871,11 +869,11 @@ function SheetNoPay({
               </option>
             ))}
           </select>
-          <ChevronDown className="pointer-events-none absolute right-3 top-3.5 h-5 w-5 text-muted-foreground" />
+          <ChevronDown className="pointer-events-none absolute right-3 top-2.5 h-5 w-5 text-muted-foreground" />
         </div>
       </label>
       <Button
-        className="h-12 w-full rounded-2xl font-black"
+        className="h-10 w-full rounded-xl text-sm font-black"
         onClick={() => onSetSheet({ view: "nopay-confirm", loan, reason })}
         type="button"
       >
@@ -897,14 +895,14 @@ function SheetNoPayConfirm({
   reason: string;
 }) {
   return (
-    <div className="space-y-5 px-5">
-      <div className="rounded-2xl bg-destructive/10 p-5 text-center">
-        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Motivo</p>
-        <p className="mt-2 text-xl font-black text-destructive">{reason}</p>
+    <div className="space-y-3 px-3">
+      <div className="rounded-xl bg-destructive/10 px-4 py-3 text-center">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Motivo</p>
+        <p className="mt-1 text-base font-black text-destructive">{reason}</p>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-2">
         <Button
-          className="h-14 rounded-2xl font-black"
+          className="h-10 rounded-xl text-sm font-black"
           disabled={isPending}
           onClick={onBack}
           type="button"
@@ -913,7 +911,7 @@ function SheetNoPayConfirm({
           Volver
         </Button>
         <Button
-          className="h-14 rounded-2xl bg-destructive font-black text-destructive-foreground hover:bg-destructive/90"
+          className="h-10 rounded-xl bg-destructive text-sm font-black text-destructive-foreground hover:bg-destructive/90"
           disabled={isPending}
           onClick={onConfirm}
           type="button"
@@ -935,7 +933,7 @@ function SheetInfoDetails({
   const client = loan.clients;
 
   return (
-    <div className="space-y-5 px-5">
+    <div className="space-y-3 px-3">
       <section>
         <p className="mb-2 text-sm font-black text-primary">Detalles del cliente</p>
         <div className="overflow-hidden rounded-2xl border divide-y">
@@ -1002,8 +1000,8 @@ function SheetInfoPayments({
   });
 
   return (
-    <div className="space-y-4 px-5">
-      <div className="grid grid-cols-2 gap-3">
+    <div className="space-y-3 px-3">
+      <div className="grid grid-cols-2 gap-2">
         <div className="rounded-2xl border-2 border-primary/25 bg-primary/5 p-4">
           <div className="mb-2 flex items-center gap-1.5 text-xs font-bold text-primary">
             <Banknote className="h-4 w-4" />
@@ -1132,7 +1130,7 @@ function LoanCard({
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-2">
         <div className="rounded-2xl border p-4">
           <p className="text-xs text-muted-foreground">Valor Total</p>
           <p className="mt-1 text-xl font-black text-primary">
@@ -1223,7 +1221,7 @@ function SheetInfoLoans({
   const previousLoans = loans.filter((l) => l.id !== activeLoan.id);
 
   return (
-    <div className="space-y-5 px-5">
+    <div className="space-y-3 px-3">
       <section className="space-y-3">
         <div className="flex items-center gap-2">
           <Layers className="h-4 w-4 text-primary" />
@@ -1636,7 +1634,7 @@ function SheetReceipt({
   }
 
   return (
-    <div className="space-y-4 px-5">
+    <div className="space-y-3 px-3">
       {dataUrl ? (
         <div className="overflow-hidden rounded-2xl border shadow-sm">
           <img alt="Recibo de pago" className="w-full" src={dataUrl} />
@@ -1646,7 +1644,7 @@ function SheetReceipt({
           <p className="text-sm text-muted-foreground">Generando recibo…</p>
         </div>
       )}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-2">
         <Button
           className="h-12 rounded-2xl font-black"
           disabled={!dataUrl}

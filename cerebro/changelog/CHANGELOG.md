@@ -12,6 +12,16 @@ updated: 2026-07-24
 
 ---
 
+## [0.17.0] -- 2026-07-28
+
+### Agregado / Modificado
+
+**Compactado fuerte de Prestamos** (`/unidad/prestamos`)
+- Fichas de prestamo mas bajas y densas para aprovechar mejor el ancho movil.
+- Modal de pago y confirmacion compactados con controles, botones y separaciones reducidas.
+- Modal de no pago y confirmacion tambien compactados para registrar motivo sin ocupar media pantalla.
+
+---
 ## [0.16.0] — 2026-07-28
 
 ### Agregado / Modificado

@@ -26,20 +26,20 @@ export function PaymentInputs({
   }
 
   return (
-    <div className="space-y-5">
-      <label className="block space-y-3">
-        <span className="text-base font-medium">Cuotas a pagar</span>
-        <div className="grid h-14 grid-cols-[4rem_1fr_4rem] overflow-hidden rounded-xl bg-primary/10">
+    <div className="space-y-3">
+      <label className="block space-y-1.5">
+        <span className="text-xs font-bold">Cuotas a pagar</span>
+        <div className="grid h-10 grid-cols-[2.75rem_1fr_2.75rem] overflow-hidden rounded-xl bg-primary/10">
           <button
             className="grid place-items-center bg-destructive/10 text-destructive disabled:opacity-40"
             disabled={cuotas <= 1}
             onClick={() => stepCuotas(cuotas - 1)}
             type="button"
           >
-            <ChevronLeft className="h-7 w-7" />
+            <ChevronLeft className="h-5 w-5" />
           </button>
           <input
-            className="h-14 w-full bg-transparent text-center text-lg font-black outline-none"
+            className="h-10 w-full bg-transparent text-center text-base font-black outline-none"
             max={maxCuotas}
             min="1"
             name="numeroCuotas"
@@ -54,19 +54,19 @@ export function PaymentInputs({
             onClick={() => stepCuotas(cuotas + 1)}
             type="button"
           >
-            <ChevronRight className="h-7 w-7" />
+            <ChevronRight className="h-5 w-5" />
           </button>
         </div>
       </label>
 
-      <label className="block space-y-3">
-        <span className="text-base font-medium">
+      <label className="block space-y-1.5">
+        <span className="text-xs font-bold">
           Monto <span className="text-destructive">*</span>
         </span>
-        <div className="flex h-14 items-center gap-3 rounded-xl bg-primary/10 px-4">
-          <CircleDollarSign className="h-5 w-5 text-primary" />
+        <div className="flex h-10 items-center gap-2 rounded-xl bg-primary/10 px-3">
+          <CircleDollarSign className="h-4 w-4 text-primary" />
           <input
-            className="h-14 min-w-0 flex-1 bg-transparent text-base font-bold outline-none"
+            className="h-10 min-w-0 flex-1 bg-transparent text-sm font-bold outline-none"
             min="0.01"
             name="monto"
             onChange={(event) => setMonto(Number(event.target.value))}
@@ -77,25 +77,25 @@ export function PaymentInputs({
         </div>
       </label>
 
-      <label className="block space-y-3">
-        <span className="text-base font-medium">
+      <label className="block space-y-1.5">
+        <span className="text-xs font-bold">
           Metodo de pago <span className="text-destructive">*</span>
         </span>
         <div className="relative">
           <select
-            className="h-14 w-full appearance-none rounded-xl bg-primary/10 px-4 pr-11 text-base font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-10 w-full appearance-none rounded-xl bg-primary/10 px-3 pr-9 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring"
             defaultValue="transferencia"
             name="metodoPago"
           >
             <option value="transferencia">Transferencia</option>
             <option value="efectivo">Efectivo</option>
           </select>
-          <ChevronDown className="pointer-events-none absolute right-4 top-4 h-6 w-6 text-muted-foreground" />
+          <ChevronDown className="pointer-events-none absolute right-3 top-2.5 h-5 w-5 text-muted-foreground" />
         </div>
       </label>
 
       <Button
-        className="h-14 w-full rounded-2xl text-base font-black shadow-lg shadow-primary/20"
+        className="h-10 w-full rounded-xl text-sm font-black shadow-md shadow-primary/20"
         disabled={isPending}
         type="submit"
       >
