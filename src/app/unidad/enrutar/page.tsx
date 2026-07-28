@@ -1,5 +1,4 @@
 import { RouteSorter } from "@/components/unidad/route-sorter";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { updateRouteAction } from "@/lib/actions/unidad/ruta";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -8,24 +7,15 @@ type LoanRow = {
   id: string;
   valor_cuota: number;
   clients:
-    | {
-        alias: string;
-        barrio: string | null;
-      }
-    | {
-        alias: string;
-        barrio: string | null;
-      }[]
+    | { alias: string; barrio: string | null }
+    | { alias: string; barrio: string | null }[]
     | null;
 };
 
 export default async function EnrutarPage({
   searchParams
 }: {
-  searchParams?: Promise<{
-    error?: string;
-    ok?: string;
-  }>;
+  searchParams?: Promise<{ error?: string; ok?: string }>;
 }) {
   const params = await searchParams;
   const supabase = await createClient();
@@ -54,37 +44,36 @@ export default async function EnrutarPage({
   });
 
   return (
-    <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-semibold">Enrutar</h1>
-        <p className="text-sm text-muted-foreground">
-          Ordena la ruta de cobro. Arrastra desde el icono.
-        </p>
+    <div className="pb-6">
+      {/* Hero */}
+      <div className="flex items-end justify-between px-1 pb-4 pt-2">
+        <div>
+          <h1 className="text-4xl font-black">Enrutar</h1>
+          <p className="text-lg font-bold text-primary">
+            {routeLoans.length} cliente{routeLoans.length !== 1 ? "s" : ""}
+          </p>
+        </div>
+        <span className="select-none text-5xl">🗺️</span>
       </div>
 
       {params?.error ? (
-        <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+        <p className="mb-4 rounded-2xl bg-destructive/10 px-4 py-3 text-sm font-bold text-destructive">
           {params.error}
-        </div>
+        </p>
       ) : null}
 
       {params?.ok ? (
-        <div className="rounded-md border border-primary/30 bg-primary/10 p-4 text-sm text-primary">
+        <p className="mb-4 rounded-2xl bg-primary/10 px-4 py-3 text-sm font-bold text-primary">
           {params.ok}
-        </div>
+        </p>
       ) : null}
 
       {routeLoans.length > 0 ? (
         <RouteSorter action={updateRouteAction} loans={routeLoans} />
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>Sin prestamos activos</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Cuando haya prestamos activos, podras ordenarlos aqui.
-          </CardContent>
-        </Card>
+        <p className="rounded-2xl border px-4 py-8 text-center text-sm text-muted-foreground">
+          Sin préstamos activos para enrutar. Crea uno desde Nuevo.
+        </p>
       )}
     </div>
   );
