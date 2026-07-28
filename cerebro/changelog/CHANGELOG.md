@@ -12,6 +12,34 @@ updated: 2026-07-24
 
 ---
 
+## [0.10.0] — 2026-07-27
+
+### Agregado / Modificado
+
+**Historial de Pagos rediseñado** (vista `info-payments` del bottom sheet)
+- Grid de 4 stats: Total Pagado (destacado en fondo primary), Saldo, Cuotas Pagadas y Pagos Realizados
+- Cuando hay pago parcial muestra "Faltan $X para completar la cuota #N" bajo las cuotas
+- Cada fila de pago lleva un tag de cuota acumulada (`#6,83`) en color primary, calculado recorriendo el historial de más nuevo a más antiguo partiendo del `cuotasFrac` actual
+- Íconos: `Banknote`, `Lock`, `Layers`, `Receipt`, `ArrowLeftRight`
+- Tipo `PaymentLoanContext` permite que tanto `ClientLoan` como `LoanHistory` naveguen a `info-payments`
+
+**Historial de Préstamos rediseñado** (vista `info-loans` del bottom sheet)
+- Nuevo componente `LoanCard` usado para el préstamo activo y cada préstamo anterior
+- Cada tarjeta muestra: rango de fechas (inicio → fin), grid 2×2 de stats (Cuotas, Valor Cuota, Saldo, Interés), sección Resumen con bullets:
+  - Total prestado / Total a cobrar / Modalidad / Monto neto recibido
+  - Cuotas parciales: cantidad de pagos donde `monto < valor_cuota` (no una fracción)
+  - Para préstamos completados: `"El cliente pagó su préstamo con X días de atraso"` si el último pago fue después de `fecha_fin`
+- Botón "Ver Pagos" navega a `info-payments` con el contexto correcto (incluyendo `clientLoan` para poder volver al `main`)
+- Header de la vista `info-loans`: "HISTORIAL DE PRÉSTAMOS DE" (pequeño, uppercase) + nombre del cliente (grande, 2xl, uppercase, centrado)
+- Eliminada línea redundante "Tu préstamo actual es de $X y tu cuota es de $Y"
+- Page carga historial de pagos de préstamos anteriores (`prevPaymentHistory`) y los fusiona en `paymentHistoryByLoan`
+
+**Múltiples pagos por día**
+- Después de registrar un pago, el botón "Pagar" permanece visible como "Registrar otro pago" (en lugar de ocultarse)
+- El cliente sigue apareciendo en "Visitados" con borde verde
+
+---
+
 ## [0.9.0] — 2026-07-27
 
 ### Agregado

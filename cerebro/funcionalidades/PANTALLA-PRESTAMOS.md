@@ -1,7 +1,7 @@
 ---
 tags: [funcionalidad, pantalla, prestamos, cobros, pagos, unidad]
 created: 2026-07-24
-updated: 2026-07-27
+updated: 2026-07-27 (v0.10.0)
 ---
 
 # Pantalla: PRÉSTAMOS — Lista de Trabajo Diaria
@@ -13,7 +13,7 @@ updated: 2026-07-27
 ## Objetivo
 Es la pantalla principal de trabajo de la unidad. Aquí se listan todos los préstamos activos y se registran los pagos del día. Es el corazón de la operación diaria.
 
-Estado de implementación: ✅ Implementada y rediseñada (2026-07-27). Lista conectada a préstamos activos, registro de pago (incluyendo parciales), no-pago, historial, detalles y edición de cliente operativos. Diseño propio con cabecera sticky + lista compacta + bottom sheet unificado. Badges de atraso (naranja), adelantadas (verde) y estado (verde/rojo). Display de cuotas fraccionado (8.3/20).
+Estado de implementación: ✅ Implementada y rediseñada (2026-07-27). Lista conectada a préstamos activos, registro de pago (incluyendo parciales y múltiples por día), no-pago, historial, detalles y edición de cliente operativos. Diseño propio con cabecera sticky + lista compacta + bottom sheet unificado. Badges de atraso (naranja), adelantadas (verde) y estado (verde/rojo). Display de cuotas fraccionado (8.3/20). Historial de pagos y préstamos completamente rediseñados con stats y LoanCard.
 
 ## Problema que Resuelve
 El cobrador necesita ver rápidamente quién debe pagar hoy, cuánto lleva cobrado, y registrar pagos con el menor número de toques posible.
@@ -132,7 +132,7 @@ El valor se calcula siempre como `(total_a_cobrar - saldo) / valor_cuota`. Muest
 
 Implementación: se registra en `loan_visits` con `tipo = 'no_pago'`, no en `payments`, para no afectar la caja.
 
-**[Pagar]** — Abre el modal de registro de pago.
+**[Pagar]** — Abre el modal de registro de pago. Si ya hay un pago registrado hoy, el botón cambia a **"Registrar otro pago"** — se pueden registrar múltiples pagos por día.
 
 ---
 
@@ -191,11 +191,15 @@ Si `saldo - monto <= 0`, el préstamo se marca como `completado` y el cliente se
 | Fecha de Fin | 2026-07-31 |
 | Fecha de Creación | 2026-07-01 |
 
-### Sección: Historial de Pagos (préstamo actual)
-Lista de todos los pagos registrados para este préstamo activo.
+### Sección: Historial de Pagos (vista `info-payments`)
+Grid de 4 stats: Total Pagado (destacado), Saldo, Cuotas Pagadas, Pagos Realizados. Cada pago lleva un tag de cuota acumulada (`#6,83`) en color primary. Si hay pago parcial muestra "Faltan $X para completar la cuota #N". Funciona tanto para el préstamo activo como para cualquier préstamo anterior.
 
-### Sección: Historial de Préstamos
-Todos los préstamos anteriores de este cliente (incluye los completados).
+### Sección: Historial de Préstamos (vista `info-loans`)
+Header centrado: "HISTORIAL DE PRÉSTAMOS DE" (uppercase pequeño) + nombre del cliente (2xl, uppercase, negrilla). Muestra una `LoanCard` por cada préstamo (activo y anteriores). Cada tarjeta incluye: rango de fechas, grid 2×2 de stats, sección Resumen con bullets (total prestado, modalidad, cuotas parciales, días de atraso si aplica) y botón "Ver Pagos".
+
+**Cuotas parciales** = cantidad de pagos donde `monto < valor_cuota` (no es una fracción).
+
+**Días de atraso al completar** = si el último pago de un préstamo completado fue después de `fecha_fin`, muestra `"El cliente pagó su préstamo con X días de atraso"`.
 
 ### Botón: Editar Cliente
 Permite modificar los datos personales del cliente (no los del préstamo activo).
