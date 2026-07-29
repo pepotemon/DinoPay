@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BottomNav } from "@/components/unidad/bottom-nav";
+import { UnidadRoutePrefetcher } from "@/components/unidad/route-prefetcher";
 import { UnidadHeaderInfo } from "@/components/unidad/unidad-header";
 
 export default function UnidadLayout({ children }: { children: React.ReactNode }) {
@@ -15,6 +16,7 @@ export default function UnidadLayout({ children }: { children: React.ReactNode }
       </header>
       <main className="mx-auto max-w-5xl px-4 py-6 pb-24">{children}</main>
       <BottomNav />
+      <UnidadRoutePrefetcher />
     </div>
   );
 }

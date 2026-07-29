@@ -74,6 +74,7 @@ export default async function MenuPage() {
           <Link
             key={href}
             href={href}
+            prefetch
             className="flex items-center gap-4 px-4 py-4 transition-colors hover:bg-muted/50 active:bg-muted/60"
           >
             <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-muted">

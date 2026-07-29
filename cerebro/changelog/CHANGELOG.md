@@ -12,6 +12,17 @@ updated: 2026-07-24
 
 ---
 
+## [0.20.0] -- 2026-07-28
+
+### Agregado / Modificado
+
+**Navegacion ultra rapida en unidad**
+- Prefetch persistente de rutas principales de unidad desde el layout movil.
+- La barra inferior precarga rutas al tocar o pasar sobre cada acceso.
+- Los accesos internos del menu declaran prefetch explicito.
+- La cache cliente de React Query conserva datos por mas tiempo para reducir recargas entre pantallas cliente.
+
+---
 ## [0.19.1] -- 2026-07-28
 
 ### Modificado
