@@ -65,6 +65,7 @@ export type ClientLoan = {
     barrio: string | null;
     telefono1: string | null;
     telefono2: string | null;
+    genero: string | null;
   } | null;
 };
 
@@ -239,6 +240,11 @@ function sheetSubtitle(view: Exclude<SheetState, null>["view"]) {
     default:
       return null;
   }
+}
+
+function sheetClientLoan(sheet: Exclude<SheetState, null>): ClientLoan {
+  if ("clientLoan" in sheet) return sheet.clientLoan;
+  return sheet.loan as ClientLoan;
 }
 
 export function PrestamosClient({
@@ -501,29 +507,33 @@ export function PrestamosClient({
                 <div className="h-1 w-8 rounded-full bg-border" />
               </div>
 
-              <div className="flex items-center gap-2 px-3 py-2">
+              <div className="relative px-3 pb-2 pt-1">
                 {sheet.view !== "main" ? (
                   <button
-                    className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground"
+                    className="absolute left-3 top-1 grid h-8 w-8 place-items-center rounded-lg bg-muted text-muted-foreground"
                     onClick={() => setSheet(backView(sheet))}
                     type="button"
                   >
                     <ArrowLeft className="h-4 w-4" />
                   </button>
                 ) : null}
-                <div className="min-w-0 flex-1">
+                <div className="mx-10 min-w-0 text-center">
+                  <ClientDinoAvatar
+                    genero={sheetClientLoan(sheet).clients?.genero}
+                    name={sheetClientLoan(sheet).clients?.alias ?? "Cliente"}
+                  />
                   {sheet.view === "info-loans" ? (
                     <>
-                      <p className="text-center text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                      <p className="mt-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                         Historial de préstamos de
                       </p>
-                      <p className="truncate text-center text-2xl font-black uppercase leading-tight">
+                      <p className="truncate text-xl font-black uppercase leading-tight">
                         {(sheet.loan as ClientLoan).clients?.alias ?? "Sin nombre"}
                       </p>
                     </>
                   ) : (
                     <>
-                      <p className="truncate text-base font-black">
+                      <p className="mt-1 truncate text-lg font-black leading-tight">
                         {sheet.view === "info-payments"
                           ? (sheet.clientLoan.clients?.alias ?? "Sin nombre")
                           : sheet.view === "delete-payment-confirm"
@@ -533,7 +543,7 @@ export function PrestamosClient({
                           : ((sheet.loan as ClientLoan).clients?.alias ?? "Sin nombre")}
                       </p>
                       {sheetSubtitle(sheet.view) ? (
-                        <p className="text-[11px] font-bold text-muted-foreground">
+                        <p className="text-[10px] font-bold text-muted-foreground">
                           {sheetSubtitle(sheet.view)}
                         </p>
                       ) : null}
@@ -541,7 +551,7 @@ export function PrestamosClient({
                   )}
                 </div>
                 <button
-                  className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground"
+                  className="absolute right-3 top-1 grid h-8 w-8 place-items-center rounded-lg bg-muted text-muted-foreground"
                   onClick={() => setSheet(null)}
                   type="button"
                 >
@@ -643,6 +653,53 @@ export function PrestamosClient({
         </div>
       ) : null}
     </>
+  );
+}
+
+function ClientDinoAvatar({
+  genero,
+  name
+}: {
+  genero: string | null | undefined;
+  name: string;
+}) {
+  const normalized = genero?.toLowerCase();
+  const variant =
+    normalized === "femenino" ? "femenino" : normalized === "masculino" ? "masculino" : "otro";
+
+  return (
+    <div
+      aria-label={`Avatar de ${name}`}
+      className="relative mx-auto h-12 w-16 overflow-visible"
+      role="img"
+    >
+      <span className="absolute inset-x-2 bottom-1 h-1 rounded-full bg-primary/10" />
+      <span
+        className="absolute bottom-2 left-1/2 block h-[47px] w-[44px] -translate-x-1/2"
+        style={{
+          backgroundImage: "url('/assets/chrome-trex.png')",
+          backgroundPosition: variant === "masculino" ? "-88px 0" : "0 0",
+          backgroundRepeat: "no-repeat",
+          backgroundSize: "264px 47px",
+          filter: "sepia(1) saturate(7) hue-rotate(226deg) brightness(.82)",
+          imageRendering: "pixelated"
+        }}
+      />
+      {variant === "femenino" ? (
+        <span className="absolute left-5 top-1 h-3 w-4">
+          <span className="absolute left-0 top-1 h-2 w-2 rotate-45 rounded-[2px] bg-primary" />
+          <span className="absolute right-0 top-1 h-2 w-2 rotate-45 rounded-[2px] bg-primary" />
+          <span className="absolute left-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-primary-foreground" />
+        </span>
+      ) : variant === "masculino" ? (
+        <span className="absolute left-7 top-8 h-3 w-2">
+          <span className="block h-1.5 w-2 rotate-45 rounded-[1px] bg-primary" />
+          <span className="-mt-0.5 block h-2 w-2 rounded-b-sm bg-primary" />
+        </span>
+      ) : (
+        <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary/70 shadow-[0_0_0_4px_hsl(var(--primary)/0.12)]" />
+      )}
+    </div>
   );
 }
 

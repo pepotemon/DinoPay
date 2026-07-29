@@ -32,6 +32,7 @@ type RawLoanRow = {
         barrio: string | null;
         telefono1: string | null;
         telefono2: string | null;
+        genero: string | null;
       }
     | {
         alias: string;
@@ -41,6 +42,7 @@ type RawLoanRow = {
         barrio: string | null;
         telefono1: string | null;
         telefono2: string | null;
+        genero: string | null;
       }[]
     | null;
 };
@@ -91,7 +93,7 @@ export default async function PrestamosPage() {
       adminClient
         .from("loans")
         .select(
-          "id, client_id, valor_cuota, valor_neto, total_a_cobrar, saldo, cuotas_pagadas, numero_cuotas, modalidad, interes, posicion, fecha_inicio, fecha_fin, ultima_cuota_fecha, created_at, clients(alias, nit, direccion1, direccion2, barrio, telefono1, telefono2)"
+          "id, client_id, valor_cuota, valor_neto, total_a_cobrar, saldo, cuotas_pagadas, numero_cuotas, modalidad, interes, posicion, fecha_inicio, fecha_fin, ultima_cuota_fecha, created_at, clients(alias, nit, direccion1, direccion2, barrio, telefono1, telefono2, genero)"
         )
         .eq("unit_id", user.id)
         .eq("estado", "activo")

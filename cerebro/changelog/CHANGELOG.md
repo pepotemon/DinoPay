@@ -12,6 +12,16 @@ updated: 2026-07-24
 
 ---
 
+## [0.20.5] -- 2026-07-28
+
+### Agregado
+
+**Avatares en modales de prestamos**
+- Los modales de prestamos muestran un dino centrado arriba como avatar del cliente.
+- El avatar usa el genero guardado del cliente para variar el detalle visual sin salir de la paleta de DinoPay.
+
+---
+
 ## [0.20.4] -- 2026-07-28
 
 ### Agregado
