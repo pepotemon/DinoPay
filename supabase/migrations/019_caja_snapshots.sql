@@ -32,9 +32,11 @@ CREATE INDEX IF NOT EXISTS idx_caja_snapshots_unit
 
 ALTER TABLE caja_snapshots ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "unit_read_own_caja_snapshots" ON caja_snapshots;
 CREATE POLICY "unit_read_own_caja_snapshots" ON caja_snapshots
   FOR SELECT USING (unit_id = auth.uid());
 
+DROP POLICY IF EXISTS "admin_all_caja_snapshots" ON caja_snapshots;
 CREATE POLICY "admin_all_caja_snapshots" ON caja_snapshots
   FOR ALL USING (is_admin());
 
