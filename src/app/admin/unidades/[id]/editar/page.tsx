@@ -29,7 +29,6 @@ type UnitEditRow = {
   ciudad: string;
   zona_horaria: string;
   dias_laborales: number[];
-  dias_bloqueados_eliminacion: number;
   puede_eliminar_abonos: boolean;
   puede_eliminar_prestamos: boolean;
   intereses: number[];
@@ -49,7 +48,7 @@ export default async function EditarUnidadPage({
   const { data } = await adminClient
     .from("units")
     .select(
-      "id, username, nombre_unidad, encargado, telefono, capital_inicial, pais, estado, ciudad, zona_horaria, dias_laborales, dias_bloqueados_eliminacion, puede_eliminar_abonos, puede_eliminar_prestamos, intereses, activo"
+      "id, username, nombre_unidad, encargado, telefono, capital_inicial, pais, estado, ciudad, zona_horaria, dias_laborales, puede_eliminar_abonos, puede_eliminar_prestamos, intereses, activo"
     )
     .eq("id", id)
     .maybeSingle();
@@ -136,15 +135,6 @@ export default async function EditarUnidadPage({
                 name="intereses"
                 placeholder="10,15,20"
                 required
-              />
-            </Field>
-
-            <Field label="Dias bloqueados para eliminar pagos">
-              <Input
-                defaultValue={unit.dias_bloqueados_eliminacion}
-                min="0"
-                name="diasBloqueadosEliminacion"
-                type="number"
               />
             </Field>
 

@@ -12,6 +12,15 @@ updated: 2026-07-24
 
 ---
 
+## [0.19.1] -- 2026-07-28
+
+### Modificado
+
+**Formulario de unidades**
+- Eliminado el campo "Dias bloqueados para eliminar pagos" de crear/editar unidad.
+- La eliminacion de abonos queda guiada solo por permiso del admin y misma fecha del abono.
+
+---
 ## [0.19.0] -- 2026-07-28
 
 ### Agregado

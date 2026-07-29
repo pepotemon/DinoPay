@@ -250,9 +250,6 @@ export function CreateUnitForm({ createUnit }: { createUnit: CreateUnitAction })
           />
         </Field>
 
-        <Field label="Días bloqueados para eliminar pagos">
-          <Input defaultValue="0" min="0" name="diasBloqueadosEliminacion" type="number" />
-        </Field>
       </section>
 
       <section className="space-y-2">

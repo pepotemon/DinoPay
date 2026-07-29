@@ -93,7 +93,7 @@ CREATE TABLE units (
   ciudad TEXT NOT NULL,
   zona_horaria TEXT NOT NULL DEFAULT 'America/Bogota',
   dias_laborales JSONB DEFAULT '[1,2,3,4,5]',
-  dias_bloqueados_eliminacion INTEGER DEFAULT 0,
+  dias_bloqueados_eliminacion INTEGER DEFAULT 0, -- legado
   puede_eliminar_abonos BOOLEAN DEFAULT FALSE,
   puede_eliminar_prestamos BOOLEAN DEFAULT FALSE,
   intereses JSONB DEFAULT '[10,15,20]',
