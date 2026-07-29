@@ -689,7 +689,7 @@ function LoanListCard({
 }) {
   const totalPagado = Number(loan.total_a_cobrar) - Number(loan.saldo);
   const showOverdue = overdue > 0 && !isVisited;
-  const showAdvanced = adelantadas > 0 && !isVisited && !showOverdue;
+  const showAdvanced = adelantadas > 0 && !showOverdue;
 
   return (
     <article

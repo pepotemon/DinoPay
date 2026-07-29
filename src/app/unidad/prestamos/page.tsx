@@ -210,7 +210,8 @@ export default async function PrestamosPage() {
       loan.ultima_cuota_fecha,
       loan.modalidad,
       diasLaborales,
-      today
+      today,
+      loan.cuotas_pagadas
     );
     return acc;
   }, {});

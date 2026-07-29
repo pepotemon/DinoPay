@@ -42,18 +42,19 @@ export function calcularCuotasAdelantadas(
   ultimaCuotaFecha: string | null,
   modalidad: string,
   diasLaborales: number[],
-  today: string
+  today: string,
+  cuotasPagadas: number
 ): number {
-  if (!ultimaCuotaFecha) return 0;
+  if (!ultimaCuotaFecha || cuotasPagadas === 0) return 0;
 
   const due = ultimaCuotaFecha.slice(0, 10);
   if (due <= today) return 0;
 
   if (modalidad === "diaria") {
-    // Cuotas adelantadas = dias laborales estrictamente entre hoy y due (exclusive).
+    // Cuotas adelantadas = dias laborales entre hoy (exclusive) y due (inclusive).
     let count = 0;
     let cursor = addDaysToDateString(today, 1);
-    while (cursor < due) {
+    while (cursor <= due) {
       if (diasLaborales.includes(dayOfWeek(cursor))) count++;
       cursor = addDaysToDateString(cursor, 1);
     }
