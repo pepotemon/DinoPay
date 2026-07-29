@@ -12,6 +12,29 @@ updated: 2026-07-24
 
 ---
 
+## [0.21.0] — 2026-07-29
+
+### Corregido
+
+**Toast duplicado en Enrutar y Gastos**
+- `AutoToast` refactorizado para ser idempotente: ahora lee el `?ok`/`?error` directamente desde `window.location.href` (en lugar del hook `useSearchParams`) y limpia la URL *antes* de disparar el toast. Esto evita que el efecto dispare el toast dos veces en React Strict Mode (desarrollo) o ante re-renders rápidos.
+- Eliminado el banner servidor `{params?.ok}` y `{params?.error}` de `enrutar/page.tsx`; el mensaje ya era mostrado también por `AutoToast`, produciendo una doble notificacion.
+- Removido `router` de las dependencias del `useEffect` en `AutoToast` (no se usaba en el cuerpo del efecto).
+
+### Modificado
+
+**Modal de opciones rapidas en Prestamos**
+- Direccion del cliente ahora centrada (`text-center`) en la cabecera del modal.
+- Quitado el PNG del dino en el modal de opciones rapidas (vista `main`) para un diseño mas limpio.
+- Quitado el PNG del dino en el modal de "No pago" (vista `nopay`).
+
+**Registros de pagos en Historial de Pagos**
+- Las filas de pago ahora muestran solo el metodo y la fecha+hora formateada con zona horaria de la unidad (ej. "29 jul 2026, 3:21 a.m.").
+- Eliminadas las lineas redundantes: `fecha_pago` (era la misma fecha de `hora_registro`) y "Cuotas pagadas: X" (informacion ya visible en las tarjetas de resumen).
+- Nueva funcion helper `formatPaymentDatetime(isoStr, tz)` para formatear timestamps ISO con zona horaria local.
+
+---
+
 ## [0.20.7] -- 2026-07-28
 
 ### Modificado

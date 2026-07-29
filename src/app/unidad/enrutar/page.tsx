@@ -13,12 +13,7 @@ type LoanRow = {
     | null;
 };
 
-export default async function EnrutarPage({
-  searchParams
-}: {
-  searchParams?: Promise<{ error?: string; ok?: string }>;
-}) {
-  const params = await searchParams;
+export default async function EnrutarPage() {
   const supabase = await createClient();
   const {
     data: { user }
@@ -56,18 +51,6 @@ export default async function EnrutarPage({
         </div>
         <PageDino label="Enrutar clientes" variant="route" />
       </div>
-
-      {params?.error ? (
-        <p className="mb-4 rounded-2xl bg-destructive/10 px-4 py-3 text-sm font-bold text-destructive">
-          {params.error}
-        </p>
-      ) : null}
-
-      {params?.ok ? (
-        <p className="mb-4 rounded-2xl bg-primary/10 px-4 py-3 text-sm font-bold text-primary">
-          {params.ok}
-        </p>
-      ) : null}
 
       {routeLoans.length > 0 ? (
         <RouteSorter action={updateRouteAction} loans={routeLoans} />

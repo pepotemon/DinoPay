@@ -20,7 +20,30 @@ updated: 2026-07-24
 
 ## Bugs Resueltos
 
-*(Sin historial aún)*
+### BUG-001: Toast duplicado en Enrutar y Gastos
+
+**Fecha**: 2026-07-29
+**Severidad**: Medio
+**Estado**: Resuelto
+
+**Sintoma**:
+El mensaje de exito ("Ruta guardada", "Gasto registrado") aparecia dos veces despues de guardar.
+
+**Causa Raiz**:
+Dos causas independientes:
+1. `enrutar/page.tsx` renderizaba en servidor un banner `{params?.ok}` Y `AutoToast` mostraba un toast para el mismo parametro de la URL.
+2. `AutoToast` usaba `useSearchParams()` como valor del efecto pero limpiaba la URL con `replaceState` al final. En React Strict Mode (dev) los efectos montan → desmontan → remontan, y el segundo mount disparaba el toast nuevamente antes de que el hook reflejara la URL limpia.
+
+**Solucion**:
+- Eliminado el banner servidor de `enrutar/page.tsx`.
+- `AutoToast` refactorizado para leer desde `window.location.href` (siempre el estado real de la URL) y limpiar la URL *antes* de mostrar el toast, haciendolo idempotente ante dobles ejecuciones.
+
+**Como Evitarlo**:
+No mezclar notificaciones servidor (banners renderizados con `searchParams`) y cliente (`AutoToast`) para el mismo mensaje. Elegir uno solo; `AutoToast` es el patron preferido.
+
+**Archivos Afectados**:
+- `src/components/auto-toast.tsx`
+- `src/app/unidad/enrutar/page.tsx`
 
 ---
 

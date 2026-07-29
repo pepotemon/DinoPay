@@ -547,7 +547,7 @@ export function PrestamosClient({
                   </button>
                 ) : null}
                 <div className="mx-10 min-w-0 text-center">
-                  {sheet.view !== "pay" && sheet.view !== "pay-confirm" ? (
+                  {sheet.view !== "pay" && sheet.view !== "pay-confirm" && sheet.view !== "main" && sheet.view !== "nopay" ? (
                     <ClientDinoAvatar
                       genero={sheetClientLoan(sheet).clients?.genero}
                       name={sheetClientLoan(sheet).clients?.alias ?? "Cliente"}
@@ -880,7 +880,7 @@ function SheetMain({
 
   return (
     <div className="space-y-3 px-3">
-      {address ? <p className="text-sm text-muted-foreground">{address}</p> : null}
+      {address ? <p className="text-center text-sm text-muted-foreground">{address}</p> : null}
 
       <div className="space-y-1 rounded-2xl bg-muted/60 p-2">
         <SheetAction
@@ -1345,10 +1345,7 @@ function SheetInfoPayments({
                   <div>
                     <p className="font-black capitalize">{payment.metodo_pago}</p>
                     <p className="text-xs text-muted-foreground">
-                      {payment.fecha_pago} {payment.hora_registro}
-                    </p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      Cuotas pagadas: {payment.numero_cuotas}
+                      {formatPaymentDatetime(payment.hora_registro, zonaHoraria)}
                     </p>
                   </div>
                 </div>
@@ -1373,6 +1370,18 @@ function SheetInfoPayments({
       )}
     </div>
   );
+}
+
+function formatPaymentDatetime(isoStr: string, tz: string): string {
+  return new Date(isoStr).toLocaleString("es-419", {
+    timeZone: tz,
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
 }
 
 function formatDateNice(dateStr: string | null | undefined): string {
