@@ -25,6 +25,7 @@ import {
   WalletCards,
   X
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
@@ -664,42 +665,28 @@ function ClientDinoAvatar({
   name: string;
 }) {
   const normalized = genero?.toLowerCase();
-  const variant =
-    normalized === "femenino" ? "femenino" : normalized === "masculino" ? "masculino" : "otro";
+  const src =
+    normalized === "femenino"
+      ? "/assets/client-avatars/dino-client-female.png"
+      : normalized === "masculino"
+        ? "/assets/client-avatars/dino-client-male.png"
+        : "/assets/client-avatars/dino-client-neutral.png";
 
   return (
-    <div
+    <figure
       aria-label={`Avatar de ${name}`}
-      className="relative mx-auto h-12 w-16 overflow-visible"
+      className="relative mx-auto h-[74px] w-[74px] overflow-visible"
       role="img"
     >
-      <span className="absolute inset-x-2 bottom-1 h-1 rounded-full bg-primary/10" />
-      <span
-        className="absolute bottom-2 left-1/2 block h-[47px] w-[44px] -translate-x-1/2"
-        style={{
-          backgroundImage: "url('/assets/chrome-trex.png')",
-          backgroundPosition: variant === "masculino" ? "-88px 0" : "0 0",
-          backgroundRepeat: "no-repeat",
-          backgroundSize: "264px 47px",
-          filter: "sepia(1) saturate(7) hue-rotate(226deg) brightness(.82)",
-          imageRendering: "pixelated"
-        }}
+      <Image
+        alt=""
+        className="object-contain"
+        fill
+        priority={false}
+        sizes="74px"
+        src={src}
       />
-      {variant === "femenino" ? (
-        <span className="absolute left-5 top-1 h-3 w-4">
-          <span className="absolute left-0 top-1 h-2 w-2 rotate-45 rounded-[2px] bg-primary" />
-          <span className="absolute right-0 top-1 h-2 w-2 rotate-45 rounded-[2px] bg-primary" />
-          <span className="absolute left-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-primary-foreground" />
-        </span>
-      ) : variant === "masculino" ? (
-        <span className="absolute left-7 top-8 h-3 w-2">
-          <span className="block h-1.5 w-2 rotate-45 rounded-[1px] bg-primary" />
-          <span className="-mt-0.5 block h-2 w-2 rounded-b-sm bg-primary" />
-        </span>
-      ) : (
-        <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary/70 shadow-[0_0_0_4px_hsl(var(--primary)/0.12)]" />
-      )}
-    </div>
+    </figure>
   );
 }
 
