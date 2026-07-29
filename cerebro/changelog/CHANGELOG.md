@@ -12,6 +12,19 @@ updated: 2026-07-24
 
 ---
 
+## [0.20.3] -- 2026-07-28
+
+### Corregido
+
+**Cierre de bug de fechas en pantallas internas**
+- Flujo Semanal ahora agrupa prestamos creados por fecha local de la unidad y usa el hoy local para sus rangos.
+- Gastos inicia filtros y consultas con el hoy local de la unidad.
+- El detalle admin de unidad calcula "Cobrado hoy" segun la zona horaria de esa unidad.
+- Los movimientos de capital creados desde admin guardan su fecha segun la unidad, no segun UTC.
+- Prestamos usa el hoy local para calcular atrasos y cuotas adelantadas.
+
+---
+
 ## [0.20.2] -- 2026-07-28
 
 ### Corregido

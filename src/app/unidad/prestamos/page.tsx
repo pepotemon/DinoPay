@@ -199,12 +199,17 @@ export default async function PrestamosPage() {
 
   // Calcular días de atraso y cuotas adelantadas por préstamo
   const overdueByLoan = loans.reduce<Record<string, number>>((acc, loan) => {
-    acc[loan.id] = calcularDiasAtraso(loan.ultima_cuota_fecha, holidaySet);
+    acc[loan.id] = calcularDiasAtraso(loan.ultima_cuota_fecha, holidaySet, today);
     return acc;
   }, {});
 
   const adelantadasByLoan = loans.reduce<Record<string, number>>((acc, loan) => {
-    acc[loan.id] = calcularCuotasAdelantadas(loan.ultima_cuota_fecha, loan.modalidad, diasLaborales);
+    acc[loan.id] = calcularCuotasAdelantadas(
+      loan.ultima_cuota_fecha,
+      loan.modalidad,
+      diasLaborales,
+      today
+    );
     return acc;
   }, {});
 

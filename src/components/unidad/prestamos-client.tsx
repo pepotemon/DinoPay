@@ -579,6 +579,7 @@ export function PrestamosClient({
                   <SheetInfoDetails
                     lastPayment={paymentHistoryByLoan[sheet.loan.id]?.[0] ?? null}
                     loan={sheet.loan}
+                    zonaHoraria={zonaHoraria}
                   />
                 ) : sheet.view === "info-payments" ? (
                   <SheetInfoPayments
@@ -1113,10 +1114,12 @@ function SheetDeleteLoanConfirm({
 
 function SheetInfoDetails({
   lastPayment,
-  loan
+  loan,
+  zonaHoraria
 }: {
   lastPayment: PaymentHistory | null;
   loan: ClientLoan;
+  zonaHoraria: string;
 }) {
   const client = loan.clients;
 
@@ -1142,7 +1145,7 @@ function SheetInfoDetails({
           <DetailRow label="Último pago" value={lastPayment?.fecha_pago} />
           <DetailRow label="Fecha de inicio" value={loan.fecha_inicio} />
           <DetailRow label="Fecha de fin" value={loan.fecha_fin} />
-          <DetailRow label="Fecha de creación" value={loan.created_at.slice(0, 10)} />
+          <DetailRow label="Fecha de creación" value={dateInTimeZone(loan.created_at, zonaHoraria)} />
         </div>
       </section>
     </div>
@@ -1479,7 +1482,7 @@ function SheetInfoLoans({
               <div className="flex items-center gap-2">
                 <Layers className="h-4 w-4 text-muted-foreground" />
                 <p className="font-black text-muted-foreground">
-                  {formatDateNice(loan.fecha_inicio ?? loan.created_at.slice(0, 10))}
+                  {formatDateNice(loan.fecha_inicio ?? dateInTimeZone(loan.created_at, zonaHoraria))}
                 </p>
                 <span
                   className={cn(

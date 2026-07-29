@@ -19,6 +19,7 @@ import { useActionState, useEffect, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { createAjusteAction, type AjusteState } from "@/lib/actions/unidad/ajustes";
 import { cn, formatCurrency } from "@/lib/utils";
+import { addDaysToDateString } from "@/lib/utils/date-timezone";
 import { PageDino } from "@/components/unidad/page-dino";
 
 export type FlujoPayment = { monto: number; metodo_pago: string; fecha_pago: string };
@@ -39,25 +40,20 @@ export type FlujoData = {
   ajustes: FlujoAjuste[];
 };
 
-function todayStr() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function getWeekStart(): string {
-  const d = new Date();
-  const day = d.getDay();
+function getWeekStart(today: string): string {
+  const [year, month, dayOfMonth] = today.split("-").map(Number);
+  const d = new Date(Date.UTC(year, month - 1, dayOfMonth, 12));
+  const day = d.getUTCDay();
   const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
-  return d.toISOString().slice(0, 10);
+  return addDaysToDateString(today, diff);
 }
 
 function daysBetween(start: string, end: string): string[] {
   const days: string[] = [];
-  const cur = new Date(start + "T12:00:00");
-  const last = new Date(end + "T12:00:00");
-  while (cur <= last) {
-    days.push(cur.toISOString().slice(0, 10));
-    cur.setDate(cur.getDate() + 1);
+  let cur = start;
+  while (cur <= end) {
+    days.push(cur);
+    cur = addDaysToDateString(cur, 1);
   }
   return days;
 }
@@ -85,9 +81,8 @@ const INITIAL_STATE: AjusteState = { ok: false, message: "" };
 const INPUT =
   "h-12 w-full rounded-xl bg-green-50 pl-10 pr-4 text-sm font-medium outline-none placeholder:text-muted-foreground/50 focus:ring-2 focus:ring-primary/20";
 
-export function FlujoSemanalClient({ data }: { data: FlujoData }) {
-  const today = todayStr();
-  const [fechaInicio, setFechaInicio] = useState(getWeekStart());
+export function FlujoSemanalClient({ data, today }: { data: FlujoData; today: string }) {
+  const [fechaInicio, setFechaInicio] = useState(getWeekStart(today));
   const [fechaFin, setFechaFin] = useState(today);
   const [showSheet, setShowSheet] = useState(false);
   const [copied, setCopied] = useState<"resumen" | "todo" | null>(null);

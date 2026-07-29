@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { cn, formatCurrency } from "@/lib/utils";
+import { addDaysToDateString, dateInTimeZone, todayInTimeZone } from "@/lib/utils/date-timezone";
 
 type CapitalRow = {
   id: string;
@@ -27,9 +28,21 @@ export default async function AdminUnidadDetallePage({
   const sp = await searchParams;
 
   const adminClient = createAdminClient();
+  const { data: unit } = await adminClient
+    .from("units")
+    .select(
+      "id, username, nombre_unidad, encargado, telefono, ciudad, estado, capital_inicial, activo, intereses, zona_horaria, puede_eliminar_abonos, puede_eliminar_prestamos"
+    )
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!unit) notFound();
+
+  const zonaHoraria = unit.zona_horaria ?? "America/Bogota";
+  const today = todayInTimeZone(zonaHoraria);
+  const tomorrow = addDaysToDateString(today, 1);
 
   const [
-    { data: unit },
     { data: activeLoans },
     { data: allPayments },
     { data: allLoans },
@@ -37,13 +50,6 @@ export default async function AdminUnidadDetallePage({
     { data: capitalMovements },
     { data: todayPayments }
   ] = await Promise.all([
-    adminClient
-      .from("units")
-      .select(
-        "id, username, nombre_unidad, encargado, telefono, ciudad, estado, capital_inicial, activo, intereses, puede_eliminar_abonos, puede_eliminar_prestamos"
-      )
-      .eq("id", id)
-      .maybeSingle(),
     adminClient
       .from("loans")
       .select("id, saldo, valor_cuota")
@@ -61,13 +67,11 @@ export default async function AdminUnidadDetallePage({
       .limit(10),
     adminClient
       .from("payments")
-      .select("monto")
+      .select("monto, hora_registro")
       .eq("unit_id", id)
-      .eq("fecha_pago", new Date().toISOString().slice(0, 10))
+      .in("fecha_pago", [today, tomorrow])
       .eq("eliminado", false)
   ]);
-
-  if (!unit) notFound();
 
   const capitalInicial = Number(unit.capital_inicial);
   const totalCobrado = (allPayments ?? []).reduce((s, p) => s + Number(p.monto), 0);
@@ -81,7 +85,9 @@ export default async function AdminUnidadDetallePage({
   const loans = activeLoans ?? [];
   const carteraTotal = loans.reduce((s, l) => s + Number(l.saldo), 0);
   const metaDia = loans.reduce((s, l) => s + Number(l.valor_cuota), 0);
-  const cobradoHoy = (todayPayments ?? []).reduce((s, p) => s + Number(p.monto), 0);
+  const cobradoHoy = ((todayPayments ?? []) as { monto: number; hora_registro: string }[])
+    .filter((p) => dateInTimeZone(p.hora_registro, zonaHoraria) === today)
+    .reduce((s, p) => s + Number(p.monto), 0);
   const intereses = Array.isArray(unit.intereses) ? (unit.intereses as number[]) : [];
 
   return (

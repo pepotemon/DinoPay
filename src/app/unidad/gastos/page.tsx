@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { GastosClient, type GastoRow } from "@/components/unidad/gastos-client";
+import { getUnitMeta } from "@/lib/data/unit";
+import { addDaysToDateString, todayInTimeZone } from "@/lib/utils/date-timezone";
 
 export default function GastosPage() {
   return (
@@ -21,11 +23,12 @@ async function GastosContent() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const since = new Date();
-  since.setDate(since.getDate() - 90);
-  const sinceStr = since.toISOString().slice(0, 10);
-
   const adminClient = createAdminClient();
+  const unit = await getUnitMeta(user.id);
+  const zonaHoraria = unit?.zona_horaria ?? "America/Bogota";
+  const today = todayInTimeZone(zonaHoraria);
+  const sinceStr = addDaysToDateString(today, -90);
+
   const { data: expenses } = await adminClient
     .from("expenses")
     .select("id, categoria, monto, nota, estado, fecha")
@@ -36,7 +39,7 @@ async function GastosContent() {
 
   const rows = (expenses ?? []) as GastoRow[];
 
-  return <GastosClient expenses={rows} />;
+  return <GastosClient expenses={rows} today={today} />;
 }
 
 function GastosSkeleton() {

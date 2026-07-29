@@ -7,6 +7,8 @@ import {
   type FlujoData
 } from "@/components/unidad/flujo-client";
 import { PageSpinner } from "@/components/ui/page-spinner";
+import { getUnitMeta } from "@/lib/data/unit";
+import { addDaysToDateString, dateInTimeZone, todayInTimeZone } from "@/lib/utils/date-timezone";
 
 export default function FlujoSemanalPage() {
   return (
@@ -25,11 +27,13 @@ async function FlujoContent() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const since = new Date();
-  since.setDate(since.getDate() - 90);
-  const sinceStr = since.toISOString().slice(0, 10);
-
   const adminClient = createAdminClient();
+  const unit = await getUnitMeta(user.id);
+  const zonaHoraria = unit?.zona_horaria ?? "America/Bogota";
+  const today = todayInTimeZone(zonaHoraria);
+  const sinceStr = addDaysToDateString(today, -90);
+  const sinceQueryStr = addDaysToDateString(sinceStr, -1);
+
   const [{ data: rawPayments }, { data: rawLoans }, { data: rawExpenses }, { data: rawAjustes }] =
     await Promise.all([
       adminClient
@@ -42,7 +46,7 @@ async function FlujoContent() {
         .from("loans")
         .select("valor_neto, created_at")
         .eq("unit_id", user.id)
-        .gte("created_at", `${sinceStr}T00:00:00`),
+        .gte("created_at", `${sinceQueryStr}T00:00:00`),
       adminClient
         .from("expenses")
         .select("monto, fecha")
@@ -61,11 +65,11 @@ async function FlujoContent() {
     payments: (rawPayments ?? []) as FlujoData["payments"],
     loans: ((rawLoans ?? []) as { valor_neto: number; created_at: string }[]).map((l) => ({
       valor_neto: Number(l.valor_neto),
-      fecha: l.created_at.slice(0, 10)
-    })),
+      fecha: dateInTimeZone(l.created_at, zonaHoraria)
+    })).filter((l) => l.fecha >= sinceStr),
     expenses: (rawExpenses ?? []) as FlujoData["expenses"],
     ajustes: (rawAjustes ?? []) as FlujoData["ajustes"]
   };
 
-  return <FlujoSemanalClient data={data} />;
+  return <FlujoSemanalClient data={data} today={today} />;
 }

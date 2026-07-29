@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { todayInTimeZone } from "@/lib/utils/date-timezone";
 
 const capitalSchema = z.object({
   unitId: z.string().uuid(),
@@ -35,13 +36,20 @@ export async function createCapitalMovementAction(formData: FormData) {
   if (!user) redirect("/login");
 
   const adminClient = createAdminClient();
+  const { data: unit } = await adminClient
+    .from("units")
+    .select("zona_horaria")
+    .eq("id", parsed.data.unitId)
+    .maybeSingle();
+  const today = todayInTimeZone(unit?.zona_horaria ?? "America/Bogota");
+
   const { error } = await adminClient.from("capital_movements").insert({
     unit_id: parsed.data.unitId,
     admin_id: user.id,
     tipo: parsed.data.tipo,
     monto: parsed.data.monto,
     nota: parsed.data.nota?.trim() || null,
-    fecha: new Date().toISOString().slice(0, 10)
+    fecha: today
   });
 
   if (error) {

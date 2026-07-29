@@ -36,10 +36,6 @@ export type GastoRow = {
   fecha: string;
 };
 
-function todayStr() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 function formatDateNice(dateStr: string): string {
   const d = new Date(dateStr + "T00:00:00");
   return d.toLocaleDateString("es-419", { day: "numeric", month: "short", year: "numeric" });
@@ -61,8 +57,7 @@ const INPUT =
 const SELECT =
   "h-12 w-full appearance-none rounded-xl bg-green-50 px-4 pr-10 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20";
 
-export function GastosClient({ expenses }: { expenses: GastoRow[] }) {
-  const today = todayStr();
+export function GastosClient({ expenses, today }: { expenses: GastoRow[]; today: string }) {
   const [fechaDesde, setFechaDesde] = useState(today);
   const [fechaHasta, setFechaHasta] = useState(today);
   const [showSheet, setShowSheet] = useState(false);
