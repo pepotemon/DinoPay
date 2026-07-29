@@ -7,7 +7,8 @@ import { addDaysToDateString } from "@/lib/utils/date-timezone";
 
 export type CajaData = {
   today: string;
-  capitalInicial: number;
+  snapshotDate: string;
+  cajaBase: number;
   payments: { loan_id: string; monto: number; fecha_pago: string }[];
   loansCreated: { valor_neto: number; fecha: string }[];
   expensesApproved: { monto: number; fecha: string }[];
@@ -30,25 +31,27 @@ export function CajaDelDiaClient({ data }: { data: CajaData }) {
   const [fecha, setFecha] = useState(today);
 
   const isToday = fecha === today;
+  const atSnapshotLimit = fecha <= data.snapshotDate;
 
-  // ── Caja Inicial (everything strictly BEFORE fecha) ──
+  // ── Caja Inicial (snapshot baseline + delta from snapshotDate up to fecha) ──
   const cajaInicial = useMemo(() => {
+    const snap = data.snapshotDate;
     const cobrado = data.payments
-      .filter((p) => p.fecha_pago < fecha)
+      .filter((p) => p.fecha_pago >= snap && p.fecha_pago < fecha)
       .reduce((s, p) => s + Number(p.monto), 0);
     const prestado = data.loansCreated
-      .filter((l) => l.fecha < fecha)
+      .filter((l) => l.fecha >= snap && l.fecha < fecha)
       .reduce((s, l) => s + Number(l.valor_neto), 0);
     const gastos = data.expensesApproved
-      .filter((e) => e.fecha < fecha)
+      .filter((e) => e.fecha >= snap && e.fecha < fecha)
       .reduce((s, e) => s + Number(e.monto), 0);
     const ingresos = data.capitalMovs
-      .filter((m) => m.fecha < fecha && m.tipo === "ingreso")
+      .filter((m) => m.fecha >= snap && m.fecha < fecha && m.tipo === "ingreso")
       .reduce((s, m) => s + Number(m.monto), 0);
     const retiros = data.capitalMovs
-      .filter((m) => m.fecha < fecha && m.tipo === "retiro")
+      .filter((m) => m.fecha >= snap && m.fecha < fecha && m.tipo === "retiro")
       .reduce((s, m) => s + Number(m.monto), 0);
-    return data.capitalInicial + cobrado - prestado - gastos + ingresos - retiros;
+    return data.cajaBase + cobrado - prestado - gastos + ingresos - retiros;
   }, [data, fecha]);
 
   // ── Daily stats ──
@@ -112,7 +115,8 @@ export function CajaDelDiaClient({ data }: { data: CajaData }) {
       {/* ── Date nav ── */}
       <div className="flex items-center justify-between px-1 pb-5 pt-3">
         <button
-          className="grid h-10 w-10 place-items-center rounded-xl bg-muted text-muted-foreground transition-colors active:bg-muted/70"
+          className="grid h-10 w-10 place-items-center rounded-xl bg-muted text-muted-foreground transition-colors active:bg-muted/70 disabled:opacity-30"
+          disabled={atSnapshotLimit}
           type="button"
           onClick={() => setFecha(addDays(fecha, -1))}
         >

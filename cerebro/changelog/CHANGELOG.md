@@ -12,6 +12,37 @@ updated: 2026-07-24
 
 ---
 
+## [0.22.0] — 2026-07-29
+
+### Corregido — Integridad Financiera (Auditoria Completa)
+
+**Pago duplicado (idempotencia)**
+- Añadida columna `client_key UUID` con índice `UNIQUE` a la tabla `payments` (Migration 018).
+- El cliente genera un `crypto.randomUUID()` al momento de enviar el formulario en `prestamos-client.tsx`.
+- La accion del servidor `registerPaymentAction` lo pasa como `p_client_key` al RPC.
+- `register_payment` ahora verifica si ya existe un pago con ese `client_key`; si existe, devuelve el ID del pago existente sin insertar otro — garantia de idempotencia ante resubmissions o doble tap.
+
+**Rounding artifact en ultima cuota**
+- `register_payment` ahora absorbe residuos de centavos menores a `$0.05` poniendo `saldo = 0`. Evita que el prestamo quede activo con un saldo fantasma de e.g. `$0.01` despues del ultimo pago estandar.
+
+**Zona horaria en `delete_loan_same_day`**
+- Corregido el uso de `current_date` (UTC) por `unit_today(p_unit_id)` y de `created_at::date` (UTC) por `(created_at AT TIME ZONE v_tz)::date` — evitaba que unidades no-UTC pudieran o no pudieran borrar prestamos del mismo dia incorrectamente.
+
+**Drop de `calculate_caja` (funcion obsoleta)**
+- Eliminada la funcion `calculate_caja(uuid, date)` que usaba UTC y nunca fue llamada por el front-end. Migration 018.
+
+**Sistema de snapshots de caja para performance (Migration 019)**
+- Nueva tabla `caja_snapshots(unit_id, fecha_cierre, valor_caja)` con `UNIQUE(unit_id, fecha_cierre)` y RLS.
+- `compute_caja_until(p_unit_id, p_fecha)`: calcula la suma total de caja hasta una fecha exclusiva usando zona horaria de la unidad.
+- `ensure_caja_snapshot(p_unit_id, p_fecha_cierre)`: idempotente — devuelve valor existente o calcula y guarda.
+- `reverse_payment` actualizado: invalida snapshots con `fecha_cierre > fecha_del_pago` al anular un pago.
+- `reporte-diario/page.tsx` refactorizado para usar `ensure_caja_snapshot` como baseline y cargar solo ~60 dias de datos (mes actual + mes anterior).
+- `caja-client.tsx`: `CajaData` reemplaza `capitalInicial` por `snapshotDate` + `cajaBase`; `cajaInicial` ahora calcula `cajaBase + delta(snapshotDate..fecha)`; navegacion atras bloqueada al llegar al limite del snapshot.
+- Visitas (`loan_visits.fecha`) ahora se leen directamente sin conversion de zona horaria (columna ya es fecha local).
+- Pagos (`payments.fecha_pago`) ahora se leen directamente sin `hora_registro` (columna ya es fecha local).
+
+---
+
 ## [0.21.0] — 2026-07-29
 
 ### Corregido

@@ -939,6 +939,9 @@ function SheetPay({
       onSubmit={(e) => {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
+        // Clave de idempotencia: si el usuario confirma dos veces (red lenta),
+        // el RPC devuelve el pago existente en lugar de crear uno duplicado.
+        formData.set("clientKey", crypto.randomUUID());
         onSetSheet({
           view: "pay-confirm",
           loan,

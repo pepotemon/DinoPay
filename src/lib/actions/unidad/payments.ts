@@ -15,7 +15,8 @@ const registerPaymentSchema = z.object({
   loanId: z.string().uuid(),
   monto: z.coerce.number().positive("El monto debe ser mayor a cero."),
   numeroCuotas: z.coerce.number().int().min(1),
-  metodoPago: z.enum(["efectivo", "transferencia"])
+  metodoPago: z.enum(["efectivo", "transferencia"]),
+  clientKey: z.string().uuid().optional()
 });
 
 const noPayVisitSchema = z.object({
@@ -60,7 +61,8 @@ export async function registerPaymentAction(
     p_unit_id: user.id,
     p_monto: input.monto,
     p_numero_cuotas: input.numeroCuotas,
-    p_metodo_pago: input.metodoPago
+    p_metodo_pago: input.metodoPago,
+    p_client_key: input.clientKey ?? null
   });
 
   if (error) {

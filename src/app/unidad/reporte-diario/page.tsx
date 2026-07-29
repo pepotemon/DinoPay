@@ -16,6 +16,12 @@ export default function ReporteDiarioPage() {
   );
 }
 
+function firstDayOfPrevMonth(dateStr: string): string {
+  const [y, m] = dateStr.split("-").map(Number);
+  const prev = m === 1 ? { y: y - 1, m: 12 } : { y, m: m - 1 };
+  return `${prev.y}-${String(prev.m).padStart(2, "0")}-01`;
+}
+
 async function CajaContent() {
   const supabase = await createClient();
   const {
@@ -27,13 +33,21 @@ async function CajaContent() {
 
   const unitMeta = await adminClient
     .from("units")
-    .select("capital_inicial, zona_horaria")
+    .select("zona_horaria")
     .eq("id", user.id)
     .maybeSingle();
 
   const zonaHoraria = unitMeta.data?.zona_horaria ?? "America/Bogota";
   const today = todayInTimeZone(zonaHoraria);
-  const since180Str = addDaysToDateString(today, -180);
+  const snapshotDate = firstDayOfPrevMonth(today);
+  // 1-day UTC buffer for created_at filters to handle timezone edge cases
+  const loadsFromUtc = addDaysToDateString(snapshotDate, -1);
+
+  // Baseline caja up to (exclusive) snapshotDate — idempotent, creates if missing
+  const { data: cajaBaseRaw } = await adminClient.rpc("ensure_caja_snapshot", {
+    p_unit_id: user.id,
+    p_fecha_cierre: snapshotDate
+  });
 
   const [
     { data: rawPayments },
@@ -45,22 +59,26 @@ async function CajaContent() {
   ] = await Promise.all([
     adminClient
       .from("payments")
-      .select("loan_id, monto, fecha_pago, hora_registro")
+      .select("loan_id, monto, fecha_pago")
       .eq("unit_id", user.id)
-      .eq("eliminado", false),
+      .eq("eliminado", false)
+      .gte("fecha_pago", snapshotDate),
     adminClient
       .from("loans")
       .select("valor_neto, created_at")
-      .eq("unit_id", user.id),
+      .eq("unit_id", user.id)
+      .gte("created_at", loadsFromUtc),
     adminClient
       .from("expenses")
       .select("monto, fecha")
       .eq("unit_id", user.id)
-      .eq("estado", "aprobado"),
+      .eq("estado", "aprobado")
+      .gte("fecha", snapshotDate),
     adminClient
       .from("capital_movements")
       .select("tipo, monto, created_at")
-      .eq("unit_id", user.id),
+      .eq("unit_id", user.id)
+      .gte("created_at", loadsFromUtc),
     adminClient
       .from("loans")
       .select("id")
@@ -68,20 +86,23 @@ async function CajaContent() {
       .eq("estado", "activo"),
     adminClient
       .from("loan_visits")
-      .select("loan_id, fecha, created_at")
+      .select("loan_id, fecha")
       .eq("unit_id", user.id)
       .eq("tipo", "no_pago")
-      .gte("fecha", since180Str)
+      .gte("fecha", snapshotDate)
   ]);
 
   const data: CajaData = {
     today,
-    capitalInicial: Number(unitMeta.data?.capital_inicial ?? 0),
-    payments: ((rawPayments ?? []) as { loan_id: string; monto: number; fecha_pago: string; hora_registro: string }[]).map((p) => ({
-      loan_id: p.loan_id,
-      monto: Number(p.monto),
-      fecha_pago: dateInTimeZone(p.hora_registro, zonaHoraria)
-    })),
+    snapshotDate,
+    cajaBase: Number(cajaBaseRaw ?? 0),
+    payments: ((rawPayments ?? []) as { loan_id: string; monto: number; fecha_pago: string }[]).map(
+      (p) => ({
+        loan_id: p.loan_id,
+        monto: Number(p.monto),
+        fecha_pago: p.fecha_pago
+      })
+    ),
     loansCreated: ((rawLoans ?? []) as { valor_neto: number; created_at: string }[]).map((l) => ({
       valor_neto: Number(l.valor_neto),
       fecha: dateInTimeZone(l.created_at, zonaHoraria)
@@ -98,9 +119,9 @@ async function CajaContent() {
       })
     ),
     activeLoansCount: (rawActiveLoans ?? []).length,
-    visits: ((rawVisits ?? []) as { loan_id: string; fecha: string; created_at: string }[]).map((v) => ({
+    visits: ((rawVisits ?? []) as { loan_id: string; fecha: string }[]).map((v) => ({
       loan_id: v.loan_id,
-      fecha: dateInTimeZone(v.created_at, zonaHoraria)
+      fecha: v.fecha
     }))
   };
 
