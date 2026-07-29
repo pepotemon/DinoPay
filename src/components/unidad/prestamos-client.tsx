@@ -38,6 +38,7 @@ import {
   registerPaymentAction
 } from "@/lib/actions/unidad/payments";
 import { cn, formatCurrency } from "@/lib/utils";
+import { dateInTimeZone } from "@/lib/utils/date-timezone";
 
 export type ClientLoan = {
   id: string;
@@ -593,6 +594,7 @@ export function PrestamosClient({
                     }
                     payments={paymentHistoryByLoan[sheet.loan.id] ?? []}
                     today={today}
+                    zonaHoraria={zonaHoraria}
                   />
 
                 ) : sheet.view === "info-loans" ? (
@@ -609,6 +611,7 @@ export function PrestamosClient({
                       setSheet({ view: "info-payments", loan, clientLoan: sheet.loan })
                     }
                     today={today}
+                    zonaHoraria={zonaHoraria}
                   />
                 ) : sheet.view === "receipt" ? (
                   <SheetReceipt
@@ -1166,13 +1169,15 @@ function SheetInfoPayments({
   loan,
   onDeletePayment,
   payments,
-  today
+  today,
+  zonaHoraria
 }: {
   canDeletePayments: boolean;
   loan: PaymentLoanContext;
   onDeletePayment: (payment: PaymentHistory) => void;
   payments: PaymentHistory[];
   today: string;
+  zonaHoraria: string;
 }) {
   const totalPagado = loan.total_a_cobrar - loan.saldo;
   const cuotasFrac = totalPagado / loan.valor_cuota;
@@ -1266,7 +1271,7 @@ function SheetInfoPayments({
                   <p className="text-lg font-black">{formatCurrency(Number(payment.monto))}</p>
                 </div>
               </div>
-              {canDeletePayments && payment.fecha_pago === today ? (
+              {canDeletePayments && dateInTimeZone(payment.hora_registro, zonaHoraria) === today ? (
                 <button
                   className="mt-3 flex h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-destructive/20 bg-destructive/10 text-xs font-black text-destructive"
                   onClick={() => onDeletePayment(payment)}
@@ -1431,7 +1436,8 @@ function SheetInfoLoans({
   onDeleteLoan,
   paymentHistoryByLoan,
   onViewPayments,
-  today
+  today,
+  zonaHoraria
 }: {
   activeLoan: ClientLoan;
   canDeleteLoans: boolean;
@@ -1441,6 +1447,7 @@ function SheetInfoLoans({
   paymentHistoryByLoan: Record<string, PaymentHistory[]>;
   onViewPayments: (loan: PaymentLoanContext) => void;
   today: string;
+  zonaHoraria: string;
 }) {
   const previousLoans = loans.filter((l) => l.id !== activeLoan.id);
 
@@ -1452,7 +1459,7 @@ function SheetInfoLoans({
           <p className="font-black">Detalles del Préstamo</p>
         </div>
         <LoanCard
-          canDeleteLoan={canDeleteLoans && activeLoan.created_at.slice(0, 10) === today}
+          canDeleteLoan={canDeleteLoans && dateInTimeZone(activeLoan.created_at, zonaHoraria) === today}
           isActive
           loan={activeLoan}
           overdueActiveDays={overdue}
@@ -1486,7 +1493,7 @@ function SheetInfoLoans({
                 </span>
               </div>
               <LoanCard
-                canDeleteLoan={canDeleteLoans && loan.created_at.slice(0, 10) === today}
+                canDeleteLoan={canDeleteLoans && dateInTimeZone(loan.created_at, zonaHoraria) === today}
                 isActive={false}
                 loan={loan}
                 onDeleteLoan={onDeleteLoan}

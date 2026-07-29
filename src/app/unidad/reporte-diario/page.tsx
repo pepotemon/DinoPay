@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { CajaDelDiaClient, type CajaData } from "@/components/unidad/caja-client";
 import { PageSpinner } from "@/components/ui/page-spinner";
+import { addDaysToDateString, dateInTimeZone, todayInTimeZone } from "@/lib/utils/date-timezone";
 
 export default function ReporteDiarioPage() {
   return (
@@ -24,12 +25,17 @@ async function CajaContent() {
 
   const adminClient = createAdminClient();
 
-  const since180 = new Date();
-  since180.setDate(since180.getDate() - 180);
-  const since180Str = since180.toISOString().slice(0, 10);
+  const unitMeta = await adminClient
+    .from("units")
+    .select("capital_inicial, zona_horaria")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const zonaHoraria = unitMeta.data?.zona_horaria ?? "America/Bogota";
+  const today = todayInTimeZone(zonaHoraria);
+  const since180Str = addDaysToDateString(today, -180);
 
   const [
-    { data: unit },
     { data: rawPayments },
     { data: rawLoans },
     { data: rawExpenses },
@@ -37,10 +43,9 @@ async function CajaContent() {
     { data: rawActiveLoans },
     { data: rawVisits }
   ] = await Promise.all([
-    adminClient.from("units").select("capital_inicial").eq("id", user.id).maybeSingle(),
     adminClient
       .from("payments")
-      .select("loan_id, monto, fecha_pago")
+      .select("loan_id, monto, fecha_pago, hora_registro")
       .eq("unit_id", user.id)
       .eq("eliminado", false),
     adminClient
@@ -63,18 +68,23 @@ async function CajaContent() {
       .eq("estado", "activo"),
     adminClient
       .from("loan_visits")
-      .select("loan_id, fecha")
+      .select("loan_id, fecha, created_at")
       .eq("unit_id", user.id)
       .eq("tipo", "no_pago")
       .gte("fecha", since180Str)
   ]);
 
   const data: CajaData = {
-    capitalInicial: Number(unit?.capital_inicial ?? 0),
-    payments: (rawPayments ?? []) as CajaData["payments"],
+    today,
+    capitalInicial: Number(unitMeta.data?.capital_inicial ?? 0),
+    payments: ((rawPayments ?? []) as { loan_id: string; monto: number; fecha_pago: string; hora_registro: string }[]).map((p) => ({
+      loan_id: p.loan_id,
+      monto: Number(p.monto),
+      fecha_pago: dateInTimeZone(p.hora_registro, zonaHoraria)
+    })),
     loansCreated: ((rawLoans ?? []) as { valor_neto: number; created_at: string }[]).map((l) => ({
       valor_neto: Number(l.valor_neto),
-      fecha: l.created_at.slice(0, 10)
+      fecha: dateInTimeZone(l.created_at, zonaHoraria)
     })),
     expensesApproved: ((rawExpenses ?? []) as { monto: number; fecha: string }[]).map((e) => ({
       monto: Number(e.monto),
@@ -84,11 +94,14 @@ async function CajaContent() {
       (m) => ({
         tipo: m.tipo,
         monto: Number(m.monto),
-        fecha: m.created_at.slice(0, 10)
+        fecha: dateInTimeZone(m.created_at, zonaHoraria)
       })
     ),
     activeLoansCount: (rawActiveLoans ?? []).length,
-    visits: (rawVisits ?? []) as CajaData["visits"]
+    visits: ((rawVisits ?? []) as { loan_id: string; fecha: string; created_at: string }[]).map((v) => ({
+      loan_id: v.loan_id,
+      fecha: dateInTimeZone(v.created_at, zonaHoraria)
+    }))
   };
 
   return <CajaDelDiaClient data={data} />;

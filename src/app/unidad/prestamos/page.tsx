@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { calcularCuotasAdelantadas, calcularDiasAtraso } from "@/lib/utils/overdue";
 import { getUnitMeta } from "@/lib/data/unit";
 import { getHolidayDates } from "@/lib/data/holidays";
+import { addDaysToDateString, dateInTimeZone, todayInTimeZone } from "@/lib/utils/date-timezone";
 
 type RawLoanRow = {
   id: string;
@@ -79,10 +80,13 @@ export default async function PrestamosPage() {
   if (!user) redirect("/login");
 
   const adminClient = createAdminClient();
-  const today = new Date().toISOString().slice(0, 10);
+  const unit = await getUnitMeta(user.id);
+  const zonaHoraria: string = unit?.zona_horaria ?? "America/Bogota";
+  const today = todayInTimeZone(zonaHoraria);
+  const tomorrow = addDaysToDateString(today, 1);
   const currentYear = new Date().getFullYear();
 
-  const [{ data: rawLoans }, { data: paymentsToday }, { data: visitsToday }, unit] =
+  const [{ data: rawLoans }, { data: paymentsToday }, { data: visitsToday }] =
     await Promise.all([
       adminClient
         .from("loans")
@@ -94,17 +98,16 @@ export default async function PrestamosPage() {
         .order("posicion", { ascending: true }),
       adminClient
         .from("payments")
-        .select("loan_id, monto")
+        .select("loan_id, monto, hora_registro")
         .eq("unit_id", user.id)
-        .eq("fecha_pago", today)
+        .in("fecha_pago", [today, tomorrow])
         .eq("eliminado", false),
       adminClient
         .from("loan_visits")
-        .select("loan_id")
+        .select("loan_id, created_at")
         .eq("unit_id", user.id)
-        .eq("fecha", today)
-        .eq("tipo", "no_pago"),
-      getUnitMeta(user.id)
+        .in("fecha", [today, tomorrow])
+        .eq("tipo", "no_pago")
     ]);
 
   const loans = ((rawLoans ?? []) as unknown as RawLoanRow[]).map((loan) => ({
@@ -116,8 +119,6 @@ export default async function PrestamosPage() {
 
   const countryCode: string | null = unit?.pais_codigo ?? null;
   const diasLaborales: number[] = Array.isArray(unit?.dias_laborales) ? unit.dias_laborales : [];
-  const zonaHoraria: string = unit?.zona_horaria ?? "America/Bogota";
-  const encargado: string = unit?.encargado ?? "";
   const canDeletePayments = unit?.puede_eliminar_abonos === true;
   const canDeleteLoans = unit?.puede_eliminar_prestamos === true;
 
@@ -185,8 +186,10 @@ export default async function PrestamosPage() {
     return acc;
   }, {});
 
-  const todayPayments = (paymentsToday ?? []) as { loan_id: string; monto: number }[];
-  const todayVisits = (visitsToday ?? []) as { loan_id: string }[];
+  const todayPayments = ((paymentsToday ?? []) as { loan_id: string; monto: number; hora_registro: string }[])
+    .filter((p) => dateInTimeZone(p.hora_registro, zonaHoraria) === today);
+  const todayVisits = ((visitsToday ?? []) as { loan_id: string; created_at: string }[])
+    .filter((v) => dateInTimeZone(v.created_at, zonaHoraria) === today);
 
   const paidLoanIds = todayPayments.map((p) => p.loan_id);
   const noPayLoanIds = todayVisits.map((v) => v.loan_id);

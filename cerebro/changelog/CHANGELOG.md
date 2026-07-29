@@ -12,6 +12,16 @@ updated: 2026-07-24
 
 ---
 
+## [0.20.1] -- 2026-07-28
+
+### Corregido
+
+**Fechas por zona horaria en caja del dia**
+- Caja del dia agrupa pagos, prestamos, visitas y movimientos por fecha local de la unidad, no por UTC.
+- Prestamos usa hoy local para cobrado/visitados y permisos de eliminar del dia.
+- Nueva migracion `016_timezone_safe_business_dates.sql` para que pagos, no pagos y prestamos nuevos usen la fecha local de la unidad en Supabase.
+
+---
 ## [0.20.0] -- 2026-07-28
 
 ### Agregado / Modificado

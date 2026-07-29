@@ -3,8 +3,10 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
 import { formatCurrency } from "@/lib/utils";
+import { addDaysToDateString } from "@/lib/utils/date-timezone";
 
 export type CajaData = {
+  today: string;
   capitalInicial: number;
   payments: { loan_id: string; monto: number; fecha_pago: string }[];
   loansCreated: { valor_neto: number; fecha: string }[];
@@ -14,14 +16,8 @@ export type CajaData = {
   visits: { loan_id: string; fecha: string }[];
 };
 
-function todayStr() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 function addDays(dateStr: string, n: number): string {
-  const d = new Date(dateStr + "T12:00:00");
-  d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0, 10);
+  return addDaysToDateString(dateStr, n);
 }
 
 function formatDisplay(dateStr: string): string {
@@ -30,7 +26,7 @@ function formatDisplay(dateStr: string): string {
 }
 
 export function CajaDelDiaClient({ data }: { data: CajaData }) {
-  const today = todayStr();
+  const today = data.today;
   const [fecha, setFecha] = useState(today);
 
   const isToday = fecha === today;
