@@ -6,6 +6,15 @@ import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
+function isValidTimeZone(value: string): boolean {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: value });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export type CreateUnitState = {
   ok: boolean;
   message: string;
@@ -32,7 +41,10 @@ const createUnitSchema = z
     paisCodigo: z.string().length(2, "Codigo de pais invalido."),
     estado: z.string().min(2, "El estado/departamento es obligatorio."),
     ciudad: z.string().min(2, "La ciudad es obligatoria."),
-    zonaHoraria: z.string().min(2),
+    zonaHoraria: z
+      .string()
+      .min(2, "La zona horaria es obligatoria.")
+      .refine(isValidTimeZone, "Usa una zona horaria valida, por ejemplo America/Belem."),
     puedeEliminarAbonos: z.coerce.boolean().default(false),
     puedeEliminarPrestamos: z.coerce.boolean().default(false),
     diasLaborales: z.array(z.coerce.number().int().min(0).max(6)).min(1),
@@ -65,7 +77,10 @@ const updateUnitSchema = z.object({
   pais: z.string().min(2, "El pais es obligatorio."),
   estado: z.string().min(2, "El estado/departamento es obligatorio."),
   ciudad: z.string().min(2, "La ciudad es obligatoria."),
-  zonaHoraria: z.string().min(2, "La zona horaria es obligatoria."),
+  zonaHoraria: z
+    .string()
+    .min(2, "La zona horaria es obligatoria.")
+    .refine(isValidTimeZone, "Usa una zona horaria valida, por ejemplo America/Belem."),
   puedeEliminarAbonos: z.coerce.boolean().default(false),
   puedeEliminarPrestamos: z.coerce.boolean().default(false),
   activo: z.coerce.boolean().default(false),

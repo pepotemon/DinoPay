@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { todayInTimeZone } from "@/lib/utils/date-timezone";
 
 const expenseSchema = z.object({
   categoria: z.string().min(2, "Selecciona una categoria."),
@@ -22,12 +23,12 @@ async function getActiveUnit() {
   const adminClient = createAdminClient();
   const { data: unit } = await adminClient
     .from("units")
-    .select("id")
+    .select("id, zona_horaria")
     .eq("id", user.id)
     .eq("activo", true)
     .maybeSingle();
 
-  return unit ? { userId: user.id, adminClient } : null;
+  return unit ? { userId: user.id, zonaHoraria: unit.zona_horaria ?? "America/Bogota", adminClient } : null;
 }
 
 export async function createExpenseAction(formData: FormData) {
@@ -53,7 +54,8 @@ export async function createExpenseAction(formData: FormData) {
     monto: input.monto,
     nota: input.nota?.trim() || null,
     estado: "pendiente",
-    creado_por: "unidad"
+    creado_por: "unidad",
+    fecha: todayInTimeZone(ctx.zonaHoraria)
   });
 
   if (error) {

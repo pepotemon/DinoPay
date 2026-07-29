@@ -22,6 +22,14 @@ updated: 2026-07-24
 - El detalle admin de unidad calcula "Cobrado hoy" segun la zona horaria de esa unidad.
 - Los movimientos de capital creados desde admin guardan su fecha segun la unidad, no segun UTC.
 - Prestamos usa el hoy local para calcular atrasos y cuotas adelantadas.
+- Los gastos nuevos guardan fecha de negocio segun zona horaria de la unidad.
+- Nueva migracion `017_timezone_safe_expenses.sql` evita defaults UTC en `expenses.fecha`.
+
+### Modificado
+
+**Zona horaria de unidades**
+- Crear/editar unidad valida zonas horarias reales como `America/Belem`.
+- Editar unidad muestra advertencia antes de cambiar la zona horaria porque afecta agrupaciones por dia.
 
 ---
 

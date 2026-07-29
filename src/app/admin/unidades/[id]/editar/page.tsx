@@ -1,4 +1,4 @@
-import { ArrowLeft, Save } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { updateUnitAction } from "@/lib/actions/admin/unidades";
@@ -120,6 +120,13 @@ export default async function EditarUnidadPage({
             </Field>
             <Field label="Zona horaria">
               <Input defaultValue={unit.zona_horaria} name="zonaHoraria" required />
+              <div className="mt-2 flex gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <p>
+                  Cambiala solo para corregir una unidad mal configurada. La zona horaria define
+                  como se agrupan pagos, gastos, prestamos y reportes por dia.
+                </p>
+              </div>
             </Field>
           </CardContent>
         </Card>
