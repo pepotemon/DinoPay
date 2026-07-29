@@ -12,6 +12,15 @@ updated: 2026-07-24
 
 ---
 
+## [0.20.4] -- 2026-07-28
+
+### Agregado
+
+**Prestamos**
+- Las fichas de prestamos muestran una pildora "Visitado hoy" cuando el cliente ya registro abono en el dia.
+
+---
+
 ## [0.20.3] -- 2026-07-28
 
 ### Corregido

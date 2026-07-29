@@ -6,6 +6,7 @@ import {
   Banknote,
   CalendarDays,
   ChevronDown,
+  CheckCircle2,
   CircleSlash,
   Copy,
   Download,
@@ -688,9 +689,17 @@ function LoanListCard({
         </div>
 
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-base font-black leading-tight tracking-normal text-foreground">
-            {name}
-          </h2>
+          <div className="flex min-w-0 items-center gap-1.5">
+            <h2 className="truncate text-base font-black leading-tight tracking-normal text-foreground">
+              {name}
+            </h2>
+            {isPaid ? (
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-black text-primary">
+                <CheckCircle2 className="h-2.5 w-2.5" />
+                Visitado hoy
+              </span>
+            ) : null}
+          </div>
           {showOverdue ? (
             <p className="mt-0.5 inline-flex rounded-full bg-destructive/10 px-1.5 py-0.5 text-[9px] font-black text-destructive">
               {overdue} cuota{overdue !== 1 ? "s" : ""} - {overdue} dia{overdue !== 1 ? "s" : ""} atrasado{overdue !== 1 ? "s" : ""}
