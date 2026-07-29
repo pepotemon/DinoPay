@@ -12,6 +12,16 @@ updated: 2026-07-24
 
 ---
 
+## [0.20.6] -- 2026-07-28
+
+### Modificado
+
+**Avatares de clientes**
+- Los dinos de cliente ahora usan verde DinoPay.
+- El modal de pago y su confirmacion ya no muestran avatar para mantener el flujo compacto.
+
+---
+
 ## [0.20.5] -- 2026-07-28
 
 ### Agregado

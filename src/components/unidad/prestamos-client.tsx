@@ -519,10 +519,12 @@ export function PrestamosClient({
                   </button>
                 ) : null}
                 <div className="mx-10 min-w-0 text-center">
-                  <ClientDinoAvatar
-                    genero={sheetClientLoan(sheet).clients?.genero}
-                    name={sheetClientLoan(sheet).clients?.alias ?? "Cliente"}
-                  />
+                  {sheet.view !== "pay" && sheet.view !== "pay-confirm" ? (
+                    <ClientDinoAvatar
+                      genero={sheetClientLoan(sheet).clients?.genero}
+                      name={sheetClientLoan(sheet).clients?.alias ?? "Cliente"}
+                    />
+                  ) : null}
                   {sheet.view === "info-loans" ? (
                     <>
                       <p className="mt-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
