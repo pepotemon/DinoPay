@@ -25,7 +25,6 @@ import {
   WalletCards,
   X
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
@@ -547,12 +546,6 @@ export function PrestamosClient({
                   </button>
                 ) : null}
                 <div className="mx-10 min-w-0 text-center">
-                  {sheet.view !== "pay" && sheet.view !== "pay-confirm" && sheet.view !== "main" && sheet.view !== "nopay" ? (
-                    <ClientDinoAvatar
-                      genero={sheetClientLoan(sheet).clients?.genero}
-                      name={sheetClientLoan(sheet).clients?.alias ?? "Cliente"}
-                    />
-                  ) : null}
                   {sheet.view === "info-loans" ? (
                     <>
                       <p className="mt-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -687,38 +680,6 @@ export function PrestamosClient({
   );
 }
 
-function ClientDinoAvatar({
-  genero,
-  name
-}: {
-  genero: string | null | undefined;
-  name: string;
-}) {
-  const normalized = genero?.toLowerCase();
-  const src =
-    normalized === "femenino"
-      ? "/assets/client-avatars/dino-client-female.png"
-      : normalized === "masculino"
-        ? "/assets/client-avatars/dino-client-male.png"
-        : "/assets/client-avatars/dino-client-neutral.png";
-
-  return (
-    <figure
-      aria-label={`Avatar de ${name}`}
-      className="relative mx-auto h-[74px] w-[74px] overflow-visible"
-      role="img"
-    >
-      <Image
-        alt=""
-        className="object-contain"
-        fill
-        priority={false}
-        sizes="74px"
-        src={src}
-      />
-    </figure>
-  );
-}
 
 function LoanListCard({
   adelantadas,
