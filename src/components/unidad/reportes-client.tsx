@@ -28,10 +28,6 @@ export type ReportePayment = {
   fecha_pago: string;
 };
 
-function todayStr() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 function formatDateNice(dateStr: string): string {
   const d = new Date(dateStr + "T12:00:00");
   return d.toLocaleDateString("es-419", {
@@ -43,12 +39,13 @@ function formatDateNice(dateStr: string): string {
 
 export function ReportesClient({
   loans,
-  payments
+  payments,
+  today
 }: {
   loans: ReporteLoan[];
   payments: ReportePayment[];
+  today: string;
 }) {
-  const today = todayStr();
   const [fecha, setFecha] = useState(today);
   const [tab, setTab] = useState<"prestamos" | "abonos">("prestamos");
 

@@ -12,6 +12,15 @@ updated: 2026-07-24
 
 ---
 
+## [0.20.2] -- 2026-07-28
+
+### Corregido
+
+**Fechas por zona horaria en Reportes**
+- La pantalla Reportes ahora lista prestamos y abonos segun la fecha local de la unidad.
+- El date picker usa el hoy local de la unidad, evitando que movimientos nocturnos salten al dia siguiente por UTC.
+
+---
 ## [0.20.1] -- 2026-07-28
 
 ### Corregido

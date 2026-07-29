@@ -7,6 +7,8 @@ import {
   type ReporteLoan,
   type ReportePayment
 } from "@/components/unidad/reportes-client";
+import { getUnitMeta } from "@/lib/data/unit";
+import { addDaysToDateString, dateInTimeZone, todayInTimeZone } from "@/lib/utils/date-timezone";
 
 type LoanReportRow = {
   id: string;
@@ -44,11 +46,12 @@ function getAlias(clients: { alias: string } | { alias: string }[] | null): stri
   return clients.alias;
 }
 
-function formatHora(timestamptz: string): string {
+function formatHora(timestamptz: string, timeZone: string): string {
   return new Date(timestamptz).toLocaleTimeString("es-CO", {
     hour: "2-digit",
     minute: "2-digit",
-    hour12: true
+    hour12: true,
+    timeZone
   });
 }
 
@@ -69,11 +72,13 @@ async function ReportesContent() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const since = new Date();
-  since.setDate(since.getDate() - 30);
-  const sinceStr = since.toISOString().slice(0, 10);
-
   const adminClient = createAdminClient();
+  const unit = await getUnitMeta(user.id);
+  const zonaHoraria = unit?.zona_horaria ?? "America/Bogota";
+  const today = todayInTimeZone(zonaHoraria);
+  const sinceStr = addDaysToDateString(today, -30);
+  const sinceQueryStr = addDaysToDateString(sinceStr, -1);
+
   const [{ data: rawLoans }, { data: rawPayments }] = await Promise.all([
     adminClient
       .from("loans")
@@ -81,7 +86,7 @@ async function ReportesContent() {
         "id, valor_neto, total_a_cobrar, modalidad, interes, numero_cuotas, valor_cuota, created_at, clients(alias)"
       )
       .eq("unit_id", user.id)
-      .gte("created_at", `${sinceStr}T00:00:00`)
+      .gte("created_at", `${sinceQueryStr}T00:00:00`)
       .order("created_at", { ascending: false }),
     adminClient
       .from("payments")
@@ -103,12 +108,12 @@ async function ReportesContent() {
     valor_cuota: Number(l.valor_cuota),
     valor_neto: Number(l.valor_neto),
     total_a_cobrar: Number(l.total_a_cobrar),
-    hora: formatHora(l.created_at),
-    fecha: l.created_at.slice(0, 10)
-  }));
+    hora: formatHora(l.created_at, zonaHoraria),
+    fecha: dateInTimeZone(l.created_at, zonaHoraria)
+  })).filter((l) => l.fecha >= sinceStr);
 
-  const payments: ReportePayment[] = ((rawPayments ?? []) as unknown as PaymentReportRow[]).map(
-    (p) => {
+  const payments: ReportePayment[] = ((rawPayments ?? []) as unknown as PaymentReportRow[])
+    .map((p) => {
       const loan = Array.isArray(p.loans) ? p.loans[0] : p.loans;
       const cuotaInfo = loan
         ? `Cuota ${loan.cuotas_pagadas}/${loan.numero_cuotas}`
@@ -118,14 +123,14 @@ async function ReportesContent() {
         clientAlias: loan ? getAlias(loan.clients) : "Cliente",
         cuotaInfo,
         metodo_pago: p.metodo_pago,
-        hora: formatHora(p.hora_registro),
+        hora: formatHora(p.hora_registro, zonaHoraria),
         monto: Number(p.monto),
-        fecha_pago: p.fecha_pago
+        fecha_pago: dateInTimeZone(p.hora_registro, zonaHoraria)
       };
-    }
-  );
+    })
+    .filter((p) => p.fecha_pago >= sinceStr);
 
-  return <ReportesClient loans={loans} payments={payments} />;
+  return <ReportesClient loans={loans} payments={payments} today={today} />;
 }
 
 function ReportesSkeleton() {
