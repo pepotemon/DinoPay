@@ -12,6 +12,15 @@ updated: 2026-07-24
 
 ---
 
+## [0.18.1] -- 2026-07-28
+
+### Corregido
+
+**No pago con motivo**
+- Nueva migracion reparadora `015_repair_no_pay_visits.sql` para crear/actualizar `loan_visits`, policies y RPC `mark_no_pay_visit` de forma idempotente.
+- Pensada para Supabase cuando la migracion original de no pago no esta aplicada o quedo incompleta.
+
+---
 ## [0.18.0] -- 2026-07-28
 
 ### Agregado / Modificado
