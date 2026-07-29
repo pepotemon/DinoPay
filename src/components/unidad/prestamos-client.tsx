@@ -221,22 +221,22 @@ function sheetSubtitle(view: Exclude<SheetState, null>["view"]) {
   switch (view) {
     case "pay":
     case "pay-confirm":
-      return "Registrar pago";
+      return "registrar pago";
     case "nopay":
     case "nopay-confirm":
-      return "Sin pago hoy";
+      return "sin pago hoy";
     case "info-details":
-      return "Información detallada";
+      return "información detallada";
     case "info-payments":
-      return "Pagos";
+      return "pagos";
     case "info-loans":
-      return "Historial";
+      return "historial de préstamos";
     case "receipt":
-      return "Recibo de pago";
+      return "recibo de pago";
     case "delete-payment-confirm":
-      return "Confirmar anulacion";
+      return "confirmar anulación";
     case "delete-loan-confirm":
-      return "Confirmar eliminacion";
+      return "confirmar eliminación";
     default:
       return null;
   }
@@ -546,33 +546,16 @@ export function PrestamosClient({
                   </button>
                 ) : null}
                 <div className="mx-10 min-w-0 text-center">
-                  {sheet.view === "info-loans" ? (
-                    <>
-                      <p className="mt-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                        Historial de préstamos de
-                      </p>
-                      <p className="truncate text-xl font-black uppercase leading-tight">
-                        {(sheet.loan as ClientLoan).clients?.alias ?? "Sin nombre"}
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="mt-1 truncate text-lg font-black leading-tight">
-                        {sheet.view === "info-payments"
-                          ? (sheet.clientLoan.clients?.alias ?? "Sin nombre")
-                          : sheet.view === "delete-payment-confirm"
-                            ? (sheet.clientLoan.clients?.alias ?? "Sin nombre")
-                          : sheet.view === "delete-loan-confirm"
-                            ? (sheet.clientLoan.clients?.alias ?? "Sin nombre")
-                          : ((sheet.loan as ClientLoan).clients?.alias ?? "Sin nombre")}
-                      </p>
-                      {sheetSubtitle(sheet.view) ? (
-                        <p className="text-[10px] font-bold text-muted-foreground">
-                          {sheetSubtitle(sheet.view)}
-                        </p>
-                      ) : null}
-                    </>
-                  )}
+                  <p className="mt-1 truncate text-xl font-black uppercase leading-tight">
+                    {sheet.view === "info-payments" || sheet.view === "delete-payment-confirm" || sheet.view === "delete-loan-confirm"
+                      ? (sheet.clientLoan.clients?.alias ?? "Sin nombre")
+                      : ((sheet.loan as ClientLoan).clients?.alias ?? "Sin nombre")}
+                  </p>
+                  {sheetSubtitle(sheet.view) ? (
+                    <p className="text-[10px] font-medium text-muted-foreground">
+                      {sheetSubtitle(sheet.view)}
+                    </p>
+                  ) : null}
                 </div>
                 <button
                   className="absolute right-3 top-1 grid h-8 w-8 place-items-center rounded-lg bg-muted text-muted-foreground"
@@ -1513,10 +1496,6 @@ function SheetInfoLoans({
   return (
     <div className="space-y-3 px-3">
       <section className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Layers className="h-4 w-4 text-primary" />
-          <p className="font-black">Detalles del Préstamo</p>
-        </div>
         <LoanCard
           canDeleteLoan={canDeleteLoans && dateInTimeZone(activeLoan.created_at, zonaHoraria) === today}
           isActive
