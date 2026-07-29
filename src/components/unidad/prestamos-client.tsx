@@ -279,8 +279,11 @@ export function PrestamosClient({
   );
 
   const progreso = meta > 0 ? Math.min(Math.round((cobradoHoy / meta) * 100), 100) : 0;
+  const faltan = Math.max(meta - cobradoHoy, 0);
   const pendingCount = loans.filter((l) => !visitedSet.has(l.id)).length;
   const visitedCount = visitedSet.size;
+  const paidCount = paidSet.size;
+  const noPayCount = noPaySet.size;
 
   const filtered = useMemo(
     () =>
@@ -365,50 +368,74 @@ export function PrestamosClient({
   return (
     <>
       {/* ── Cabecera sticky ── */}
-      <div className="sticky top-0 z-40 -mx-4 border-b bg-background sm:mx-auto">
-        <div className="mx-auto max-w-lg space-y-3 px-3 pb-3 pt-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
-                Cuotas del Día
-              </p>
-              <h1 className="text-2xl font-black leading-tight">
-                <span className="font-black text-primary">{visitedCount}</span>
-                <span className="text-muted-foreground">/{loans.length}</span>
-                <span className="ml-2 text-lg font-bold text-muted-foreground">visitados</span>
-              </h1>
+      <div className="sticky top-0 z-40 -mx-4 border-b bg-background/95 backdrop-blur sm:mx-auto">
+        <div className="mx-auto max-w-lg space-y-2.5 px-2.5 pb-2.5 pt-3">
+          <section className="overflow-hidden rounded-2xl border bg-background shadow-sm">
+            <div className="relative p-3">
+              <div className="absolute inset-x-0 top-0 h-1 bg-primary" />
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[9px] font-black uppercase tracking-[0.18em] text-muted-foreground">
+                    Cuotas del dia
+                  </p>
+                  <p className="mt-1 text-3xl font-black leading-none text-primary">
+                    {formatCurrency(cobradoHoy)}
+                  </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-bold text-muted-foreground">
+                    <span>
+                      Meta <strong className="text-foreground">{formatCurrency(meta)}</strong>
+                    </span>
+                    <span className="h-1 w-1 rounded-full bg-border" />
+                    <span>
+                      Faltan <strong className="text-foreground">{formatCurrency(faltan)}</strong>
+                    </span>
+                  </div>
+                </div>
+
+                <div className="shrink-0 text-right">
+                  <div
+                    className="grid h-16 w-16 place-items-center rounded-full"
+                    style={{
+                      background: `conic-gradient(hsl(var(--primary)) ${progreso * 3.6}deg, hsl(var(--muted)) 0deg)`
+                    }}
+                  >
+                    <div className="grid h-12 w-12 place-items-center rounded-full bg-background shadow-inner">
+                      <span className="text-sm font-black">{progreso}%</span>
+                    </div>
+                  </div>
+                  <Link
+                    className="mt-2 inline-flex h-8 items-center gap-1.5 rounded-xl bg-primary px-3 text-xs font-black text-primary-foreground shadow-sm shadow-primary/20 active:scale-[0.99]"
+                    href="/unidad/enrutar"
+                  >
+                    <MapPinned className="h-3.5 w-3.5" />
+                    Enrutar
+                  </Link>
+                </div>
+              </div>
+
+              <div className="mt-3 grid grid-cols-3 gap-1.5">
+                <HeaderMiniStat
+                  icon={<CheckCircle2 className="h-3.5 w-3.5" />}
+                  label="Visitados"
+                  value={`${visitedCount}/${loans.length}`}
+                />
+                <HeaderMiniStat
+                  icon={<Banknote className="h-3.5 w-3.5" />}
+                  label="Pagaron"
+                  value={String(paidCount)}
+                />
+                <HeaderMiniStat
+                  icon={<CircleSlash className="h-3.5 w-3.5" />}
+                  label="No pago"
+                  value={String(noPayCount)}
+                />
+              </div>
             </div>
-            <Link
-              className="flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-bold text-muted-foreground hover:bg-muted"
-              href="/unidad/enrutar"
-            >
-              <MapPinned className="h-4 w-4" />
-              Enrutar
-            </Link>
-          </div>
-
-          <div className="flex items-center gap-2 text-sm">
-            <span className="font-black text-primary">{formatCurrency(cobradoHoy)}</span>
-            <span className="text-muted-foreground">cobrado</span>
-            <span className="text-border">·</span>
-            <span className="font-black">{formatCurrency(meta)}</span>
-            <span className="text-muted-foreground">meta</span>
-            <span className="text-border">·</span>
-            <span className="font-black">{progreso}%</span>
-            <span className="text-muted-foreground">del día</span>
-          </div>
-
-          <div className="h-1 overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full bg-primary transition-all duration-700"
-              style={{ width: `${progreso}%` }}
-            />
-          </div>
-
+          </section>
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3.5 top-3 h-4 w-4 text-muted-foreground" />
+            <Search className="pointer-events-none absolute left-3.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <input
-              className="h-10 w-full rounded-xl bg-muted/60 pl-9 pr-4 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+              className="h-9 w-full rounded-xl border bg-background pl-9 pr-4 text-sm font-medium outline-none placeholder:text-muted-foreground/70 focus-visible:ring-2 focus-visible:ring-ring"
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Nombre, barrio o teléfono…"
               type="search"
@@ -416,7 +443,7 @@ export function PrestamosClient({
             />
           </div>
 
-          <div className="grid grid-cols-3 rounded-xl bg-muted p-0.5">
+          <div className="grid grid-cols-3 rounded-xl border bg-muted/70 p-0.5">
             <button
               className={cn(
                 "h-8 rounded-lg text-xs font-black transition-colors",
@@ -656,6 +683,28 @@ export function PrestamosClient({
         </div>
       ) : null}
     </>
+  );
+}
+
+function HeaderMiniStat({
+  icon,
+  label,
+  value
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="min-w-0 rounded-xl bg-muted/60 px-2 py-2">
+      <div className="flex items-center gap-1 text-primary">
+        {icon}
+        <span className="truncate text-[9px] font-black uppercase tracking-[0.08em]">
+          {label}
+        </span>
+      </div>
+      <p className="mt-1 truncate text-sm font-black leading-none">{value}</p>
+    </div>
   );
 }
 

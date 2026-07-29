@@ -12,6 +12,17 @@ updated: 2026-07-24
 
 ---
 
+## [0.20.7] -- 2026-07-28
+
+### Modificado
+
+**Header de Prestamos**
+- Rediseñado el header sticky de Prestamos como una tarjeta de resumen diaria con recaudado, meta, faltante y progreso circular.
+- Agregadas metricas compactas de visitados, pagos registrados y no pago para escanear la ruta mas rapido.
+- Busqueda y filtros quedan visualmente integrados debajo del resumen.
+
+---
+
 ## [0.20.6] -- 2026-07-28
 
 ### Modificado
