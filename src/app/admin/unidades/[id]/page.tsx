@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
+import { ArrowLeft, ArrowDownCircle, ArrowUpCircle, Settings } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createCapitalMovementAction } from "@/lib/actions/admin/capital";
@@ -40,7 +40,7 @@ export default async function AdminUnidadDetallePage({
     adminClient
       .from("units")
       .select(
-        "id, username, nombre_unidad, encargado, telefono, ciudad, estado, capital_inicial, activo, intereses"
+        "id, username, nombre_unidad, encargado, telefono, ciudad, estado, capital_inicial, activo, intereses, puede_eliminar_abonos, puede_eliminar_prestamos"
       )
       .eq("id", id)
       .maybeSingle(),
@@ -86,12 +86,20 @@ export default async function AdminUnidadDetallePage({
 
   return (
     <div className="space-y-5 pb-8">
-      <Button asChild size="sm" variant="secondary">
-        <Link href="/admin/unidades">
-          <ArrowLeft className="h-4 w-4" />
-          Unidades
-        </Link>
-      </Button>
+      <div className="flex items-center justify-between gap-2">
+        <Button asChild size="sm" variant="secondary">
+          <Link href="/admin/unidades">
+            <ArrowLeft className="h-4 w-4" />
+            Unidades
+          </Link>
+        </Button>
+        <Button asChild size="sm">
+          <Link href={`/admin/unidades/${id}/editar`}>
+            <Settings className="h-4 w-4" />
+            Editar
+          </Link>
+        </Button>
+      </div>
 
       {sp?.ok ? (
         <div className="rounded-md border border-primary/30 bg-primary/10 p-3 text-sm text-primary">
@@ -126,6 +134,14 @@ export default async function AdminUnidadDetallePage({
         <p className="mt-1 text-xs text-muted-foreground">
           Intereses habilitados: {intereses.join("%, ")}%
         </p>
+        <div className="mt-2 flex flex-wrap gap-2 text-xs font-medium">
+          <span className="rounded-full bg-muted px-2 py-1 text-muted-foreground">
+            Abonos: {unit.puede_eliminar_abonos ? "puede eliminar hoy" : "sin permiso"}
+          </span>
+          <span className="rounded-full bg-muted px-2 py-1 text-muted-foreground">
+            Prestamos: {unit.puede_eliminar_prestamos ? "puede eliminar hoy" : "sin permiso"}
+          </span>
+        </div>
       </div>
 
       {/* Métricas */}

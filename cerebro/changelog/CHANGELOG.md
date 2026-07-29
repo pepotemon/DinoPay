@@ -12,6 +12,16 @@ updated: 2026-07-24
 
 ---
 
+## [0.19.0] -- 2026-07-28
+
+### Agregado
+
+**Edicion de unidades desde Admin**
+- Nueva pantalla `/admin/unidades/[id]/editar` para actualizar datos operativos de una unidad existente.
+- Permite cambiar encargado, telefono, capital inicial, ubicacion, zona horaria, intereses, dias laborales, estado activo y permisos de eliminacion.
+- El detalle de unidad ahora muestra boton Editar y badges con permisos actuales.
+
+---
 ## [0.18.1] -- 2026-07-28
 
 ### Corregido
