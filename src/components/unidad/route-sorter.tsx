@@ -18,8 +18,11 @@ import {
   verticalListSortingStrategy
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ArrowUpDown, GripVertical, Save, Search, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ArrowUpDown, GripVertical, Loader2, Save, Search, X } from "lucide-react";
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { updateRouteAction } from "@/lib/actions/unidad/ruta";
 import { formatCurrency } from "@/lib/utils";
 
 type RouteLoan = {
@@ -31,13 +34,9 @@ type RouteLoan = {
 
 type MoveSheet = { id: string; alias: string; currentIndex: number } | null;
 
-export function RouteSorter({
-  action,
-  loans
-}: {
-  action: (formData: FormData) => void | Promise<void>;
-  loans: RouteLoan[];
-}) {
+export function RouteSorter({ loans }: { loans: RouteLoan[] }) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const [items, setItems] = useState(loans);
   const [search, setSearch] = useState("");
   const [moveSheet, setMoveSheet] = useState<MoveSheet>(null);
@@ -95,9 +94,21 @@ export function RouteSorter({
     setSheetSearch("");
   }
 
+  function handleSubmit(formData: FormData) {
+    startTransition(async () => {
+      const result = await updateRouteAction({ ok: false, message: "" }, formData);
+      if (result.ok) {
+        toast.success(result.message);
+        router.refresh();
+      } else {
+        toast.error(result.message);
+      }
+    });
+  }
+
   return (
     <>
-      <form action={action} className="space-y-4">
+      <form action={handleSubmit} className="space-y-4">
         {/* Hidden inputs — always the full ordered list */}
         {items.map((item) => (
           <input key={item.id} name="loanIds" type="hidden" value={item.id} />
@@ -106,11 +117,16 @@ export function RouteSorter({
         {/* Sticky save + search */}
         <div className="sticky top-0 z-20 space-y-3 bg-background pb-2 pt-1">
           <button
-            className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-base font-black text-white shadow-lg shadow-primary/25 transition-opacity active:opacity-80"
+            className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-base font-black text-white shadow-lg shadow-primary/25 transition-opacity active:opacity-80 disabled:opacity-60"
+            disabled={isPending}
             type="submit"
           >
-            <Save className="h-5 w-5" />
-            Guardar ruta
+            {isPending ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Save className="h-5 w-5" />
+            )}
+            {isPending ? "Guardando…" : "Guardar ruta"}
           </button>
 
           <div className="relative">

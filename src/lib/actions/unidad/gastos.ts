@@ -7,6 +7,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { todayInTimeZone } from "@/lib/utils/date-timezone";
 
+export type ExpenseActionState = { ok: boolean; message: string };
+
 const expenseSchema = z.object({
   categoria: z.string().min(2, "Selecciona una categoria."),
   monto: z.coerce.number().positive("El monto debe ser mayor a cero."),
@@ -31,7 +33,10 @@ async function getActiveUnit() {
   return unit ? { userId: user.id, zonaHoraria: unit.zona_horaria ?? "America/Bogota", adminClient } : null;
 }
 
-export async function createExpenseAction(formData: FormData) {
+export async function createExpenseAction(
+  _prev: ExpenseActionState,
+  formData: FormData
+): Promise<ExpenseActionState> {
   const parsed = expenseSchema.safeParse({
     categoria: formData.get("categoria"),
     monto: formData.get("monto"),
@@ -39,13 +44,11 @@ export async function createExpenseAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    redirect(
-      `/unidad/gastos?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Revisa el gasto.")}`
-    );
+    return { ok: false, message: parsed.error.issues[0]?.message ?? "Revisa el gasto." };
   }
 
   const ctx = await getActiveUnit();
-  if (!ctx) redirect("/login");
+  if (!ctx) return { ok: false, message: "Sesion expirada." };
 
   const input = parsed.data;
   const { error } = await ctx.adminClient.from("expenses").insert({
@@ -58,22 +61,23 @@ export async function createExpenseAction(formData: FormData) {
     fecha: todayInTimeZone(ctx.zonaHoraria)
   });
 
-  if (error) {
-    redirect(`/unidad/gastos?error=${encodeURIComponent(error.message)}`);
-  }
+  if (error) return { ok: false, message: error.message };
 
   revalidatePath("/unidad/gastos");
-  redirect("/unidad/gastos?ok=Gasto registrado");
+  return { ok: true, message: "Gasto registrado" };
 }
 
-export async function deleteExpenseAction(formData: FormData) {
+export async function deleteExpenseAction(
+  _prev: ExpenseActionState,
+  formData: FormData
+): Promise<ExpenseActionState> {
   const expenseId = formData.get("expenseId");
   if (!expenseId || typeof expenseId !== "string") {
-    redirect("/unidad/gastos?error=ID de gasto invalido.");
+    return { ok: false, message: "ID de gasto invalido." };
   }
 
   const ctx = await getActiveUnit();
-  if (!ctx) redirect("/login");
+  if (!ctx) return { ok: false, message: "Sesion expirada." };
 
   const { error } = await ctx.adminClient
     .from("expenses")
@@ -82,12 +86,10 @@ export async function deleteExpenseAction(formData: FormData) {
     .eq("unit_id", ctx.userId)
     .eq("estado", "pendiente");
 
-  if (error) {
-    redirect(`/unidad/gastos?error=${encodeURIComponent(error.message)}`);
-  }
+  if (error) return { ok: false, message: error.message };
 
   revalidatePath("/unidad/gastos");
-  redirect("/unidad/gastos?ok=Gasto eliminado");
+  return { ok: true, message: "Gasto eliminado" };
 }
 
 export type UpdateExpenseState = {

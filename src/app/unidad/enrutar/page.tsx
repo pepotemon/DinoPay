@@ -1,6 +1,5 @@
 import { RouteSorter } from "@/components/unidad/route-sorter";
 import { PageDino } from "@/components/unidad/page-dino";
-import { updateRouteAction } from "@/lib/actions/unidad/ruta";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -53,7 +52,7 @@ export default async function EnrutarPage() {
       </div>
 
       {routeLoans.length > 0 ? (
-        <RouteSorter action={updateRouteAction} loans={routeLoans} />
+        <RouteSorter loans={routeLoans} />
       ) : (
         <p className="rounded-2xl border px-4 py-8 text-center text-sm text-muted-foreground">
           Sin préstamos activos para enrutar. Crea uno desde Nuevo.

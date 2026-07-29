@@ -1,22 +1,26 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+
+export type RouteActionState = { ok: boolean; message: string };
 
 const routeSchema = z.object({
   loanIds: z.array(z.string().uuid()).min(1)
 });
 
-export async function updateRouteAction(formData: FormData) {
+export async function updateRouteAction(
+  _prev: RouteActionState,
+  formData: FormData
+): Promise<RouteActionState> {
   const parsed = routeSchema.safeParse({
     loanIds: formData.getAll("loanIds")
   });
 
   if (!parsed.success) {
-    redirect("/unidad/enrutar?error=Ruta invalida");
+    return { ok: false, message: "Ruta invalida" };
   }
 
   const supabase = await createClient();
@@ -24,9 +28,7 @@ export async function updateRouteAction(formData: FormData) {
     data: { user }
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    redirect("/login");
-  }
+  if (!user) return { ok: false, message: "Sesion expirada" };
 
   const adminClient = createAdminClient();
   const { error } = await adminClient.rpc("update_route_positions", {
@@ -34,11 +36,9 @@ export async function updateRouteAction(formData: FormData) {
     p_loan_ids: parsed.data.loanIds
   });
 
-  if (error) {
-    redirect(`/unidad/enrutar?error=${encodeURIComponent(error.message)}`);
-  }
+  if (error) return { ok: false, message: error.message };
 
   revalidatePath("/unidad/enrutar");
   revalidatePath("/unidad/prestamos");
-  redirect("/unidad/enrutar?ok=Ruta guardada");
+  return { ok: true, message: "Ruta guardada" };
 }

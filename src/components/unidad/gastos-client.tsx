@@ -5,6 +5,7 @@ import {
   CalendarDays,
   ChevronDown,
   Info,
+  Loader2,
   Pencil,
   PlusCircle,
   Receipt,
@@ -12,8 +13,9 @@ import {
   X
 } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { useFormStatus } from "react-dom";
+import { useRouter } from "next/navigation";
+import { useMemo, useState, useTransition } from "react";
+import { toast } from "sonner";
 import { createExpenseAction, deleteExpenseAction } from "@/lib/actions/unidad/gastos";
 import { cn, formatCurrency } from "@/lib/utils";
 import { PageDino } from "@/components/unidad/page-dino";
@@ -58,9 +60,12 @@ const SELECT =
   "h-12 w-full appearance-none rounded-xl bg-green-50 px-4 pr-10 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20";
 
 export function GastosClient({ expenses, today }: { expenses: GastoRow[]; today: string }) {
+  const router = useRouter();
   const [fechaDesde, setFechaDesde] = useState(today);
   const [fechaHasta, setFechaHasta] = useState(today);
   const [showSheet, setShowSheet] = useState(false);
+  const [isCreating, startCreateTransition] = useTransition();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const filtered = useMemo(
     () => expenses.filter((e) => e.fecha >= fechaDesde && e.fecha <= fechaHasta),
@@ -71,6 +76,33 @@ export function GastosClient({ expenses, today }: { expenses: GastoRow[]; today:
     () => filtered.reduce((sum, e) => sum + Number(e.monto), 0),
     [filtered]
   );
+
+  function handleCreate(formData: FormData) {
+    startCreateTransition(async () => {
+      const result = await createExpenseAction({ ok: false, message: "" }, formData);
+      if (result.ok) {
+        toast.success(result.message);
+        setShowSheet(false);
+        router.refresh();
+      } else {
+        toast.error(result.message);
+      }
+    });
+  }
+
+  async function handleDelete(expenseId: string) {
+    setDeletingId(expenseId);
+    const formData = new FormData();
+    formData.set("expenseId", expenseId);
+    const result = await deleteExpenseAction({ ok: false, message: "" }, formData);
+    setDeletingId(null);
+    if (result.ok) {
+      toast.success(result.message);
+      router.refresh();
+    } else {
+      toast.error(result.message);
+    }
+  }
 
   return (
     <>
@@ -145,7 +177,12 @@ export function GastosClient({ expenses, today }: { expenses: GastoRow[]; today:
         ) : (
           <div className="space-y-3">
             {filtered.map((expense) => (
-              <ExpenseCard key={expense.id} expense={expense} />
+              <ExpenseCard
+                key={expense.id}
+                expense={expense}
+                isDeleting={deletingId === expense.id}
+                onDelete={handleDelete}
+              />
             ))}
           </div>
         )}
@@ -176,7 +213,7 @@ export function GastosClient({ expenses, today }: { expenses: GastoRow[]; today:
                 </button>
               </div>
 
-              <form action={createExpenseAction} className="space-y-4 px-5 pb-8">
+              <form action={handleCreate} className="space-y-4 px-5 pb-8">
                 <section className="space-y-4 rounded-2xl border bg-background p-5 shadow-sm">
                   {/* Category */}
                   <label className="block space-y-1.5">
@@ -234,7 +271,14 @@ export function GastosClient({ expenses, today }: { expenses: GastoRow[]; today:
                   </label>
                 </section>
 
-                <SheetSubmitButton />
+                <button
+                  className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-base font-black text-white shadow-lg shadow-primary/25 transition-opacity disabled:opacity-60"
+                  disabled={isCreating}
+                  type="submit"
+                >
+                  {isCreating ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
+                  {isCreating ? "Guardando…" : "Guardar gasto"}
+                </button>
               </form>
             </div>
           </div>
@@ -244,20 +288,15 @@ export function GastosClient({ expenses, today }: { expenses: GastoRow[]; today:
   );
 }
 
-function SheetSubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      className="h-14 w-full rounded-2xl bg-primary text-base font-black text-white shadow-lg shadow-primary/25 transition-opacity disabled:opacity-50"
-      disabled={pending}
-      type="submit"
-    >
-      {pending ? "Guardando…" : "Guardar gasto"}
-    </button>
-  );
-}
-
-function ExpenseCard({ expense }: { expense: GastoRow }) {
+function ExpenseCard({
+  expense,
+  isDeleting,
+  onDelete
+}: {
+  expense: GastoRow;
+  isDeleting: boolean;
+  onDelete: (id: string) => void;
+}) {
   return (
     <div className="space-y-3 rounded-2xl border bg-background p-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
@@ -293,16 +332,19 @@ function ExpenseCard({ expense }: { expense: GastoRow }) {
             <Pencil className="h-4 w-4" />
             Editar
           </Link>
-          <form action={deleteExpenseAction}>
-            <input name="expenseId" type="hidden" value={expense.id} />
-            <button
-              className="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-destructive/10 text-sm font-bold text-destructive"
-              type="submit"
-            >
+          <button
+            className="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-destructive/10 text-sm font-bold text-destructive disabled:opacity-50"
+            disabled={isDeleting}
+            type="button"
+            onClick={() => onDelete(expense.id)}
+          >
+            {isDeleting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
               <Trash2 className="h-4 w-4" />
-              Eliminar
-            </button>
-          </form>
+            )}
+            {isDeleting ? "Eliminando…" : "Eliminar"}
+          </button>
         </div>
       ) : null}
     </div>
