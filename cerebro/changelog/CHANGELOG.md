@@ -17,9 +17,9 @@ updated: 2026-07-24
 ### Modificado
 
 **Header de Prestamos**
-- Rediseñado el header sticky de Prestamos como una tarjeta de resumen diaria con recaudado, meta, faltante y progreso circular.
-- Agregadas metricas compactas de visitados, pagos registrados y no pago para escanear la ruta mas rapido.
-- Busqueda y filtros quedan visualmente integrados debajo del resumen.
+- Redisenado el header de Prestamos como hero movil con titulo grande, tarjeta verde, recaudado, meta, faltante y progreso circular.
+- El acceso a Planear recorrido queda como boton principal separado debajo del resumen.
+- Busqueda y filtros quedan visualmente integrados debajo del hero.
 
 ---
 

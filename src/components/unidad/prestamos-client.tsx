@@ -282,8 +282,6 @@ export function PrestamosClient({
   const faltan = Math.max(meta - cobradoHoy, 0);
   const pendingCount = loans.filter((l) => !visitedSet.has(l.id)).length;
   const visitedCount = visitedSet.size;
-  const paidCount = paidSet.size;
-  const noPayCount = noPaySet.size;
 
   const filtered = useMemo(
     () =>
@@ -368,85 +366,88 @@ export function PrestamosClient({
   return (
     <>
       {/* ── Cabecera sticky ── */}
-      <div className="sticky top-0 z-40 -mx-4 border-b bg-background/95 backdrop-blur sm:mx-auto">
-        <div className="mx-auto max-w-lg space-y-2.5 px-2.5 pb-2.5 pt-3">
-          <section className="overflow-hidden rounded-2xl border bg-background shadow-sm">
-            <div className="relative p-3">
-              <div className="absolute inset-x-0 top-0 h-1 bg-primary" />
+      <div className="-mx-4 border-b bg-background sm:mx-auto sm:border-x">
+        <div className="mx-auto max-w-lg space-y-4 px-3 pb-4 pt-2">
+          <h1 className="px-1 text-[42px] font-black leading-none tracking-normal text-foreground">
+            Cuotas Diarias
+          </h1>
+
+          <section className="relative overflow-hidden rounded-[28px] bg-primary p-5 text-primary-foreground shadow-xl shadow-primary/20">
+            <div className="pointer-events-none absolute -right-12 -top-14 h-40 w-40 rounded-full bg-white/10" />
+            <div className="pointer-events-none absolute -bottom-20 right-8 h-44 w-44 rounded-full bg-foreground/10" />
+            <div className="pointer-events-none absolute left-[54%] top-0 h-40 w-28 rounded-full bg-white/10 blur-[1px]" />
+            <div className="relative">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[9px] font-black uppercase tracking-[0.18em] text-muted-foreground">
-                    Cuotas del dia
+                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-primary-foreground/75">
+                    Recaudado hoy
                   </p>
-                  <p className="mt-1 text-3xl font-black leading-none text-primary">
+                  <p className="mt-3 text-[44px] font-black leading-none tracking-normal">
                     {formatCurrency(cobradoHoy)}
                   </p>
-                  <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-bold text-muted-foreground">
+                  <div className="mt-5 grid max-w-[220px] grid-cols-2 gap-4">
                     <span>
-                      Meta <strong className="text-foreground">{formatCurrency(meta)}</strong>
+                      <span className="block text-[10px] font-black uppercase tracking-[0.16em] text-primary-foreground/70">
+                        Meta del dia
+                      </span>
+                      <strong className="mt-1 block text-xl font-black">{formatCurrency(meta)}</strong>
                     </span>
-                    <span className="h-1 w-1 rounded-full bg-border" />
                     <span>
-                      Faltan <strong className="text-foreground">{formatCurrency(faltan)}</strong>
+                      <span className="block text-[10px] font-black uppercase tracking-[0.16em] text-primary-foreground/70">
+                        Faltan
+                      </span>
+                      <strong className="mt-1 block text-xl font-black">{formatCurrency(faltan)}</strong>
                     </span>
                   </div>
                 </div>
 
                 <div className="shrink-0 text-right">
                   <div
-                    className="grid h-16 w-16 place-items-center rounded-full"
+                    className="grid h-[118px] w-[118px] place-items-center rounded-full"
                     style={{
-                      background: `conic-gradient(hsl(var(--primary)) ${progreso * 3.6}deg, hsl(var(--muted)) 0deg)`
+                      background: `conic-gradient(hsl(var(--primary-foreground)) ${progreso * 3.6}deg, rgba(255,255,255,.22) 0deg)`
                     }}
                   >
-                    <div className="grid h-12 w-12 place-items-center rounded-full bg-background shadow-inner">
-                      <span className="text-sm font-black">{progreso}%</span>
+                    <div className="grid h-[88px] w-[88px] place-items-center rounded-full bg-primary shadow-inner shadow-foreground/20">
+                      <div className="text-center">
+                        <p className="text-2xl font-black leading-none">{progreso}%</p>
+                        <p className="mt-1 text-[10px] font-black uppercase tracking-[0.12em] text-primary-foreground/70">
+                          del dia
+                        </p>
+                      </div>
                     </div>
                   </div>
-                  <Link
-                    className="mt-2 inline-flex h-8 items-center gap-1.5 rounded-xl bg-primary px-3 text-xs font-black text-primary-foreground shadow-sm shadow-primary/20 active:scale-[0.99]"
-                    href="/unidad/enrutar"
-                  >
-                    <MapPinned className="h-3.5 w-3.5" />
-                    Enrutar
-                  </Link>
                 </div>
               </div>
 
-              <div className="mt-3 grid grid-cols-3 gap-1.5">
-                <HeaderMiniStat
-                  icon={<CheckCircle2 className="h-3.5 w-3.5" />}
-                  label="Visitados"
-                  value={`${visitedCount}/${loans.length}`}
-                />
-                <HeaderMiniStat
-                  icon={<Banknote className="h-3.5 w-3.5" />}
-                  label="Pagaron"
-                  value={String(paidCount)}
-                />
-                <HeaderMiniStat
-                  icon={<CircleSlash className="h-3.5 w-3.5" />}
-                  label="No pago"
-                  value={String(noPayCount)}
-                />
+              <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-white/18 px-4 py-2 text-sm font-black backdrop-blur">
+                <span className="h-2 w-2 rounded-full bg-primary-foreground" />
+                {visitedCount} / {loans.length} visitados
               </div>
             </div>
           </section>
+          <Link
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-primary/25 bg-background text-base font-black text-primary shadow-lg shadow-primary/10 active:scale-[0.99]"
+            href="/unidad/enrutar"
+          >
+            <MapPinned className="h-5 w-5" />
+            Planear recorrido
+          </Link>
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="pointer-events-none absolute left-4 top-3.5 h-5 w-5 text-primary" />
             <input
-              className="h-9 w-full rounded-xl border bg-background pl-9 pr-4 text-sm font-medium outline-none placeholder:text-muted-foreground/70 focus-visible:ring-2 focus-visible:ring-ring"
+              className="h-12 w-full rounded-2xl border-0 bg-primary/8 pl-12 pr-4 text-base font-semibold outline-none placeholder:text-muted-foreground/70 focus-visible:ring-2 focus-visible:ring-ring"
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Nombre, barrio o teléfono…"
+              placeholder="Busca por nombre, nit, telefono o alias"
               type="search"
               value={search}
             />
           </div>
 
-          <div className="grid grid-cols-3 rounded-xl border bg-muted/70 p-0.5">
+          <div className="grid grid-cols-3 rounded-2xl bg-muted p-1">
             <button
               className={cn(
-                "h-8 rounded-lg text-xs font-black transition-colors",
+                "h-11 rounded-xl text-xs font-black transition-colors",
                 filter === "todos"
                   ? "bg-background text-primary shadow-sm"
                   : "text-muted-foreground"
@@ -458,7 +459,7 @@ export function PrestamosClient({
             </button>
             <button
               className={cn(
-                "h-8 rounded-lg text-xs font-black transition-colors",
+                "h-11 rounded-xl text-xs font-black transition-colors",
                 filter === "pendientes"
                   ? "bg-background text-primary shadow-sm"
                   : "text-muted-foreground"
@@ -470,7 +471,7 @@ export function PrestamosClient({
             </button>
             <button
               className={cn(
-                "h-8 rounded-lg text-xs font-black transition-colors",
+                "h-11 rounded-xl text-xs font-black transition-colors",
                 filter === "visitados"
                   ? "bg-background text-primary shadow-sm"
                   : "text-muted-foreground"
@@ -683,28 +684,6 @@ export function PrestamosClient({
         </div>
       ) : null}
     </>
-  );
-}
-
-function HeaderMiniStat({
-  icon,
-  label,
-  value
-}: {
-  icon: ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="min-w-0 rounded-xl bg-muted/60 px-2 py-2">
-      <div className="flex items-center gap-1 text-primary">
-        {icon}
-        <span className="truncate text-[9px] font-black uppercase tracking-[0.08em]">
-          {label}
-        </span>
-      </div>
-      <p className="mt-1 truncate text-sm font-black leading-none">{value}</p>
-    </div>
   );
 }
 
