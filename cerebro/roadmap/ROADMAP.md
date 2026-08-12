@@ -10,7 +10,7 @@ updated: 2026-07-24
 
 ---
 
-## Estado General: 🔄 Módulo Unidad casi completo — Fase 3 completada, Fase 4 en progreso
+## Estado General: 🔄 Fase 4 casi completa — Admin hub rediseñado, pendiente deploy
 
 ---
 
@@ -79,7 +79,7 @@ updated: 2026-07-24
 | Tarea | Estado | Prioridad |
 |-------|--------|-----------|
 | Dashboard global del admin | ✅ Implementado | 🔴 Alta |
-| Ver detalles de cualquier unidad | ✅ Implementado (/admin/unidades/[id]) | 🔴 Alta |
+| Ver detalles de cualquier unidad | ✅ Implementado — hub con 3 tabs (clientes, transacciones, configuración) | 🔴 Alta |
 | Inyectar/retirar capital | ✅ Implementado | 🔴 Alta |
 | Editar configuración de unidad | ✅ Implementado (/admin/unidades/[id]/editar) | 🟡 Media |
 | Ver reportes de cualquier unidad | ✅ Implementado (/admin/unidades/[id]/reportes) | 🟡 Media |

@@ -1,7 +1,7 @@
 ---
 tags: [changelog, historial, cambios]
 created: 2026-07-24
-updated: 2026-07-24
+updated: 2026-08-12 (v0.24.0)
 ---
 
 # Changelog — DinoPay
@@ -9,6 +9,44 @@ updated: 2026-07-24
 [[INDEX|← Volver al Index]]
 
 > Solo se registran cambios importantes. No trivialidades.
+
+---
+
+## [0.24.0] — 2026-08-12
+
+### Admin — Hub de Unidad Rediseñado Completamente
+
+**Pantalla de lista de unidades (`/admin/unidades`)**
+- Cards enriquecidas con métricas en vivo: Cartera, Clientes activos, Meta día.
+- Datos cruzados con préstamos activos en query paralela.
+
+**Hub por unidad (`/admin/unidades/[id]`) — 3 tabs**
+
+Pestaña **Clientes**:
+- Filtros rápidos: Activos (con préstamo) / Disponibles (sin préstamo) / Inactivos.
+- Cards con info completa: alias, NIT, teléfono, modalidad, interés, cuota, saldo, ratio cuotas.
+- Badges: atraso (naranja con días), cuotas adelantadas (verde).
+- Menú 3 puntos por cliente: ver historial, cancelar préstamo (con confirm), desactivar (placeholder).
+- Página de historial de cliente: `/admin/unidades/[id]/clientes/[clientId]` con todos los préstamos y últimos 50 pagos.
+
+Pestaña **Transacciones**:
+- Caja estimada grande + sub-métricas (cartera, cobrado hoy, meta).
+- Formulario movimiento de capital (ingreso/retiro) → `createCapitalMovementAction`.
+- Lista de últimos 15 movimientos de capital.
+- Gastos con sub-filtro Pendientes/Aprobados; pendientes tienen botones Aprobar/Rechazar → `decideExpenseFromHubAction`.
+
+Pestaña **Configuración**:
+- Card info de ruta: nombre, @usuario, encargado, teléfono, ciudad, zona horaria.
+- Card operativa: tasas de interés (pills verdes), días laborales, permisos de eliminación.
+- Card acciones: links a `/editar` y `/reportes`, formulario colapsable cambio de contraseña → `changeUnitPasswordAction`.
+
+**Nuevos archivos**:
+- `src/components/admin/unit-hub-client.tsx` — wrapper con tab state.
+- `src/components/admin/unit-clients-tab.tsx` — tab clientes.
+- `src/components/admin/unit-transactions-tab.tsx` — tab transacciones.
+- `src/components/admin/unit-config-tab.tsx` — tab configuración.
+- `src/lib/actions/admin/unit-hub.ts` — `decideExpenseFromHubAction`, `changeUnitPasswordAction`, `cancelLoanFromHubAction`.
+- `src/app/admin/unidades/[id]/clientes/[clientId]/page.tsx` — historial de cliente.
 
 ---
 

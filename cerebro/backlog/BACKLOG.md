@@ -47,7 +47,7 @@ updated: 2026-08-12 (v0.23.0)
 - [x] Formulario crear nueva unidad
 - [x] Crear usuario de unidad en Supabase Auth desde admin
 - [x] Aprobar/rechazar gastos de cualquier unidad
-- [x] Ver detalle completo de una unidad
+- [x] Ver detalle completo de una unidad (hub con 3 tabs: clientes, transacciones, configuración)
 - [x] Inyectar/retirar capital de una unidad
 
 ---
