@@ -81,7 +81,8 @@ updated: 2026-07-24
 | Dashboard global del admin | ✅ Implementado | 🔴 Alta |
 | Ver detalles de cualquier unidad | ✅ Implementado — hub con 3 tabs (clientes, transacciones, configuración) | 🔴 Alta |
 | Inyectar/retirar capital | ✅ Implementado | 🔴 Alta |
-| Editar configuración de unidad | ✅ Implementado (/admin/unidades/[id]/editar) | 🟡 Media |
+| Editar configuración de unidad | ✅ Implementado — inline acordeón en /configuracion, sin página separada | 🟡 Media |
+| Editar cliente desde admin | ✅ Implementado — modal inline en lista de clientes | 🟡 Media |
 | Ver reportes de cualquier unidad | ✅ Implementado (/admin/unidades/[id]/reportes) | 🟡 Media |
 | Cancelar préstamos (admin) | ✅ Implementado (/admin/unidades/[id]/prestamos + cancelLoanAction) | 🟡 Media |
 

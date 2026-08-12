@@ -1,7 +1,7 @@
 ---
 tags: [changelog, historial, cambios]
 created: 2026-07-24
-updated: 2026-08-12 (v0.26.0)
+updated: 2026-08-12 (v0.27.0)
 ---
 
 # Changelog — DinoPay
@@ -9,6 +9,42 @@ updated: 2026-08-12 (v0.26.0)
 [[INDEX|← Volver al Index]]
 
 > Solo se registran cambios importantes. No trivialidades.
+
+---
+
+## [0.27.0] — 2026-08-12
+
+### Admin — Config inline, modales de edición, fixes de historial
+
+**Configuración de unidad (`/admin/unidades/[id]/configuracion`) — reescritura completa**
+- Página reemplazada por 3 secciones acordeón, todas contraídas por defecto.
+- Cada sección es editable directamente (sin abrir otra página), muestra resumen en collapsed y tiene su propio botón "Guardar".
+- **Información de la ruta**: nombre, encargado, teléfono, país, estado, ciudad, zona horaria → `updateUnitInfoInlineAction`.
+- **Configuración operativa**: intereses (separados por coma), días laborales (checkboxes), permisos (eliminar abonos/préstamos) → `updateUnitOperativeInlineAction`.
+- **Acceso y seguridad**: cambio de contraseña → `changeUnitPasswordInlineAction`.
+- Las 3 acciones retornan `{ error?: string }` en lugar de hacer redirect — feedback inline sin navegación.
+- Eliminado el bloque "Acciones rápidas" (Ver reportes / Ver préstamos) — eran redundantes.
+
+**Editar cliente — ahora es un modal**
+- "Editar cliente" en el menú de 3 puntos ya no navega a `/clientes/[clientId]/editar`.
+- Abre `EditClientModal` directamente sobre la lista de clientes.
+- Campos: alias, NIT, teléfono 1, teléfono 2, dirección, barrio.
+- Acción `updateClientInlineAction` — retorna `{ error?: string }`, revalida la ruta al guardar.
+- Server query de clientes ampliada: añadidos `telefono2, direccion1, barrio` al select.
+- `ClientWithLoan` type actualizado con los 3 campos nuevos.
+
+**Historial de pagos — bug fix**
+- `getClientPaymentsAction` usaba columna `tipo_pago` que no existe en la tabla `payments`.
+- Corregido a `metodo_pago` + añadido `numero_cuotas` al select.
+- Las filas del modal ahora muestran método y número de cuotas: "efectivo · 1 cuota".
+
+**UnitQuickModal — centrado en todas las pantallas**
+- Eliminado el modo right-panel en desktop (`lg:items-stretch lg:justify-end`).
+- Ahora es `items-center justify-center p-4` en todos los breakpoints — resuelve también la línea blanca del borde superior.
+
+**Otras mejoras menores**
+- "Ver historial" link eliminado de las tarjetas de cliente (redundante con los modales del menú).
+- Página de edición `/clientes/[clientId]/editar` creada como fallback (accesible directamente por URL).
 
 ---
 

@@ -47,7 +47,7 @@ export function UnitQuickModal({ unit, onClose }: UnitQuickModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center lg:items-stretch lg:justify-end"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
     >
@@ -58,8 +58,8 @@ export function UnitQuickModal({ unit, onClose }: UnitQuickModalProps) {
         aria-hidden="true"
       />
 
-      {/* Panel: mobile = bottom sheet, desktop = right panel */}
-      <div className="relative z-10 flex flex-col w-full max-w-md rounded-t-2xl max-h-[88dvh] overflow-y-auto lg:w-96 lg:max-w-none lg:rounded-l-2xl lg:rounded-r-none lg:h-full lg:max-h-full bg-background shadow-2xl border border-border/60 lg:border-r-0 lg:border-t-0">
+      {/* Panel */}
+      <div className="relative z-10 flex flex-col w-full max-w-md rounded-2xl max-h-[88dvh] overflow-y-auto bg-background shadow-2xl border border-border/60">
         {/* Header */}
         <div className="flex items-start justify-between gap-3 p-5 pb-4 border-b">
           <div className="min-w-0">

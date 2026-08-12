@@ -8,6 +8,9 @@ type ClientRow = {
   alias: string;
   nit: string | null;
   telefono1: string | null;
+  telefono2: string | null;
+  direccion1: string | null;
+  barrio: string | null;
   activo: boolean;
 };
 
@@ -41,7 +44,7 @@ export default async function AdminUnidadClientesPage({
         .maybeSingle(),
       adminClient
         .from("clients")
-        .select("id, alias, nit, telefono1, activo")
+        .select("id, alias, nit, telefono1, telefono2, direccion1, barrio, activo")
         .eq("unit_id", id)
         .order("alias", { ascending: true }),
       adminClient
@@ -78,6 +81,9 @@ export default async function AdminUnidadClientesPage({
       alias: c.alias,
       nit: c.nit,
       telefono1: c.telefono1,
+      telefono2: c.telefono2,
+      direccion1: c.direccion1,
+      barrio: c.barrio,
       activo: c.activo,
       loan: activeLoan
         ? {

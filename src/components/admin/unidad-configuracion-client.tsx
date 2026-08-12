@@ -2,9 +2,14 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { changeUnitPasswordAction } from "@/lib/actions/admin/unit-hub";
+import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RouteSelector } from "@/components/admin/route-selector";
+import {
+  updateUnitInfoInlineAction,
+  updateUnitOperativeInlineAction,
+  changeUnitPasswordInlineAction
+} from "@/lib/actions/admin/unit-hub";
 
 type UnitFull = {
   id: string;
@@ -25,14 +30,10 @@ type UnitFull = {
 };
 
 const DIA_LABELS: Record<number, string> = {
-  0: "Dom",
-  1: "Lun",
-  2: "Mar",
-  3: "Mié",
-  4: "Jue",
-  5: "Vie",
-  6: "Sáb"
+  0: "Dom", 1: "Lun", 2: "Mar", 3: "Mié", 4: "Jue", 5: "Vie", 6: "Sáb"
 };
+
+const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
 
 export function UnidadConfiguracionClient({
   unit,
@@ -41,10 +42,8 @@ export function UnidadConfiguracionClient({
   unit: UnitFull;
   units: { id: string; nombre_unidad: string; activo: boolean }[];
 }) {
-  const [showPassword, setShowPassword] = useState(false);
-
   return (
-    <div className="space-y-5 pb-8">
+    <div className="space-y-4 pb-8">
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -60,186 +59,301 @@ export function UnidadConfiguracionClient({
         <RouteSelector units={units} currentUnitId={unit.id} currentUnitName={unit.nombre_unidad} />
       </div>
 
-      {/* Info card */}
-      <div className="rounded-2xl border bg-background p-4 shadow-sm space-y-4">
-        <p className="font-semibold">Información de la ruta</p>
-        <div className="space-y-1.5 text-sm">
-          <Row label="Nombre" value={unit.nombre_unidad} />
-          <Row label="Usuario" value={`@${unit.username}`} />
-          <Row label="Encargado" value={unit.encargado} />
-          {unit.telefono ? <Row label="Teléfono" value={unit.telefono} /> : null}
-          <Row label="País" value={unit.pais} />
-          {unit.estado ? <Row label="Estado/Depto." value={unit.estado} /> : null}
-          <Row label="Ciudad" value={unit.ciudad} />
-          <Row label="Zona horaria" value={unit.zona_horaria} />
+      <InfoSection unit={unit} />
+      <OperativeSection unit={unit} />
+      <SecuritySection unitId={unit.id} />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Shared
+// ---------------------------------------------------------------------------
+
+function SectionAccordion({
+  title,
+  summary,
+  open,
+  onToggle,
+  children
+}: {
+  title: string;
+  summary?: React.ReactNode;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border bg-background shadow-sm overflow-hidden">
+      <button
+        type="button"
+        className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left"
+        onClick={onToggle}
+      >
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold text-sm">{title}</p>
+          {!open && summary ? (
+            <p className="mt-0.5 text-xs text-muted-foreground truncate">{summary}</p>
+          ) : null}
         </div>
-        <Link
-          href={`/admin/unidades/${unit.id}/editar`}
-          className="flex h-10 w-full items-center justify-center rounded-xl bg-muted font-medium text-foreground text-sm hover:bg-muted/80 transition-colors"
-        >
-          Editar información
-        </Link>
-      </div>
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200",
+            open && "rotate-180"
+          )}
+        />
+      </button>
+      {open ? (
+        <div className="border-t px-4 pb-5 pt-4">
+          {children}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
-      {/* Operative config card */}
-      <div className="rounded-2xl border bg-background p-4 shadow-sm space-y-4">
-        <p className="font-semibold">Configuración operativa</p>
+function Msg({ msg }: { msg: { ok: boolean; text: string } | null }) {
+  if (!msg) return null;
+  return (
+    <p className={cn("text-xs font-medium", msg.ok ? "text-green-700" : "text-destructive")}>
+      {msg.text}
+    </p>
+  );
+}
 
-        <div>
-          <p className="text-xs text-muted-foreground mb-2">Tasas de interés</p>
+function FieldInput({
+  label,
+  ...props
+}: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <label className="block space-y-1 text-xs font-medium">
+      <span>{label}</span>
+      <input
+        className="h-9 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        {...props}
+      />
+    </label>
+  );
+}
+
+function SaveRow({
+  pending,
+  msg,
+  label = "Guardar"
+}: {
+  pending: boolean;
+  msg: { ok: boolean; text: string } | null;
+  label?: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 pt-2">
+      <Msg msg={msg} />
+      <button
+        type="submit"
+        disabled={pending}
+        className="ml-auto h-9 rounded-xl bg-primary px-5 text-sm font-bold text-white disabled:opacity-50 hover:bg-primary/90 transition-colors"
+      >
+        {pending ? "Guardando…" : label}
+      </button>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Info section
+// ---------------------------------------------------------------------------
+
+function InfoSection({ unit }: { unit: UnitFull }) {
+  const [open, setOpen] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    setMsg(null);
+    startTransition(async () => {
+      const res = await updateUnitInfoInlineAction(fd);
+      setMsg(res?.error ? { ok: false, text: res.error } : { ok: true, text: "Guardado ✓" });
+    });
+  }
+
+  const summary = [unit.encargado, unit.ciudad, unit.pais].filter(Boolean).join(" · ");
+
+  return (
+    <SectionAccordion
+      title="Información de la ruta"
+      summary={summary}
+      open={open}
+      onToggle={() => { setOpen(!open); setMsg(null); }}
+    >
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <input type="hidden" name="unitId" value={unit.id} />
+
+        <FieldInput label="Nombre de la ruta" name="nombreUnidad" defaultValue={unit.nombre_unidad} required />
+        <FieldInput label="Encargado" name="encargado" defaultValue={unit.encargado} required />
+        <FieldInput label="Teléfono" name="telefono" type="tel" defaultValue={unit.telefono ?? ""} />
+
+        <div className="grid grid-cols-2 gap-3">
+          <FieldInput label="País" name="pais" defaultValue={unit.pais} required />
+          <FieldInput label="Estado / Depto." name="estado" defaultValue={unit.estado} />
+        </div>
+
+        <FieldInput label="Ciudad" name="ciudad" defaultValue={unit.ciudad} required />
+        <FieldInput label="Zona horaria" name="zonaHoraria" defaultValue={unit.zona_horaria} required />
+
+        <SaveRow pending={pending} msg={msg} />
+      </form>
+    </SectionAccordion>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Operative section
+// ---------------------------------------------------------------------------
+
+function OperativeSection({ unit }: { unit: UnitFull }) {
+  const [open, setOpen] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    setMsg(null);
+    startTransition(async () => {
+      const res = await updateUnitOperativeInlineAction(fd);
+      setMsg(res?.error ? { ok: false, text: res.error } : { ok: true, text: "Guardado ✓" });
+    });
+  }
+
+  const summary = [
+    unit.intereses.length ? unit.intereses.map((i) => `${i}%`).join(" ") : null,
+    unit.dias_laborales.length ? unit.dias_laborales.map((d) => DIA_LABELS[d]).join(" ") : null
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  return (
+    <SectionAccordion
+      title="Configuración operativa"
+      summary={summary || "Sin configurar"}
+      open={open}
+      onToggle={() => { setOpen(!open); setMsg(null); }}
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <input type="hidden" name="unitId" value={unit.id} />
+
+        <FieldInput
+          label="Tasas de interés (separadas por coma)"
+          name="intereses"
+          defaultValue={unit.intereses.join(",")}
+          placeholder="10,15,20"
+        />
+
+        <div className="space-y-2">
+          <p className="text-xs font-medium">Días laborales</p>
           <div className="flex flex-wrap gap-2">
-            {unit.intereses.length === 0 ? (
-              <span className="text-sm text-muted-foreground">Sin tasas configuradas</span>
-            ) : (
-              unit.intereses.map((i) => (
-                <span
-                  key={i}
-                  className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-800"
-                >
-                  {i}%
-                </span>
-              ))
-            )}
-          </div>
-        </div>
-
-        <div>
-          <p className="text-xs text-muted-foreground mb-2">Días laborales</p>
-          <div className="flex flex-wrap gap-1.5">
-            {[0, 1, 2, 3, 4, 5, 6].map((d) => (
-              <span
+            {ALL_DAYS.map((d) => (
+              <label
                 key={d}
-                className={
-                  unit.dias_laborales.includes(d)
-                    ? "rounded-full bg-primary px-2.5 py-0.5 text-xs font-medium text-white"
-                    : "rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
-                }
+                className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full border px-3 text-xs font-medium hover:bg-muted/50 transition-colors"
               >
+                <input
+                  type="checkbox"
+                  name="diasLaborales"
+                  value={d}
+                  defaultChecked={unit.dias_laborales.includes(d)}
+                  className="h-3.5 w-3.5 accent-primary"
+                />
                 {DIA_LABELS[d]}
-              </span>
+              </label>
             ))}
           </div>
         </div>
 
-        <div>
-          <p className="text-xs text-muted-foreground mb-2">Permisos</p>
-          <div className="space-y-1.5 text-sm">
-            <div className="flex items-center gap-2">
-              <span
-                className={cn(
-                  "rounded-full px-2 py-0.5 text-xs font-medium",
-                  unit.puede_eliminar_abonos
-                    ? "bg-green-100 text-green-800"
-                    : "bg-muted text-muted-foreground"
-                )}
-              >
-                {unit.puede_eliminar_abonos ? "Sí" : "No"}
-              </span>
-              <span>Puede eliminar abonos</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span
-                className={cn(
-                  "rounded-full px-2 py-0.5 text-xs font-medium",
-                  unit.puede_eliminar_prestamos
-                    ? "bg-green-100 text-green-800"
-                    : "bg-muted text-muted-foreground"
-                )}
-              >
-                {unit.puede_eliminar_prestamos ? "Sí" : "No"}
-              </span>
-              <span>Puede eliminar préstamos</span>
-            </div>
+        <div className="space-y-2">
+          <p className="text-xs font-medium">Permisos</p>
+          <div className="space-y-2">
+            <label className="flex cursor-pointer items-center gap-3 text-sm">
+              <input
+                type="checkbox"
+                name="puedeEliminarAbonos"
+                defaultChecked={unit.puede_eliminar_abonos}
+                className="h-4 w-4 accent-primary"
+              />
+              Puede eliminar abonos
+            </label>
+            <label className="flex cursor-pointer items-center gap-3 text-sm">
+              <input
+                type="checkbox"
+                name="puedeEliminarPrestamos"
+                defaultChecked={unit.puede_eliminar_prestamos}
+                className="h-4 w-4 accent-primary"
+              />
+              Puede eliminar préstamos
+            </label>
           </div>
         </div>
-      </div>
 
-      {/* Password card */}
-      <div className="rounded-2xl border bg-background p-4 shadow-sm space-y-3">
-        <p className="font-semibold">Acceso y seguridad</p>
-        <button
-          className="flex w-full items-center justify-between text-sm font-medium py-1"
-          onClick={() => setShowPassword(!showPassword)}
-          type="button"
-        >
-          <span>Cambiar contraseña</span>
-          <span className="text-muted-foreground text-xs">{showPassword ? "▲" : "▼"}</span>
-        </button>
-        {showPassword ? <ChangePasswordForm unitId={unit.id} /> : null}
-      </div>
-
-      {/* Quick actions card */}
-      <div className="rounded-2xl border bg-background p-4 shadow-sm space-y-3">
-        <p className="font-semibold">Acciones rápidas</p>
-        <div className="space-y-2">
-          <Link
-            href={`/admin/unidades/${unit.id}/reportes`}
-            className="flex h-10 w-full items-center justify-center rounded-xl bg-muted font-medium text-foreground text-sm hover:bg-muted/80 transition-colors"
-          >
-            Ver reportes
-          </Link>
-          <Link
-            href={`/admin/unidades/${unit.id}/prestamos`}
-            className="flex h-10 w-full items-center justify-center rounded-xl bg-muted font-medium text-foreground text-sm hover:bg-muted/80 transition-colors"
-          >
-            Ver préstamos
-          </Link>
-        </div>
-      </div>
-    </div>
+        <SaveRow pending={pending} msg={msg} />
+      </form>
+    </SectionAccordion>
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between gap-2">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium text-right">{value}</span>
-    </div>
-  );
-}
+// ---------------------------------------------------------------------------
+// Security section
+// ---------------------------------------------------------------------------
 
-function ChangePasswordForm({ unitId }: { unitId: string }) {
+function SecuritySection({ unitId }: { unitId: string }) {
+  const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [formKey, setFormKey] = useState(0);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    startTransition(() => changeUnitPasswordAction(formData));
+    const fd = new FormData(e.currentTarget);
+    setMsg(null);
+    startTransition(async () => {
+      const res = await changeUnitPasswordInlineAction(fd);
+      if (res?.error) {
+        setMsg({ ok: false, text: res.error });
+      } else {
+        setMsg({ ok: true, text: "Contraseña actualizada ✓" });
+        setFormKey((k) => k + 1);
+      }
+    });
   }
 
   return (
-    <form className="mt-2 space-y-3" onSubmit={handleSubmit}>
-      <input name="unitId" type="hidden" value={unitId} />
-      <label className="block space-y-1 text-xs font-medium">
-        <span>Nueva contraseña</span>
-        <input
-          className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          minLength={6}
+    <SectionAccordion
+      title="Acceso y seguridad"
+      summary="Cambiar contraseña"
+      open={open}
+      onToggle={() => { setOpen(!open); setMsg(null); }}
+    >
+      <form key={formKey} onSubmit={handleSubmit} className="space-y-3">
+        <input type="hidden" name="unitId" value={unitId} />
+        <FieldInput
+          label="Nueva contraseña"
           name="password"
+          type="password"
+          minLength={6}
           placeholder="Mínimo 6 caracteres"
           required
-          type="password"
         />
-      </label>
-      <label className="block space-y-1 text-xs font-medium">
-        <span>Confirmar contraseña</span>
-        <input
-          className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          minLength={6}
+        <FieldInput
+          label="Confirmar contraseña"
           name="confirm"
+          type="password"
+          minLength={6}
           placeholder="Repite la contraseña"
           required
-          type="password"
         />
-      </label>
-      <button
-        className="h-10 w-full rounded-xl bg-primary font-bold text-white disabled:opacity-50"
-        disabled={pending}
-        type="submit"
-      >
-        {pending ? "Guardando…" : "Guardar contraseña"}
-      </button>
-    </form>
+        <SaveRow pending={pending} msg={msg} label="Guardar contraseña" />
+      </form>
+    </SectionAccordion>
   );
 }

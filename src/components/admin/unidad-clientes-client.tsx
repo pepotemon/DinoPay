@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { ChevronRight, MoreVertical, X } from "lucide-react";
+import { MoreVertical, X } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import { getClientPaymentsAction, getClientLoansAction } from "@/lib/actions/admin/client-history";
-import { deactivateClientAction } from "@/lib/actions/admin/clients";
+import { deactivateClientAction, updateClientInlineAction } from "@/lib/actions/admin/clients";
 import { cancelLoanFromHubAction } from "@/lib/actions/admin/unit-hub";
 import { RouteSelector } from "@/components/admin/route-selector";
 
@@ -14,6 +14,9 @@ type ClientWithLoan = {
   alias: string;
   nit: string | null;
   telefono1: string | null;
+  telefono2: string | null;
+  direccion1: string | null;
+  barrio: string | null;
   activo: boolean;
   loan: {
     id: string;
@@ -38,9 +41,10 @@ type HistoryModal = {
 type PaymentRow = {
   id: string;
   monto: number;
+  numero_cuotas: number;
+  metodo_pago: string;
   fecha_pago: string;
   hora_registro: string;
-  tipo_pago: string | null;
 };
 
 type LoanRow = {
@@ -74,6 +78,7 @@ export function UnidadClientesClient({
   const [historyModal, setHistoryModal] = useState<HistoryModal | null>(null);
   const [historyData, setHistoryData] = useState<unknown[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [editClient, setEditClient] = useState<ClientWithLoan | null>(null);
 
   const activos = clients.filter((c) => c.activo && c.loan !== null);
   const disponibles = clients.filter((c) => c.activo && c.loan === null);
@@ -129,6 +134,11 @@ export function UnidadClientesClient({
     formData.set("loanId", client.loan!.id);
     formData.set("unitId", unitId);
     await cancelLoanFromHubAction(formData);
+  }
+
+  function openEditClient(client: ClientWithLoan) {
+    setMenuOpenId(null);
+    setEditClient(client);
   }
 
   async function handleDeactivateClient(client: ClientWithLoan) {
@@ -210,10 +220,20 @@ export function UnidadClientesClient({
               onLoanHistory={() => openLoanHistory(client)}
               onCancelLoan={() => handleCancelLoan(client)}
               onDeactivateClient={() => handleDeactivateClient(client)}
+              onEditClient={() => openEditClient(client)}
             />
           ))
         )}
       </div>
+
+      {/* Edit client modal */}
+      {editClient && (
+        <EditClientModal
+          client={editClient}
+          unitId={unitId}
+          onClose={() => setEditClient(null)}
+        />
+      )}
 
       {/* History modal */}
       {historyModal && (
@@ -244,7 +264,8 @@ function ClientCard({
   onPaymentHistory,
   onLoanHistory,
   onCancelLoan,
-  onDeactivateClient
+  onDeactivateClient,
+  onEditClient
 }: {
   client: ClientWithLoan;
   unitId: string;
@@ -254,6 +275,7 @@ function ClientCard({
   onLoanHistory: () => void;
   onCancelLoan: () => void;
   onDeactivateClient: () => void;
+  onEditClient: () => void;
 }) {
   const loan = client.loan;
   const menuRef = useRef<HTMLDivElement>(null);
@@ -306,14 +328,6 @@ function ClientCard({
 
         {/* Actions row */}
         <div className="shrink-0 flex items-center gap-1">
-          <Link
-            href={`/admin/unidades/${unitId}/clientes/${client.id}`}
-            className="flex items-center gap-1 rounded-md bg-muted px-2.5 py-1.5 text-xs font-medium hover:bg-muted/80 transition-colors"
-          >
-            Ver historial
-            <ChevronRight className="h-3 w-3" />
-          </Link>
-
           {/* 3-dot menu */}
           <div ref={menuRef} className="relative">
             <button
@@ -383,13 +397,13 @@ function ClientCard({
                 <div className="border-t my-0.5" />
 
                 {/* Editar cliente */}
-                <Link
-                  href={`/admin/unidades/${unitId}/clientes/${client.id}`}
-                  className="block px-4 py-2.5 text-sm hover:bg-muted transition-colors"
-                  onClick={() => onMenuToggle(client.id)}
+                <button
+                  type="button"
+                  className="w-full text-left px-4 py-2.5 text-sm hover:bg-muted transition-colors"
+                  onClick={onEditClient}
                 >
                   Editar cliente
-                </Link>
+                </button>
               </div>
             )}
           </div>
@@ -522,9 +536,9 @@ function PaymentsList({ rows }: { rows: PaymentRow[] }) {
         >
           <div className="min-w-0">
             <p className="text-sm font-medium">{r.fecha_pago}</p>
-            {r.tipo_pago ? (
-              <p className="text-xs text-muted-foreground capitalize">{r.tipo_pago}</p>
-            ) : null}
+            <p className="text-xs text-muted-foreground capitalize">
+              {r.metodo_pago} · {r.numero_cuotas} cuota{r.numero_cuotas !== 1 ? "s" : ""}
+            </p>
           </div>
           <p className="text-green-700 font-semibold shrink-0">
             {formatCurrency(r.monto)}
@@ -601,5 +615,151 @@ function LoansList({ rows }: { rows: LoanRow[] }) {
         </div>
       ))}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// EditClientModal
+// ---------------------------------------------------------------------------
+
+function EditClientModal({
+  client,
+  unitId,
+  onClose
+}: {
+  client: ClientWithLoan;
+  unitId: string;
+  onClose: () => void;
+}) {
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    setError(null);
+    startTransition(async () => {
+      const res = await updateClientInlineAction(fd);
+      if (res?.error) {
+        setError(res.error);
+      } else {
+        onClose();
+      }
+    });
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
+
+      <div className="relative z-10 w-full max-w-sm rounded-2xl border bg-background shadow-2xl flex flex-col max-h-[90dvh]">
+        {/* Header */}
+        <div className="flex items-center justify-between gap-3 border-b px-5 py-4 shrink-0">
+          <div className="min-w-0">
+            <h2 className="font-semibold">Editar cliente</h2>
+            <p className="text-xs text-muted-foreground uppercase mt-0.5">{client.alias}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-muted transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Form */}
+        <div className="overflow-y-auto flex-1">
+          <form onSubmit={handleSubmit} className="space-y-3 p-5">
+            <input type="hidden" name="clientId" value={client.id} />
+            <input type="hidden" name="unitId" value={unitId} />
+
+            {error ? (
+              <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                {error}
+              </p>
+            ) : null}
+
+            <EditField label="Nombre / Alias *">
+              <input
+                name="alias"
+                defaultValue={client.alias}
+                required
+                placeholder="Nombre del cliente"
+                className="h-9 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </EditField>
+            <EditField label="NIT / Cédula">
+              <input
+                name="nit"
+                defaultValue={client.nit ?? ""}
+                placeholder="Documento de identidad"
+                className="h-9 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </EditField>
+            <EditField label="Teléfono 1">
+              <input
+                name="telefono1"
+                type="tel"
+                defaultValue={client.telefono1 ?? ""}
+                placeholder="Número de contacto"
+                className="h-9 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </EditField>
+            <EditField label="Teléfono 2">
+              <input
+                name="telefono2"
+                type="tel"
+                defaultValue={client.telefono2 ?? ""}
+                placeholder="Número alternativo"
+                className="h-9 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </EditField>
+            <EditField label="Dirección">
+              <input
+                name="direccion1"
+                defaultValue={client.direccion1 ?? ""}
+                placeholder="Dirección del cliente"
+                className="h-9 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </EditField>
+            <EditField label="Barrio">
+              <input
+                name="barrio"
+                defaultValue={client.barrio ?? ""}
+                placeholder="Barrio o sector"
+                className="h-9 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </EditField>
+
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 h-10 rounded-xl border text-sm font-medium hover:bg-muted transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={pending}
+                className="flex-1 h-10 rounded-xl bg-primary text-sm font-bold text-white disabled:opacity-50 hover:bg-primary/90 transition-colors"
+              >
+                {pending ? "Guardando…" : "Guardar"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EditField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block space-y-1 text-xs font-medium">
+      <span>{label}</span>
+      {children}
+    </label>
   );
 }

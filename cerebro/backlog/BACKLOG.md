@@ -1,7 +1,7 @@
 ---
 tags: [backlog, pendiente, tareas, prioridades]
 created: 2026-07-24
-updated: 2026-08-12 (v0.23.0)
+updated: 2026-08-12 (v0.27.0)
 ---
 
 # Backlog — DinoPay
@@ -67,7 +67,8 @@ updated: 2026-08-12 (v0.23.0)
 - [ ] Integración Google Maps al crear cliente (ubicar en mapa)
 
 ### Módulo Admin — Completo
-- [x] Editar configuración de unidad (intereses, capital, etc.)
+- [x] Editar configuración de unidad (intereses, capital, etc.) — inline, sin páginas extra, acordeón por sección
+- [x] Editar información del cliente desde admin — modal inline en lista de clientes
 - [x] Ver reportes de cualquier unidad
 - [x] Cancelar préstamos activos
 

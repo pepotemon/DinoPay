@@ -5,7 +5,7 @@ export async function getClientPaymentsAction(loanId: string) {
   const adminClient = createAdminClient();
   const { data } = await adminClient
     .from("payments")
-    .select("id, monto, fecha_pago, hora_registro, tipo_pago")
+    .select("id, monto, numero_cuotas, metodo_pago, fecha_pago, hora_registro")
     .eq("loan_id", loanId)
     .eq("eliminado", false)
     .order("fecha_pago", { ascending: false })
@@ -14,9 +14,10 @@ export async function getClientPaymentsAction(loanId: string) {
   return (data ?? []) as {
     id: string;
     monto: number;
+    numero_cuotas: number;
+    metodo_pago: string;
     fecha_pago: string;
     hora_registro: string;
-    tipo_pago: string | null;
   }[];
 }
 
