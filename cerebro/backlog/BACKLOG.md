@@ -1,7 +1,7 @@
 ---
 tags: [backlog, pendiente, tareas, prioridades]
 created: 2026-07-24
-updated: 2026-07-28 (v0.12.0)
+updated: 2026-08-12 (v0.23.0)
 ---
 
 # Backlog — DinoPay
@@ -67,9 +67,9 @@ updated: 2026-07-28 (v0.12.0)
 - [ ] Integración Google Maps al crear cliente (ubicar en mapa)
 
 ### Módulo Admin — Completo
-- [ ] Editar configuración de unidad (intereses, capital, etc.)
-- [ ] Ver reportes de cualquier unidad
-- [ ] Cancelar préstamos activos
+- [x] Editar configuración de unidad (intereses, capital, etc.)
+- [x] Ver reportes de cualquier unidad
+- [x] Cancelar préstamos activos
 
 ### Loading / Error States
 - [x] `loading.tsx` en préstamos, gastos y reporte diario
@@ -86,15 +86,15 @@ updated: 2026-07-28 (v0.12.0)
 - [ ] Animaciones de transición entre pantallas
 - [ ] Empty states con ilustraciones
 - [x] Toasts con Sonner (AutoToast, funciona con ?ok= y ?error= existentes)
-- [ ] Editar ajuste semanal (actualmente solo crear/eliminar)
-- [ ] Copiar resumen del día como texto para WhatsApp
+- [x] Editar ajuste semanal (ahora con edit/delete individuales en DayCard)
+- [x] Copiar resumen del día como texto para WhatsApp (en Reporte Diario)
 - [x] Paginación en reportes (20 por página, Anterior/Siguiente)
 
 ### PWA
 - [x] Configurar manifest.json
 - [x] Meta tags PWA en layout (theme-color, apple-mobile-web-app-capable)
 - [ ] Íconos reales: `public/icons/icon-192.png` e `icon-512.png`
-- [ ] Service Worker para funcionamiento offline básico
+- [x] Service Worker básico (`public/sw.js`) — cachea `_next/static`, manifest e íconos
 
 ### Performance
 - [ ] Paginación en lista de préstamos (si hay 100+)
@@ -109,17 +109,17 @@ updated: 2026-07-28 (v0.12.0)
 ---
 
 ## Testing
-- [ ] Tests unitarios para cálculos de préstamo (cuota, total, saldo)
+- [x] Tests unitarios para cálculos de préstamo (cuota, total, saldo) — 23 tests con vitest
 - [ ] Tests unitarios para cálculo de caja y recaudado semanal
 - [ ] Tests E2E para flujo: crear cliente → crear préstamo → registrar pago → completar
 
 ---
 
 ## Seguridad
-- [ ] Audit de todas las RLS policies
-- [ ] Verificar que service role key nunca llegue al cliente
+- [x] Audit de todas las RLS policies — todas OK, todas las funciones SECURITY DEFINER con search_path fijo
+- [x] Verificar que service role key nunca llegue al cliente — solo en Server Actions con `createAdminClient`
 - [ ] Rate limiting en Server Actions críticos (registro de pagos)
-- [ ] Rotar la secret key de Supabase (fue compartida en sesión de setup)
+- [ ] **CRÍTICO**: Rotar la `SUPABASE_SERVICE_ROLE_KEY` (fue expuesta en sesión de setup)
 
 ---
 

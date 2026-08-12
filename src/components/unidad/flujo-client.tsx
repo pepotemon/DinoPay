@@ -9,15 +9,18 @@ import {
   CreditCard,
   MinusCircle,
   Package,
+  Pencil,
   PlusCircle,
   Receipt,
   SlidersHorizontal,
+  Trash2,
   Wallet,
   X
 } from "lucide-react";
+import Link from "next/link";
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { createAjusteAction, type AjusteState } from "@/lib/actions/unidad/ajustes";
+import { createAjusteAction, deleteAjusteAction, type AjusteState } from "@/lib/actions/unidad/ajustes";
 import { cn, formatCurrency } from "@/lib/utils";
 import { addDaysToDateString } from "@/lib/utils/date-timezone";
 import { PageDino } from "@/components/unidad/page-dino";
@@ -174,7 +177,7 @@ export function FlujoSemanalClient({ data, today }: { data: FlujoData; today: st
         );
         const recaudado = cobrado - prestado - gastos;
         const totalFinal = recaudado + ajusteNetoDia;
-        return { day, cobrado, transferencia, efectivo, prestado, gastos, ajusteNetoDia, recaudado, totalFinal };
+        return { day, cobrado, transferencia, efectivo, prestado, gastos, ajusteNetoDia, recaudado, totalFinal, dayAjustes: da };
       }),
     [rangeDays, payments, loans, expenses, ajustes]
   );
@@ -492,6 +495,7 @@ type DayRow = {
   ajusteNetoDia: number;
   recaudado: number;
   totalFinal: number;
+  dayAjustes: FlujoAjuste[];
 };
 
 function DayCard({ row, onCopy }: { row: DayRow; onCopy: () => void }) {
@@ -527,6 +531,40 @@ function DayCard({ row, onCopy }: { row: DayRow; onCopy: () => void }) {
         <LineItem icon={<Receipt className="h-4 w-4" />} label="Efectivo" value={formatCurrency(row.efectivo)} indent />
         <LineItem icon={<MinusCircle className="h-4 w-4" />} label="Gastos" value={`-${formatCurrency(row.gastos)}`} negative />
         <LineItem icon={<SlidersHorizontal className="h-4 w-4" />} label="Ajustes" value={formatCurrency(row.ajusteNetoDia)} />
+        {row.dayAjustes.length > 0 ? (
+          <div className="mt-1 space-y-1 pl-5">
+            {row.dayAjustes.map((aj) => {
+              const semana = getWeekStart(aj.fecha);
+              const signo = aj.tipo === "ingreso" ? "+" : "-";
+              return (
+                <div key={aj.id} className="flex items-center justify-between gap-2 rounded-lg bg-muted/40 px-2 py-1.5 text-xs">
+                  <span className={cn("font-medium", aj.tipo === "ingreso" ? "text-green-700" : "text-destructive")}>
+                    {signo}{formatCurrency(Number(aj.monto))}
+                    {aj.descripcion ? <span className="ml-1 text-muted-foreground font-normal">· {aj.descripcion}</span> : null}
+                  </span>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Link
+                      className="grid h-6 w-6 place-items-center rounded bg-background text-muted-foreground transition-colors hover:text-primary"
+                      href={`/unidad/flujo-semanal/${aj.id}/editar?semana=${semana}`}
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </Link>
+                    <form action={deleteAjusteAction}>
+                      <input type="hidden" name="ajusteId" value={aj.id} />
+                      <input type="hidden" name="semanaInicio" value={semana} />
+                      <button
+                        className="grid h-6 w-6 place-items-center rounded bg-background text-muted-foreground transition-colors hover:text-destructive"
+                        type="submit"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
         <div className="my-1 border-t" />
         <LineItem icon={<Package className="h-4 w-4" />} label="Total Recaudado" value={formatCurrency(row.recaudado)} bold />
         <LineItem icon={<Wallet className="h-4 w-4" />} label="Total Final" value={formatCurrency(row.totalFinal)} bold />

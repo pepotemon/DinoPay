@@ -12,6 +12,48 @@ updated: 2026-07-24
 
 ---
 
+## [0.23.0] — 2026-08-12
+
+### Admin — Funcionalidades Completas
+
+**Ver reportes de cualquier unidad**
+- Nueva página `/admin/unidades/[id]/reportes` — reutiliza `ReportesClient` del panel de unidad.
+- Botón "Reportes" añadido en el detalle de unidad admin.
+
+**Cancelar préstamos activos (desde admin)**
+- Nueva página `/admin/unidades/[id]/prestamos` — lista todos los préstamos de una unidad con historial.
+- Acción `cancelLoanAction` en `src/lib/actions/admin/prestamos.ts` — marca `estado = 'cancelado'` con verificación de admin.
+- Botón de cancelar con confirmación en `CancelLoanButton` (Client Component).
+- Botón "Préstamos" añadido en el detalle de unidad admin.
+
+### Flujo Semanal — Editar/eliminar ajustes individuales en la UI
+
+- `flujo-client.tsx`: DayCard ahora lista cada ajuste individual del día con su monto, descripción, tipo y botones de editar (link a `/unidad/flujo-semanal/[id]/editar`) y eliminar (form con `deleteAjusteAction`).
+- El servidor action `deleteAjusteAction` y la página de editar ya existían; ahora la UI los expone.
+
+### Reporte Diario — Copiar resumen para WhatsApp
+
+- `caja-client.tsx`: botón "Copiar resumen" que genera texto con caja inicial, cobrado, prestado, gastos, ingresos, retiros, caja final y conteo de clientes.
+
+### PWA — Service Worker básico
+
+- `public/sw.js`: cachea assets estáticos (`_next/static/*`, manifest, íconos). No intercepta rutas SSR.
+- `SwRegister` registra el SW en el layout raíz.
+
+### Testing
+
+- Vitest instalado y configurado (`vitest.config.ts`).
+- 23 tests unitarios para `calcularDiasAtraso`, `calcularCuotasAdelantadas`, `addDaysToDateString` y `dateInTimeZone`.
+- Scripts `test` y `test:watch` añadidos a `package.json`.
+
+### Seguridad — Audit RLS
+
+- Todas las tablas tienen RLS habilitado con políticas correctas: `admins`, `units`, `clients`, `loans`, `payments`, `expenses`, `capital_movements`, `box_adjustments`, `weekly_adjustments`, `loan_visits`, `caja_snapshots`.
+- Todas las funciones `SECURITY DEFINER` tienen `SET search_path = public, pg_catalog` (Migration 020).
+- Pendiente crítico: rotar la `SUPABASE_SERVICE_ROLE_KEY` (fue expuesta en sesión de setup).
+
+---
+
 ## [0.22.0] — 2026-07-29
 
 ### Corregido — Integridad Financiera (Auditoria Completa)

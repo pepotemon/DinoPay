@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowDownCircle, ArrowUpCircle, Settings } from "lucide-react";
+import { ArrowLeft, ArrowDownCircle, ArrowUpCircle, BarChart2, FileText, Settings } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createCapitalMovementAction } from "@/lib/actions/admin/capital";
@@ -103,6 +103,21 @@ export default async function AdminUnidadDetallePage({
           <Link href={`/admin/unidades/${id}/editar`}>
             <Settings className="h-4 w-4" />
             Editar
+          </Link>
+        </Button>
+      </div>
+
+      <div className="flex gap-2">
+        <Button asChild className="flex-1" size="sm" variant="secondary">
+          <Link href={`/admin/unidades/${id}/reportes`}>
+            <BarChart2 className="h-4 w-4" />
+            Reportes
+          </Link>
+        </Button>
+        <Button asChild className="flex-1" size="sm" variant="secondary">
+          <Link href={`/admin/unidades/${id}/prestamos`}>
+            <FileText className="h-4 w-4" />
+            Préstamos
           </Link>
         </Button>
       </div>

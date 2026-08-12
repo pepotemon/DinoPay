@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import "./globals.css";
 import { AutoToast } from "@/components/auto-toast";
 import { QueryProvider } from "@/components/providers/query-provider";
+import { SwRegister } from "@/components/sw-register";
 
 export const metadata: Metadata = {
   title: "DinoPay",
@@ -32,6 +33,7 @@ export default function RootLayout({
         <Suspense>
           <AutoToast />
         </Suspense>
+        <SwRegister />
       </body>
     </html>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Copy } from "lucide-react";
 import { useMemo, useState } from "react";
 import { formatCurrency } from "@/lib/utils";
 import { addDaysToDateString } from "@/lib/utils/date-timezone";
@@ -29,6 +29,7 @@ function formatDisplay(dateStr: string): string {
 export function CajaDelDiaClient({ data }: { data: CajaData }) {
   const today = data.today;
   const [fecha, setFecha] = useState(today);
+  const [copied, setCopied] = useState(false);
 
   const isToday = fecha === today;
   const atSnapshotLimit = fecha <= data.snapshotDate;
@@ -110,6 +111,34 @@ export function CajaDelDiaClient({ data }: { data: CajaData }) {
   const programadosCount = data.activeLoansCount;
   const pendientesCount = Math.max(0, programadosCount - visitadosCount);
 
+  function buildResumenText() {
+    const [y, m, d] = fecha.split("-");
+    return [
+      `📅 Reporte Diario — ${d}/${m}/${y}`,
+      ``,
+      `Caja Inicial: ${formatCurrency(cajaInicial)}`,
+      `Cobrado: ${formatCurrency(cobradoHoy)}`,
+      `Prestado: -${formatCurrency(prestadoHoy)}`,
+      `Gastos: -${formatCurrency(gastosHoy)}`,
+      `Ingresos: ${formatCurrency(ingresosHoy)}`,
+      `Retiros: -${formatCurrency(retirosHoy)}`,
+      `Caja Final: ${formatCurrency(cajaFinal)}`,
+      ``,
+      `Clientes`,
+      `Programados: ${programadosCount}`,
+      `Visitados: ${visitadosCount}`,
+      `Pendientes: ${pendientesCount}`
+    ].join("\n");
+  }
+
+  async function copiarResumen() {
+    try {
+      await navigator.clipboard.writeText(buildResumenText());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {}
+  }
+
   return (
     <div className="pb-6">
       {/* ── Date nav ── */}
@@ -132,6 +161,22 @@ export function CajaDelDiaClient({ data }: { data: CajaData }) {
           onClick={() => setFecha(addDays(fecha, 1))}
         >
           <ChevronRight className="h-5 w-5" />
+        </button>
+      </div>
+
+      {/* ── Copy button ── */}
+      <div className="flex justify-end pb-3">
+        <button
+          className="flex items-center gap-1.5 text-sm font-bold text-muted-foreground transition-colors active:text-primary"
+          type="button"
+          onClick={copiarResumen}
+        >
+          {copied ? (
+            <Check className="h-4 w-4 text-primary" />
+          ) : (
+            <Copy className="h-4 w-4" />
+          )}
+          {copied ? "Copiado" : "Copiar resumen"}
         </button>
       </div>
 

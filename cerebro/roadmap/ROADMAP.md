@@ -81,9 +81,9 @@ updated: 2026-07-24
 | Dashboard global del admin | ✅ Implementado | 🔴 Alta |
 | Ver detalles de cualquier unidad | ✅ Implementado (/admin/unidades/[id]) | 🔴 Alta |
 | Inyectar/retirar capital | ✅ Implementado | 🔴 Alta |
-| Editar configuración de unidad | ⏳ Pendiente | 🟡 Media |
-| Ver reportes de cualquier unidad | ⏳ Pendiente | 🟡 Media |
-| Cancelar préstamos (admin) | ⏳ Pendiente | 🟡 Media |
+| Editar configuración de unidad | ✅ Implementado (/admin/unidades/[id]/editar) | 🟡 Media |
+| Ver reportes de cualquier unidad | ✅ Implementado (/admin/unidades/[id]/reportes) | 🟡 Media |
+| Cancelar préstamos (admin) | ✅ Implementado (/admin/unidades/[id]/prestamos + cancelLoanAction) | 🟡 Media |
 
 ---
 
@@ -103,8 +103,10 @@ updated: 2026-07-24
 | PWA básica (manifest + meta tags) | ✅ Implementado | 🟢 Baja |
 | Íconos PWA reales (192px y 512px) | ⏳ Pendiente — requiere diseño | 🟢 Baja |
 | Notificaciones push (gastos pendientes) | ⏳ Pendiente | 🟢 Baja |
-| Deploy en Vercel | ⏳ Pendiente | 🔴 Alta |
-| Variables de entorno en producción | ⏳ Pendiente | 🔴 Alta |
+| Deploy en Vercel | ⏳ Pendiente — requiere acción manual | 🔴 Alta |
+| Variables de entorno en producción | ⏳ Pendiente — requiere Vercel dashboard | 🔴 Alta |
+| Service Worker básico (offline) | ✅ Implementado (public/sw.js + SwRegister) | 🟢 Baja |
+| Testing unitario (vitest) | ✅ Implementado — 23 tests para overdue y date-timezone | 🟡 Media |
 | Testing E2E básico | ⏳ Pendiente | 🟡 Media |
 
 ---
@@ -116,8 +118,8 @@ updated: 2026-07-24
 - Dashboard de analytics avanzado para el admin
 - Sistema de referidos entre unidades
 - Integración con sistemas de pago electrónico
-- Editar ajuste semanal (actualmente solo crear/eliminar)
-- Copiar resumen del día como texto para compartir por WhatsApp
+- ~~Editar ajuste semanal~~ ✅ Completado
+- ~~Copiar resumen del día como texto para compartir por WhatsApp~~ ✅ Completado en Reporte Diario
 
 ---
 
