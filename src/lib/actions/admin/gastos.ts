@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -56,6 +56,7 @@ export async function decideExpenseAction(formData: FormData) {
     redirect(`/admin/gastos?error=${encodeURIComponent(error.message)}`);
   }
 
+  revalidateTag("admin-pending-expenses");
   revalidatePath("/admin/gastos");
   revalidatePath("/admin/dashboard");
   redirect(`/admin/gastos?ok=${decision === "aprobado" ? "Gasto aprobado" : "Gasto rechazado"}`);

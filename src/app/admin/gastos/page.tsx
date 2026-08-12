@@ -1,9 +1,9 @@
+import { unstable_cache } from "next/cache";
 import { CheckCircle2, ReceiptText, XCircle } from "lucide-react";
 import { decideExpenseAction } from "@/lib/actions/admin/gastos";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/utils";
 
 type PendingExpenseRow = {
@@ -14,46 +14,39 @@ type PendingExpenseRow = {
   fecha: string;
   creado_por: string;
   units:
-    | {
-        username: string;
-        nombre_unidad: string;
-      }
-    | {
-        username: string;
-        nombre_unidad: string;
-      }[]
+    | { username: string; nombre_unidad: string }
+    | { username: string; nombre_unidad: string }[]
     | null;
 };
+
+const getPendingExpenses = unstable_cache(
+  async () => {
+    const adminClient = createAdminClient();
+    const { data } = await adminClient
+      .from("expenses")
+      .select("id, categoria, monto, nota, fecha, creado_por, units(username, nombre_unidad)")
+      .eq("estado", "pendiente")
+      .order("fecha", { ascending: true })
+      .order("created_at", { ascending: true });
+    return data ?? [];
+  },
+  ["admin-pending-expenses"],
+  { revalidate: 30, tags: ["admin-pending-expenses"] }
+);
 
 export default async function AdminGastosPage({
   searchParams
 }: {
-  searchParams?: Promise<{
-    ok?: string;
-    error?: string;
-  }>;
+  searchParams?: Promise<{ ok?: string; error?: string }>;
 }) {
   const params = await searchParams;
-  const supabase = await createClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
 
-  const adminClient = createAdminClient();
-  const { data: expenses } = user
-    ? await adminClient
-        .from("expenses")
-        .select("id, categoria, monto, nota, fecha, creado_por, units(username, nombre_unidad)")
-        .eq("estado", "pendiente")
-        .order("fecha", { ascending: true })
-        .order("created_at", { ascending: true })
-    : { data: [] };
-
-  const rows = ((expenses ?? []) as unknown as PendingExpenseRow[]).map((expense) => ({
+  const expenses = await getPendingExpenses();
+  const rows = (expenses as unknown as PendingExpenseRow[]).map((expense) => ({
     ...expense,
     units: Array.isArray(expense.units) ? expense.units[0] ?? null : expense.units
   }));
-  const pendingTotal = rows.reduce((sum, expense) => sum + Number(expense.monto), 0);
+  const pendingTotal = rows.reduce((sum, e) => sum + Number(e.monto), 0);
 
   return (
     <div className="space-y-5 pb-8">
@@ -104,7 +97,7 @@ export default async function AdminGastosPage({
                 <div>
                   <p className="font-semibold">{expense.units?.nombre_unidad ?? "Unidad"}</p>
                   <p className="text-sm text-muted-foreground">
-                    {expense.units?.username ?? expense.creado_por} - {expense.fecha}
+                    {expense.units?.username ?? expense.creado_por} · {expense.fecha}
                   </p>
                 </div>
                 <div className="text-right">
