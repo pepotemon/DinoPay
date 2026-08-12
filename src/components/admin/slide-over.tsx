@@ -25,6 +25,7 @@ export function SlideOver({
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(false);
 
+  // Escape key
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -32,6 +33,7 @@ export function SlideOver({
     return () => document.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
+  // Mount / unmount with animation
   useEffect(() => {
     if (open) {
       setMounted(true);
@@ -44,6 +46,23 @@ export function SlideOver({
     }
   }, [open]);
 
+  // Body scroll lock
+  useEffect(() => {
+    if (!visible) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [visible]);
+
+  // Browser back button — close sheet instead of navigating
+  useEffect(() => {
+    if (!open) return;
+    history.pushState(null, "");
+    const onPop = () => onClose();
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [open, onClose]);
+
   if (!mounted) return null;
 
   const ease: React.CSSProperties = {
@@ -52,12 +71,12 @@ export function SlideOver({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[200]" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-[240]" role="dialog" aria-modal="true">
       {/* Backdrop */}
       <div
         aria-hidden="true"
         className={cn(
-          "absolute inset-0 bg-black/35 transition-opacity",
+          "absolute inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity",
           visible ? "opacity-100" : "opacity-0"
         )}
         style={ease}
@@ -68,11 +87,11 @@ export function SlideOver({
       <div
         className={cn(
           // shared
-          "absolute flex flex-col bg-background shadow-2xl",
+          "absolute flex flex-col bg-background shadow-[0_-8px_32px_rgba(0,0,0,0.14)]",
           // mobile: bottom sheet
           "inset-x-0 bottom-0 h-[92dvh] rounded-t-[30px] border-t border-border/40",
           // desktop: right slide panel
-          "lg:inset-x-auto lg:inset-y-0 lg:right-0 lg:h-full lg:w-[560px]",
+          "lg:inset-x-auto lg:inset-y-0 lg:right-0 lg:h-full lg:w-[560px] lg:shadow-2xl",
           "lg:rounded-t-none lg:rounded-l-[32px] lg:border-t-0 lg:border-l lg:border-border/40",
           // animation
           "transition-transform",
@@ -84,7 +103,7 @@ export function SlideOver({
       >
         {/* Mobile drag handle */}
         <div className="lg:hidden flex justify-center pt-3 pb-1 shrink-0">
-          <div className="h-1 w-10 rounded-full bg-muted-foreground/25" />
+          <div className="h-1.5 w-12 rounded-full bg-muted-foreground/25" />
         </div>
 
         {/* Header */}
@@ -106,13 +125,16 @@ export function SlideOver({
         </div>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="flex-1 overflow-y-auto overscroll-contain min-h-0">
           {children}
         </div>
 
-        {/* Footer (optional, fixed at bottom) */}
+        {/* Footer (optional, fixed at bottom, safe area aware) */}
         {footer ? (
-          <div className="shrink-0 border-t border-border/50 px-5 py-4 lg:px-7">
+          <div
+            className="shrink-0 border-t border-border/50 px-5 py-4 lg:px-7"
+            style={{ paddingBottom: `calc(1rem + env(safe-area-inset-bottom))` }}
+          >
             {footer}
           </div>
         ) : null}
