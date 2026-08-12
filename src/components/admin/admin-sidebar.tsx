@@ -137,7 +137,7 @@ function SidebarContent({
 export function AdminSidebar() {
   const pathname = usePathname();
   return (
-    <aside className="hidden lg:block w-56 shrink-0 sticky top-0 h-screen border-r bg-background">
+    <aside className="hidden lg:flex lg:flex-col w-56 shrink-0 sticky top-0 h-screen border-r bg-background z-20">
       <SidebarContent pathname={pathname} />
     </aside>
   );

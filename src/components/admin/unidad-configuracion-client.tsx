@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef } from "react";
 import Link from "next/link";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, X as XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RouteSelector } from "@/components/admin/route-selector";
 import {
@@ -216,6 +216,29 @@ function OperativeSection({ unit }: { unit: UnitFull }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [tags, setTags] = useState<number[]>(unit.intereses);
+  const [inputVal, setInputVal] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function addTag() {
+    const n = parseFloat(inputVal.trim());
+    if (!isNaN(n) && n > 0 && !tags.includes(n)) {
+      setTags((prev) => [...prev, n].sort((a, b) => a - b));
+    }
+    setInputVal("");
+    inputRef.current?.focus();
+  }
+
+  function removeTag(val: number) {
+    setTags((prev) => prev.filter((t) => t !== val));
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addTag();
+    }
+  }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -228,7 +251,7 @@ function OperativeSection({ unit }: { unit: UnitFull }) {
   }
 
   const summary = [
-    unit.intereses.length ? unit.intereses.map((i) => `${i}%`).join(" ") : null,
+    tags.length ? tags.map((i) => `${i}%`).join(" ") : null,
     unit.dias_laborales.length ? unit.dias_laborales.map((d) => DIA_LABELS[d]).join(" ") : null
   ]
     .filter(Boolean)
@@ -243,13 +266,59 @@ function OperativeSection({ unit }: { unit: UnitFull }) {
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <input type="hidden" name="unitId" value={unit.id} />
+        <input type="hidden" name="intereses" value={tags.join(",")} />
 
-        <FieldInput
-          label="Tasas de interés (separadas por coma)"
-          name="intereses"
-          defaultValue={unit.intereses.join(",")}
-          placeholder="10,15,20"
-        />
+        {/* Interest tag input */}
+        <div className="space-y-2">
+          <p className="text-xs font-medium">Tasas de interés</p>
+
+          {/* Pills */}
+          {tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {tags.map((t) => (
+                <span
+                  key={t}
+                  className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-800"
+                >
+                  {t}%
+                  <button
+                    type="button"
+                    onClick={() => removeTag(t)}
+                    className="flex items-center justify-center rounded-full hover:bg-green-200 transition-colors"
+                    aria-label={`Quitar ${t}%`}
+                  >
+                    <XIcon className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Input row */}
+          <div className="flex gap-2">
+            <input
+              ref={inputRef}
+              type="number"
+              min="0.01"
+              step="any"
+              value={inputVal}
+              onChange={(e) => setInputVal(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ej: 10"
+              className="h-9 w-28 rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+            <button
+              type="button"
+              onClick={addTag}
+              className="h-9 rounded-xl bg-muted px-3 text-sm font-medium hover:bg-muted/80 transition-colors"
+            >
+              + Agregar
+            </button>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Escribe el número y presiona Enter o "+ Agregar"
+          </p>
+        </div>
 
         <div className="space-y-2">
           <p className="text-xs font-medium">Días laborales</p>

@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { MoreVertical, X } from "lucide-react";
+import { MoreVertical } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import { getClientPaymentsAction, getClientLoansAction } from "@/lib/actions/admin/client-history";
 import { deactivateClientAction, updateClientInlineAction } from "@/lib/actions/admin/clients";
 import { cancelLoanFromHubAction } from "@/lib/actions/admin/unit-hub";
 import { RouteSelector } from "@/components/admin/route-selector";
+import { SlideOver } from "@/components/admin/slide-over";
 
 type ClientWithLoan = {
   id: string;
@@ -79,6 +80,12 @@ export function UnidadClientesClient({
   const [historyData, setHistoryData] = useState<unknown[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [editClient, setEditClient] = useState<ClientWithLoan | null>(null);
+
+  // Sticky refs — keep last non-null value so SlideOver content stays during close animation
+  const lastHistoryModal = useRef(historyModal);
+  if (historyModal) lastHistoryModal.current = historyModal;
+  const lastEditClient = useRef(editClient);
+  if (editClient) lastEditClient.current = editClient;
 
   const activos = clients.filter((c) => c.activo && c.loan !== null);
   const disponibles = clients.filter((c) => c.activo && c.loan === null);
@@ -226,28 +233,23 @@ export function UnidadClientesClient({
         )}
       </div>
 
-      {/* Edit client modal */}
-      {editClient && (
-        <EditClientModal
-          client={editClient}
-          unitId={unitId}
-          onClose={() => setEditClient(null)}
-        />
-      )}
+      {/* Edit client slide-over */}
+      <EditClientModal
+        open={editClient !== null}
+        client={lastEditClient.current}
+        unitId={unitId}
+        onClose={() => setEditClient(null)}
+      />
 
-      {/* History modal */}
-      {historyModal && (
-        <ClientHistoryModal
-          type={historyModal.type}
-          clientName={historyModal.client.alias}
-          loading={historyLoading}
-          data={historyData}
-          onClose={() => {
-            setHistoryModal(null);
-            setHistoryData([]);
-          }}
-        />
-      )}
+      {/* History slide-over */}
+      <ClientHistoryModal
+        open={historyModal !== null}
+        type={lastHistoryModal.current?.type ?? "pagos"}
+        clientName={lastHistoryModal.current?.client.alias ?? ""}
+        loading={historyLoading}
+        data={historyData}
+        onClose={() => { setHistoryModal(null); setHistoryData([]); }}
+      />
     </div>
   );
 }
@@ -454,12 +456,14 @@ function ClientCard({
 // ---------------------------------------------------------------------------
 
 function ClientHistoryModal({
+  open,
   type,
   clientName,
   loading,
   data,
   onClose
 }: {
+  open: boolean;
   type: "pagos" | "prestamos";
   clientName: string;
   loading: boolean;
@@ -469,46 +473,24 @@ function ClientHistoryModal({
   const title = type === "pagos" ? "Historial de pagos" : "Historial de préstamos";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
-      {/* Overlay */}
-      <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-
-      {/* Panel */}
-      <div className="relative z-10 w-full max-w-lg rounded-2xl bg-background shadow-2xl border border-border/60 flex flex-col max-h-[80dvh]">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3 p-5 pb-4 border-b shrink-0">
-          <div className="min-w-0">
-            <h2 className="text-base font-bold leading-tight">{title}</h2>
-            <p className="mt-0.5 text-sm text-muted-foreground uppercase">{clientName}</p>
+    <SlideOver
+      open={open}
+      onClose={onClose}
+      title={title}
+      description={<span className="uppercase">{clientName}</span>}
+    >
+      <div className="px-5 py-4 lg:px-7">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
           </div>
-          <button
-            type="button"
-            aria-label="Cerrar"
-            className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-muted transition-colors"
-            onClick={onClose}
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="overflow-y-auto flex-1 p-5">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-            </div>
-          ) : type === "pagos" ? (
-            <PaymentsList rows={data as PaymentRow[]} />
-          ) : (
-            <LoansList rows={data as LoanRow[]} />
-          )}
-        </div>
+        ) : type === "pagos" ? (
+          <PaymentsList rows={data as PaymentRow[]} />
+        ) : (
+          <LoansList rows={data as LoanRow[]} />
+        )}
       </div>
-    </div>
+    </SlideOver>
   );
 }
 
@@ -623,11 +605,13 @@ function LoansList({ rows }: { rows: LoanRow[] }) {
 // ---------------------------------------------------------------------------
 
 function EditClientModal({
+  open,
   client,
   unitId,
   onClose
 }: {
-  client: ClientWithLoan;
+  open: boolean;
+  client: ClientWithLoan | null;
   unitId: string;
   onClose: () => void;
 }) {
@@ -649,109 +633,103 @@ function EditClientModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
-
-      <div className="relative z-10 w-full max-w-sm rounded-2xl border bg-background shadow-2xl flex flex-col max-h-[90dvh]">
-        {/* Header */}
-        <div className="flex items-center justify-between gap-3 border-b px-5 py-4 shrink-0">
-          <div className="min-w-0">
-            <h2 className="font-semibold">Editar cliente</h2>
-            <p className="text-xs text-muted-foreground uppercase mt-0.5">{client.alias}</p>
+    <SlideOver
+      open={open}
+      onClose={onClose}
+      title="Editar cliente"
+      description={client ? <span className="uppercase">{client.alias}</span> : undefined}
+      footer={
+        client ? (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 h-10 rounded-xl border text-sm font-medium hover:bg-muted transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              form="edit-client-form"
+              disabled={pending}
+              className="flex-1 h-10 rounded-xl bg-primary text-sm font-bold text-white disabled:opacity-50 hover:bg-primary/90 transition-colors"
+            >
+              {pending ? "Guardando…" : "Guardar"}
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-muted transition-colors"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+        ) : undefined
+      }
+    >
+      {client && (
+        <form
+          key={client.id}
+          id="edit-client-form"
+          onSubmit={handleSubmit}
+          className="space-y-3 px-5 py-4 lg:px-7"
+        >
+          <input type="hidden" name="clientId" value={client.id} />
+          <input type="hidden" name="unitId" value={unitId} />
 
-        {/* Form */}
-        <div className="overflow-y-auto flex-1">
-          <form onSubmit={handleSubmit} className="space-y-3 p-5">
-            <input type="hidden" name="clientId" value={client.id} />
-            <input type="hidden" name="unitId" value={unitId} />
+          {error ? (
+            <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              {error}
+            </p>
+          ) : null}
 
-            {error ? (
-              <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                {error}
-              </p>
-            ) : null}
-
-            <EditField label="Nombre / Alias *">
-              <input
-                name="alias"
-                defaultValue={client.alias}
-                required
-                placeholder="Nombre del cliente"
-                className="h-9 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-            </EditField>
-            <EditField label="NIT / Cédula">
-              <input
-                name="nit"
-                defaultValue={client.nit ?? ""}
-                placeholder="Documento de identidad"
-                className="h-9 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-            </EditField>
-            <EditField label="Teléfono 1">
-              <input
-                name="telefono1"
-                type="tel"
-                defaultValue={client.telefono1 ?? ""}
-                placeholder="Número de contacto"
-                className="h-9 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-            </EditField>
-            <EditField label="Teléfono 2">
-              <input
-                name="telefono2"
-                type="tel"
-                defaultValue={client.telefono2 ?? ""}
-                placeholder="Número alternativo"
-                className="h-9 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-            </EditField>
-            <EditField label="Dirección">
-              <input
-                name="direccion1"
-                defaultValue={client.direccion1 ?? ""}
-                placeholder="Dirección del cliente"
-                className="h-9 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-            </EditField>
-            <EditField label="Barrio">
-              <input
-                name="barrio"
-                defaultValue={client.barrio ?? ""}
-                placeholder="Barrio o sector"
-                className="h-9 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-            </EditField>
-
-            <div className="flex gap-2 pt-1">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 h-10 rounded-xl border text-sm font-medium hover:bg-muted transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={pending}
-                className="flex-1 h-10 rounded-xl bg-primary text-sm font-bold text-white disabled:opacity-50 hover:bg-primary/90 transition-colors"
-              >
-                {pending ? "Guardando…" : "Guardar"}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
+          <EditField label="Nombre / Alias *">
+            <input
+              name="alias"
+              defaultValue={client.alias}
+              required
+              placeholder="Nombre del cliente"
+              className="h-9 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </EditField>
+          <EditField label="NIT / Cédula">
+            <input
+              name="nit"
+              defaultValue={client.nit ?? ""}
+              placeholder="Documento de identidad"
+              className="h-9 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </EditField>
+          <EditField label="Teléfono 1">
+            <input
+              name="telefono1"
+              type="tel"
+              defaultValue={client.telefono1 ?? ""}
+              placeholder="Número de contacto"
+              className="h-9 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </EditField>
+          <EditField label="Teléfono 2">
+            <input
+              name="telefono2"
+              type="tel"
+              defaultValue={client.telefono2 ?? ""}
+              placeholder="Número alternativo"
+              className="h-9 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </EditField>
+          <EditField label="Dirección">
+            <input
+              name="direccion1"
+              defaultValue={client.direccion1 ?? ""}
+              placeholder="Dirección del cliente"
+              className="h-9 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </EditField>
+          <EditField label="Barrio">
+            <input
+              name="barrio"
+              defaultValue={client.barrio ?? ""}
+              placeholder="Barrio o sector"
+              className="h-9 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </EditField>
+        </form>
+      )}
+    </SlideOver>
   );
 }
 

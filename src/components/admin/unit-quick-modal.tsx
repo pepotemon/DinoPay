@@ -1,8 +1,10 @@
 "use client";
 
+import { useRef } from "react";
 import Link from "next/link";
-import { X, Users2, ArrowLeftRight, Settings2, ChevronRight } from "lucide-react";
+import { Users2, ArrowLeftRight, Settings2, ChevronRight } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
+import { SlideOver } from "@/components/admin/slide-over";
 
 type Unit = {
   id: string;
@@ -43,101 +45,83 @@ const NAV_OPTIONS = [
 ];
 
 export function UnitQuickModal({ unit, onClose }: UnitQuickModalProps) {
-  if (!unit) return null;
+  // Keep last non-null value so content stays during close animation
+  const lastRef = useRef<Unit | null>(null);
+  if (unit) lastRef.current = unit;
+  const u = lastRef.current;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
+    <SlideOver
+      open={unit !== null}
+      onClose={onClose}
+      title={u?.nombre_unidad ?? ""}
+      description={
+        u ? (
+          <span className="flex flex-wrap items-center gap-2">
+            <span>{u.encargado} · {u.ciudad}</span>
+            <span
+              className={cn(
+                "rounded-full px-2 py-0.5 text-xs font-medium",
+                u.activo
+                  ? "bg-green-100 text-green-800"
+                  : "bg-muted text-muted-foreground"
+              )}
+            >
+              {u.activo ? "Activa" : "Inactiva"}
+            </span>
+          </span>
+        ) : undefined
+      }
     >
-      {/* Overlay */}
-      <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-
-      {/* Panel */}
-      <div className="relative z-10 flex flex-col w-full max-w-md rounded-2xl max-h-[88dvh] overflow-y-auto bg-background shadow-2xl border border-border/60">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3 p-5 pb-4 border-b">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-lg font-bold truncate leading-tight">
-                {unit.nombre_unidad}
-              </h2>
-              <span
-                className={cn(
-                  "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium",
-                  unit.activo
-                    ? "bg-green-100 text-green-800"
-                    : "bg-muted text-muted-foreground"
-                )}
-              >
-                {unit.activo ? "Activa" : "Inactiva"}
-              </span>
+      {u && (
+        <>
+          {/* Metrics */}
+          <div className="grid grid-cols-3 gap-4 border-b border-border/40 px-5 py-5 lg:px-7">
+            <div>
+              <p className="text-xs text-muted-foreground">Cartera</p>
+              <p className="font-semibold text-primary text-sm mt-0.5">
+                {formatCurrency(u.stats.cartera)}
+              </p>
             </div>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              {unit.encargado} · {unit.ciudad}
-            </p>
+            <div>
+              <p className="text-xs text-muted-foreground">Clientes</p>
+              <p className="font-semibold text-sm mt-0.5">{u.stats.activeClients}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Meta hoy</p>
+              <p className="font-semibold text-sm mt-0.5">
+                {formatCurrency(u.stats.meta)}
+              </p>
+            </div>
           </div>
-          <button
-            className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-muted transition-colors"
-            onClick={onClose}
-            type="button"
-            aria-label="Cerrar"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
 
-        {/* Metrics */}
-        <div className="grid grid-cols-3 gap-3 px-5 py-4 border-b">
-          <div>
-            <p className="text-xs text-muted-foreground">Cartera</p>
-            <p className="font-semibold text-primary text-sm">
-              {formatCurrency(unit.stats.cartera)}
-            </p>
+          {/* Navigation options */}
+          <div className="p-4 lg:p-5 space-y-2">
+            {NAV_OPTIONS.map((opt) => {
+              const Icon = opt.icon;
+              return (
+                <Link
+                  key={opt.key}
+                  href={opt.href(u.id)}
+                  onClick={onClose}
+                  className="flex items-center gap-3 rounded-2xl border border-transparent bg-muted/30 p-4 hover:bg-muted/60 hover:border-border/50 transition-all group"
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-sm leading-tight">{opt.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-tight">
+                      {opt.desc}
+                    </p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/30 group-hover:text-muted-foreground/60 transition-colors" />
+                </Link>
+              );
+            })}
           </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Clientes activos</p>
-            <p className="font-semibold text-sm">{unit.stats.activeClients}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Meta día</p>
-            <p className="font-semibold text-sm">
-              {formatCurrency(unit.stats.meta)}
-            </p>
-          </div>
-        </div>
-
-        {/* Navigation options */}
-        <div className="p-4 space-y-2">
-          {NAV_OPTIONS.map((opt) => {
-            const Icon = opt.icon;
-            return (
-              <Link
-                key={opt.key}
-                href={opt.href(unit.id)}
-                onClick={onClose}
-                className="flex items-center gap-4 rounded-xl border bg-background p-4 hover:bg-muted/50 transition-colors group"
-              >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:bg-primary/15 transition-colors">
-                  <Icon className="h-5 w-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-sm leading-tight">{opt.title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5 leading-tight">
-                    {opt.desc}
-                  </p>
-                </div>
-                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors" />
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-    </div>
+        </>
+      )}
+    </SlideOver>
   );
 }

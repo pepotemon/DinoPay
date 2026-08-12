@@ -2,10 +2,11 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { ArrowDownLeft, ArrowUpRight, Plus, X } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Plus } from "lucide-react";
 import { createCapitalMovementAction } from "@/lib/actions/admin/capital";
 import { cn, formatCurrency } from "@/lib/utils";
 import { RouteSelector } from "@/components/admin/route-selector";
+import { SlideOver } from "@/components/admin/slide-over";
 
 type Movement = {
   id: string;
@@ -228,10 +229,8 @@ export function UnidadTransaccionesClient({
         </div>
       </div>
 
-      {/* New movement modal */}
-      {showModal && (
-        <NewMovementModal unitId={unitId} onClose={() => setShowModal(false)} />
-      )}
+      {/* New movement slide-over */}
+      <NewMovementModal unitId={unitId} open={showModal} onClose={() => setShowModal(false)} />
     </div>
   );
 }
@@ -279,7 +278,7 @@ function MetricCard({
   );
 }
 
-function NewMovementModal({ unitId, onClose }: { unitId: string; onClose: () => void }) {
+function NewMovementModal({ unitId, open, onClose }: { unitId: string; open: boolean; onClose: () => void }) {
   const [pending, startTransition] = useTransition();
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -289,83 +288,73 @@ function NewMovementModal({ unitId, onClose }: { unitId: string; onClose: () => 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-sm mx-4 rounded-2xl border bg-background shadow-2xl">
-        {/* Modal header */}
-        <div className="flex items-center justify-between gap-3 border-b px-5 py-4">
-          <h2 className="font-semibold">Nuevo movimiento</h2>
+    <SlideOver
+      open={open}
+      onClose={onClose}
+      title="Nuevo movimiento"
+      footer={
+        <div className="flex gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-1.5 text-muted-foreground hover:bg-muted transition-colors"
+            className="flex-1 h-10 rounded-xl border text-sm font-medium hover:bg-muted transition-colors"
           >
-            <X className="h-4 w-4" />
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            form="new-movement-form"
+            disabled={pending}
+            className="flex-1 h-10 rounded-xl bg-primary text-sm font-bold text-white disabled:opacity-50 hover:bg-primary/90 transition-colors"
+          >
+            {pending ? "Registrando…" : "Registrar"}
           </button>
         </div>
+      }
+    >
+      <form id="new-movement-form" className="space-y-4 px-5 py-4 lg:px-7" onSubmit={handleSubmit}>
+        <input type="hidden" name="unitId" value={unitId} />
+        <input
+          type="hidden"
+          name="redirectTo"
+          value={`/admin/unidades/${unitId}/transacciones`}
+        />
 
-        {/* Form */}
-        <form className="space-y-4 p-5" onSubmit={handleSubmit}>
-          <input type="hidden" name="unitId" value={unitId} />
+        <label className="block space-y-1.5 text-sm font-medium">
+          Tipo
+          <select
+            name="tipo"
+            className="mt-1 h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="ingreso">Ingreso</option>
+            <option value="retiro">Retiro</option>
+          </select>
+        </label>
+
+        <label className="block space-y-1.5 text-sm font-medium">
+          Monto
           <input
-            type="hidden"
-            name="redirectTo"
-            value={`/admin/unidades/${unitId}/transacciones`}
+            name="monto"
+            type="number"
+            min="0.01"
+            step="0.01"
+            inputMode="decimal"
+            placeholder="0.00"
+            required
+            className="mt-1 h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
+        </label>
 
-          <label className="block space-y-1.5 text-sm font-medium">
-            Tipo
-            <select
-              name="tipo"
-              className="mt-1 h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <option value="ingreso">Ingreso</option>
-              <option value="retiro">Retiro</option>
-            </select>
-          </label>
-
-          <label className="block space-y-1.5 text-sm font-medium">
-            Monto
-            <input
-              name="monto"
-              type="number"
-              min="0.01"
-              step="0.01"
-              inputMode="decimal"
-              placeholder="0.00"
-              required
-              className="mt-1 h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
-          </label>
-
-          <label className="block space-y-1.5 text-sm font-medium">
-            Nota
-            <input
-              name="nota"
-              type="text"
-              placeholder="Descripción (opcional)"
-              className="mt-1 h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
-          </label>
-
-          <div className="flex gap-2 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 h-10 rounded-xl border text-sm font-medium hover:bg-muted transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={pending}
-              className="flex-1 h-10 rounded-xl bg-primary text-sm font-bold text-white disabled:opacity-50 hover:bg-primary/90 transition-colors"
-            >
-              {pending ? "Registrando…" : "Registrar"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <label className="block space-y-1.5 text-sm font-medium">
+          Nota
+          <input
+            name="nota"
+            type="text"
+            placeholder="Descripción (opcional)"
+            className="mt-1 h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+        </label>
+      </form>
+    </SlideOver>
   );
 }
