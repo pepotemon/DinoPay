@@ -1,7 +1,7 @@
 ---
 tags: [changelog, historial, cambios]
 created: 2026-07-24
-updated: 2026-08-12 (v0.27.0)
+updated: 2026-08-12 (v0.28.0)
 ---
 
 # Changelog — DinoPay
@@ -9,6 +9,37 @@ updated: 2026-08-12 (v0.27.0)
 [[INDEX|← Volver al Index]]
 
 > Solo se registran cambios importantes. No trivialidades.
+
+---
+
+## [0.28.0] — 2026-08-12
+
+### Admin — Patrón SlideOver en todos los modales (desktop + mobile)
+
+**Nuevo componente `slide-over.tsx`**
+- Portal a `document.body` con `createPortal` — completamente fuera del árbol de layout, sin problemas de z-index.
+- Responsivo en un solo elemento: desktop = panel lateral derecho (560px, `rounded-l-[32px]`), mobile = bottom sheet (92dvh, `rounded-t-[30px]`).
+- Animación: `translate-y-full → translate-y-0` (mobile) / `translate-x-full → translate-x-0` (desktop), 280ms, `cubic-bezier(0.32,0.72,0,1)`, doble rAF para trigger.
+- Desmontar con 320ms de delay tras cierre para que la animación termine.
+- Header integrado (título, descripción como `ReactNode`, botón X circular).
+- Slot `footer` sticky al fondo, con `env(safe-area-inset-bottom)` para notch.
+- Slot `children` en área scrollable con `overflow-y-auto overscroll-contain`.
+
+**Modales migrados a SlideOver**
+- `UnitQuickModal`: métricas de unidad + 3 nav options. Sticky-last-value ref para animación de cierre con datos vivos.
+- `ClientHistoryModal`: historial de pagos y préstamos del cliente. Contenido en `px-5 py-4 lg:px-7`.
+- `EditClientModal`: formulario de edición de cliente. Botones Cancel/Guardar en slot `footer`. Form con `id` externo y `type="submit" form="..."` para el botón fuera del form. `key={client.id}` para reset al cambiar de cliente.
+- `NewMovementModal` (transacciones): formulario nuevo movimiento. Botones en slot `footer`.
+
+**Polish mobile (bottom sheet)**
+- Backdrop blur: `backdrop-blur-[2px]`
+- Body scroll lock: `document.body.style.overflow = "hidden"` mientras visible
+- Back handler: `history.pushState(null, "")` + `popstate` listener — el botón de atrás del navegador cierra el sheet en vez de salir de la página
+- Handle bar: `h-1.5 w-12` (más grande y visible)
+- `overscroll-contain` en el scroll interno
+- Sombra direccional: `shadow-[0_-8px_32px_rgba(0,0,0,0.14)]` en mobile
+- z-index: `z-[240]`
+- Backdrop: `bg-black/40`
 
 ---
 

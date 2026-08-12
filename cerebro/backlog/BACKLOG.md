@@ -1,7 +1,7 @@
 ---
 tags: [backlog, pendiente, tareas, prioridades]
 created: 2026-07-24
-updated: 2026-08-12 (v0.27.0)
+updated: 2026-08-12 (v0.28.0)
 ---
 
 # Backlog — DinoPay
@@ -71,6 +71,7 @@ updated: 2026-08-12 (v0.27.0)
 - [x] Editar información del cliente desde admin — modal inline en lista de clientes
 - [x] Ver reportes de cualquier unidad
 - [x] Cancelar préstamos activos
+- [x] Patrón SlideOver en todos los modales admin — desktop right panel + mobile bottom sheet con portal, animación, scroll lock y back handler
 
 ### Loading / Error States
 - [x] `loading.tsx` en préstamos, gastos y reporte diario
