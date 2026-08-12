@@ -59,7 +59,7 @@ export function UnitQuickModal({ unit, onClose }: UnitQuickModalProps) {
       />
 
       {/* Panel: mobile = bottom sheet, desktop = right panel */}
-      <div className="relative z-10 flex flex-col w-full max-w-md rounded-t-2xl max-h-[88dvh] overflow-y-auto lg:w-96 lg:max-w-none lg:rounded-l-2xl lg:rounded-r-none lg:h-full lg:max-h-full bg-background shadow-2xl border border-border/60 lg:border-r-0">
+      <div className="relative z-10 flex flex-col w-full max-w-md rounded-t-2xl max-h-[88dvh] overflow-y-auto lg:w-96 lg:max-w-none lg:rounded-l-2xl lg:rounded-r-none lg:h-full lg:max-h-full bg-background shadow-2xl border border-border/60 lg:border-r-0 lg:border-t-0">
         {/* Header */}
         <div className="flex items-start justify-between gap-3 p-5 pb-4 border-b">
           <div className="min-w-0">
