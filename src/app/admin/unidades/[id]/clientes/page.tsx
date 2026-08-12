@@ -32,7 +32,7 @@ export default async function AdminUnidadClientesPage({
   const { id } = await params;
   const adminClient = createAdminClient();
 
-  const [{ data: unitRaw }, { data: clientsRaw }, { data: loansRaw }] =
+  const [{ data: unitRaw }, { data: clientsRaw }, { data: loansRaw }, { data: unitsRaw }] =
     await Promise.all([
       adminClient
         .from("units")
@@ -50,7 +50,11 @@ export default async function AdminUnidadClientesPage({
           "id, client_id, modalidad, interes, valor_neto, valor_cuota, saldo, numero_cuotas, cuotas_pagadas, ultima_cuota_fecha"
         )
         .eq("unit_id", id)
-        .eq("estado", "activo")
+        .eq("estado", "activo"),
+      adminClient
+        .from("units")
+        .select("id, nombre_unidad, activo")
+        .order("nombre_unidad", { ascending: true })
     ]);
 
   if (!unitRaw) notFound();
@@ -58,6 +62,7 @@ export default async function AdminUnidadClientesPage({
   const unit = unitRaw as { id: string; nombre_unidad: string; zona_horaria: string };
   const clients = (clientsRaw ?? []) as ClientRow[];
   const activeLoans = (loansRaw ?? []) as LoanRow[];
+  const allUnits = (unitsRaw ?? []) as { id: string; nombre_unidad: string; activo: boolean }[];
 
   const today = todayInTimeZone(unit.zona_horaria ?? "America/Bogota");
 
@@ -96,6 +101,7 @@ export default async function AdminUnidadClientesPage({
       unitId={unit.id}
       unitName={unit.nombre_unidad}
       today={today}
+      units={allUnits}
     />
   );
 }

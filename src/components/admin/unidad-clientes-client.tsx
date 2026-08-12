@@ -7,6 +7,7 @@ import { cn, formatCurrency } from "@/lib/utils";
 import { getClientPaymentsAction, getClientLoansAction } from "@/lib/actions/admin/client-history";
 import { deactivateClientAction } from "@/lib/actions/admin/clients";
 import { cancelLoanFromHubAction } from "@/lib/actions/admin/unit-hub";
+import { RouteSelector } from "@/components/admin/route-selector";
 
 type ClientWithLoan = {
   id: string;
@@ -58,12 +59,14 @@ type LoanRow = {
 export function UnidadClientesClient({
   clients,
   unitId,
-  unitName
+  unitName,
+  units
 }: {
   clients: ClientWithLoan[];
   unitId: string;
   unitName: string;
   today: string;
+  units: { id: string; nombre_unidad: string; activo: boolean }[];
 }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterKey>("activos");
@@ -140,15 +143,18 @@ export function UnidadClientesClient({
   return (
     <div className="space-y-5 pb-8">
       {/* Header */}
-      <div>
-        <Link
-          className="lg:hidden inline-flex items-center gap-1 rounded-md bg-muted px-3 py-1.5 text-sm font-medium hover:bg-muted/80 mb-3"
-          href="/admin/unidades"
-        >
-          ← Unidades
-        </Link>
-        <h1 className="text-2xl font-semibold">Clientes y préstamos</h1>
-        <p className="text-sm text-muted-foreground">{unitName}</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <Link
+            className="lg:hidden inline-flex items-center gap-1 rounded-md bg-muted px-3 py-1.5 text-sm font-medium hover:bg-muted/80 mb-3"
+            href="/admin/unidades"
+          >
+            ← Unidades
+          </Link>
+          <h1 className="text-2xl font-semibold">Clientes y préstamos</h1>
+          <p className="text-sm text-muted-foreground">{unitName}</p>
+        </div>
+        <RouteSelector units={units} currentUnitId={unitId} currentUnitName={unitName} />
       </div>
 
       {/* Search */}

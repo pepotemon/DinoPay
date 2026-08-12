@@ -10,13 +10,19 @@ export default async function AdminUnidadConfiguracionPage({
   const { id } = await params;
   const adminClient = createAdminClient();
 
-  const { data: unitRaw } = await adminClient
-    .from("units")
-    .select(
-      "id, username, nombre_unidad, encargado, telefono, pais, estado, ciudad, zona_horaria, capital_inicial, activo, intereses, dias_laborales, puede_eliminar_abonos, puede_eliminar_prestamos"
-    )
-    .eq("id", id)
-    .maybeSingle();
+  const [{ data: unitRaw }, { data: unitsRaw }] = await Promise.all([
+    adminClient
+      .from("units")
+      .select(
+        "id, username, nombre_unidad, encargado, telefono, pais, estado, ciudad, zona_horaria, capital_inicial, activo, intereses, dias_laborales, puede_eliminar_abonos, puede_eliminar_prestamos"
+      )
+      .eq("id", id)
+      .maybeSingle(),
+    adminClient
+      .from("units")
+      .select("id, nombre_unidad, activo")
+      .order("nombre_unidad", { ascending: true })
+  ]);
 
   if (!unitRaw) notFound();
 
@@ -40,5 +46,7 @@ export default async function AdminUnidadConfiguracionPage({
     puede_eliminar_prestamos: unitRaw.puede_eliminar_prestamos ?? false
   };
 
-  return <UnidadConfiguracionClient unit={unit} />;
+  const allUnits = (unitsRaw ?? []) as { id: string; nombre_unidad: string; activo: boolean }[];
+
+  return <UnidadConfiguracionClient unit={unit} units={allUnits} />;
 }

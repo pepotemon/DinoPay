@@ -1,10 +1,11 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
-import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Plus, X } from "lucide-react";
 import { createCapitalMovementAction } from "@/lib/actions/admin/capital";
 import { cn, formatCurrency } from "@/lib/utils";
+import { RouteSelector } from "@/components/admin/route-selector";
 
 type Movement = {
   id: string;
@@ -13,6 +14,8 @@ type Movement = {
   nota: string | null;
   fecha: string;
 };
+
+type UnitOption = { id: string; nombre_unidad: string; activo: boolean };
 
 type Props = {
   movements: Movement[];
@@ -24,6 +27,7 @@ type Props = {
   rangoHasta: string;
   unitId: string;
   unitName: string;
+  units: UnitOption[];
 };
 
 const MODOS = [
@@ -42,20 +46,36 @@ export function UnidadTransaccionesClient({
   rangoDesde,
   rangoHasta,
   unitId,
-  unitName
+  unitName,
+  units
 }: Props) {
+  const [showModal, setShowModal] = useState(false);
+
   return (
     <div className="space-y-5 pb-8">
       {/* Header */}
-      <div>
-        <Link
-          className="lg:hidden inline-flex items-center gap-1 rounded-md bg-muted px-3 py-1.5 text-sm font-medium hover:bg-muted/80 mb-3"
-          href="/admin/unidades"
-        >
-          ← Unidades
-        </Link>
-        <h1 className="text-2xl font-semibold">Transacciones</h1>
-        <p className="text-sm text-muted-foreground">{unitName}</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <Link
+            className="lg:hidden inline-flex items-center gap-1 rounded-md bg-muted px-3 py-1.5 text-sm font-medium hover:bg-muted/80 mb-3"
+            href="/admin/unidades"
+          >
+            ← Unidades
+          </Link>
+          <h1 className="text-2xl font-semibold">Transacciones</h1>
+          <p className="text-sm text-muted-foreground">{unitName}</p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-sm font-semibold text-white hover:bg-primary/90 transition-colors shadow-sm"
+          >
+            <Plus className="h-4 w-4" />
+            Nuevo
+          </button>
+          <RouteSelector units={units} currentUnitId={unitId} currentUnitName={unitName} />
+        </div>
       </div>
 
       {/* Period filter pills */}
@@ -86,7 +106,7 @@ export function UnidadTransaccionesClient({
         )}
       </div>
 
-      {/* Custom date range form — always visible */}
+      {/* Custom date range form */}
       <form
         action=""
         method="GET"
@@ -126,25 +146,22 @@ export function UnidadTransaccionesClient({
           value={totalIngresos}
           color="green"
           icon={<ArrowDownLeft className="h-4 w-4" />}
-          subLabel={`${rangoDesde} al ${rangoHasta}`}
+          subLabel={rangoDesde === rangoHasta ? rangoDesde : `${rangoDesde} – ${rangoHasta}`}
         />
         <MetricCard
           label="Total retiros"
           value={totalRetiros}
           color="red"
           icon={<ArrowUpRight className="h-4 w-4" />}
-          subLabel={`${rangoDesde} al ${rangoHasta}`}
+          subLabel={rangoDesde === rangoHasta ? rangoDesde : `${rangoDesde} – ${rangoHasta}`}
         />
         <MetricCard
           label="Balance"
           value={balance}
           color={balance >= 0 ? "green" : "red"}
-          subLabel={`${rangoDesde} al ${rangoHasta}`}
+          subLabel={rangoDesde === rangoHasta ? rangoDesde : `${rangoDesde} – ${rangoHasta}`}
         />
       </div>
-
-      {/* New movement form */}
-      <NewMovementForm unitId={unitId} />
 
       {/* Movements list */}
       <div className="rounded-2xl border bg-background shadow-sm">
@@ -161,10 +178,7 @@ export function UnidadTransaccionesClient({
             </div>
           ) : (
             movements.map((m) => (
-              <div
-                key={m.id}
-                className="flex items-center justify-between gap-3 px-4 py-3"
-              >
+              <div key={m.id} className="flex items-center justify-between gap-3 px-4 py-3">
                 <div className="flex items-center gap-3 min-w-0">
                   <div
                     className={cn(
@@ -182,9 +196,7 @@ export function UnidadTransaccionesClient({
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium leading-tight">
-                        {m.fecha}
-                      </p>
+                      <p className="text-sm font-medium leading-tight">{m.fecha}</p>
                       <span
                         className={cn(
                           "rounded-full px-2 py-0.5 text-xs font-medium",
@@ -197,9 +209,7 @@ export function UnidadTransaccionesClient({
                       </span>
                     </div>
                     {m.nota ? (
-                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                        {m.nota}
-                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">{m.nota}</p>
                     ) : null}
                   </div>
                 </div>
@@ -217,6 +227,11 @@ export function UnidadTransaccionesClient({
           )}
         </div>
       </div>
+
+      {/* New movement modal */}
+      {showModal && (
+        <NewMovementModal unitId={unitId} onClose={() => setShowModal(false)} />
+      )}
     </div>
   );
 }
@@ -241,9 +256,7 @@ function MetricCard({
           <span
             className={cn(
               "rounded-md p-1",
-              color === "green"
-                ? "bg-green-100 text-green-700"
-                : "bg-red-100 text-red-600"
+              color === "green" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"
             )}
           >
             {icon}
@@ -266,7 +279,7 @@ function MetricCard({
   );
 }
 
-function NewMovementForm({ unitId }: { unitId: string }) {
+function NewMovementModal({ unitId, onClose }: { unitId: string; onClose: () => void }) {
   const [pending, startTransition] = useTransition();
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -276,57 +289,83 @@ function NewMovementForm({ unitId }: { unitId: string }) {
   }
 
   return (
-    <div className="rounded-2xl border bg-background p-4 shadow-sm space-y-4">
-      <p className="font-semibold">Nuevo movimiento</p>
-      <form className="space-y-3" onSubmit={handleSubmit}>
-        <input type="hidden" name="unitId" value={unitId} />
-        <input
-          type="hidden"
-          name="redirectTo"
-          value={`/admin/unidades/${unitId}/transacciones`}
-        />
-        <div className="grid grid-cols-2 gap-3">
-          <label className="space-y-1 text-xs font-medium">
-            <span>Tipo</span>
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-sm mx-4 rounded-2xl border bg-background shadow-2xl">
+        {/* Modal header */}
+        <div className="flex items-center justify-between gap-3 border-b px-5 py-4">
+          <h2 className="font-semibold">Nuevo movimiento</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md p-1.5 text-muted-foreground hover:bg-muted transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Form */}
+        <form className="space-y-4 p-5" onSubmit={handleSubmit}>
+          <input type="hidden" name="unitId" value={unitId} />
+          <input
+            type="hidden"
+            name="redirectTo"
+            value={`/admin/unidades/${unitId}/transacciones`}
+          />
+
+          <label className="block space-y-1.5 text-sm font-medium">
+            Tipo
             <select
               name="tipo"
-              className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="mt-1 h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <option value="ingreso">Ingreso</option>
               <option value="retiro">Retiro</option>
             </select>
           </label>
-          <label className="space-y-1 text-xs font-medium">
-            <span>Monto</span>
+
+          <label className="block space-y-1.5 text-sm font-medium">
+            Monto
             <input
               name="monto"
               type="number"
               min="0.01"
               step="0.01"
               inputMode="decimal"
-              placeholder="0"
+              placeholder="0.00"
               required
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="mt-1 h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </label>
-        </div>
-        <label className="block space-y-1 text-xs font-medium">
-          <span>Nota (opcional)</span>
-          <input
-            name="nota"
-            type="text"
-            placeholder="Descripción del movimiento"
-            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          />
-        </label>
-        <button
-          type="submit"
-          disabled={pending}
-          className="h-10 w-full rounded-xl bg-primary font-bold text-white disabled:opacity-50 transition-opacity"
-        >
-          {pending ? "Registrando…" : "Registrar movimiento"}
-        </button>
-      </form>
+
+          <label className="block space-y-1.5 text-sm font-medium">
+            Nota
+            <input
+              name="nota"
+              type="text"
+              placeholder="Descripción (opcional)"
+              className="mt-1 h-10 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </label>
+
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 h-10 rounded-xl border text-sm font-medium hover:bg-muted transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={pending}
+              className="flex-1 h-10 rounded-xl bg-primary text-sm font-bold text-white disabled:opacity-50 hover:bg-primary/90 transition-colors"
+            >
+              {pending ? "Registrando…" : "Registrar"}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

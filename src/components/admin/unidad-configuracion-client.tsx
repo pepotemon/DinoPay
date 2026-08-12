@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { changeUnitPasswordAction } from "@/lib/actions/admin/unit-hub";
 import { cn } from "@/lib/utils";
+import { RouteSelector } from "@/components/admin/route-selector";
 
 type UnitFull = {
   id: string;
@@ -33,21 +34,30 @@ const DIA_LABELS: Record<number, string> = {
   6: "Sáb"
 };
 
-export function UnidadConfiguracionClient({ unit }: { unit: UnitFull }) {
+export function UnidadConfiguracionClient({
+  unit,
+  units
+}: {
+  unit: UnitFull;
+  units: { id: string; nombre_unidad: string; activo: boolean }[];
+}) {
   const [showPassword, setShowPassword] = useState(false);
 
   return (
     <div className="space-y-5 pb-8">
       {/* Header */}
-      <div>
-        <Link
-          className="lg:hidden inline-flex items-center gap-1 rounded-md bg-muted px-3 py-1.5 text-sm font-medium hover:bg-muted/80 mb-3"
-          href="/admin/unidades"
-        >
-          ← Unidades
-        </Link>
-        <h1 className="text-2xl font-semibold">Configuración</h1>
-        <p className="text-sm text-muted-foreground">{unit.nombre_unidad}</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <Link
+            className="lg:hidden inline-flex items-center gap-1 rounded-md bg-muted px-3 py-1.5 text-sm font-medium hover:bg-muted/80 mb-3"
+            href="/admin/unidades"
+          >
+            ← Unidades
+          </Link>
+          <h1 className="text-2xl font-semibold">Configuración</h1>
+          <p className="text-sm text-muted-foreground">{unit.nombre_unidad}</p>
+        </div>
+        <RouteSelector units={units} currentUnitId={unit.id} currentUnitName={unit.nombre_unidad} />
       </div>
 
       {/* Info card */}

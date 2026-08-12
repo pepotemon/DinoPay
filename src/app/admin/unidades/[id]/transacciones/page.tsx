@@ -40,11 +40,17 @@ export default async function AdminUnidadTransaccionesPage({
 
   const adminClient = createAdminClient();
 
-  const { data: unitRaw } = await adminClient
-    .from("units")
-    .select("id, nombre_unidad, zona_horaria")
-    .eq("id", id)
-    .maybeSingle();
+  const [{ data: unitRaw }, { data: unitsRaw }] = await Promise.all([
+    adminClient
+      .from("units")
+      .select("id, nombre_unidad, zona_horaria")
+      .eq("id", id)
+      .maybeSingle(),
+    adminClient
+      .from("units")
+      .select("id, nombre_unidad, activo")
+      .order("nombre_unidad", { ascending: true })
+  ]);
 
   if (!unitRaw) notFound();
 
@@ -113,6 +119,8 @@ export default async function AdminUnidadTransaccionesPage({
 
   const balance = totalIngresos - totalRetiros;
 
+  const allUnits = (unitsRaw ?? []) as { id: string; nombre_unidad: string; activo: boolean }[];
+
   return (
     <UnidadTransaccionesClient
       movements={movements}
@@ -124,6 +132,7 @@ export default async function AdminUnidadTransaccionesPage({
       rangoHasta={rangoHasta}
       unitId={unit.id}
       unitName={unit.nombre_unidad}
+      units={allUnits}
     />
   );
 }
