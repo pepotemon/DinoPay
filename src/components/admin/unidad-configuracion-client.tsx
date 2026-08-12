@@ -316,7 +316,7 @@ function OperativeSection({ unit }: { unit: UnitFull }) {
             </button>
           </div>
           <p className="text-[11px] text-muted-foreground">
-            Escribe el número y presiona Enter o "+ Agregar"
+            Escribe el número y presiona Enter o &quot;+ Agregar&quot;
           </p>
         </div>
 

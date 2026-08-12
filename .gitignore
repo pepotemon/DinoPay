@@ -9,3 +9,4 @@ pnpm-debug.log*
 *.tsbuildinfo
 .codex-remote-attachments/
 cerebro/.obsidian/
+supabase/.temp/
