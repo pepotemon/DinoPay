@@ -84,7 +84,8 @@ export function UnitHubClient({ data }: { data: HubData }) {
 
   return (
     <div className="space-y-4 pb-8">
-      <div className="flex items-center gap-2">
+      {/* Back link only visible on mobile — desktop uses the sidebar */}
+      <div className="flex items-center gap-2 lg:hidden">
         <Link
           className="rounded-md bg-muted px-3 py-1.5 text-sm font-medium hover:bg-muted/80"
           href="/admin/unidades"

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { unstable_cache } from "next/cache";
 import { UnitHubClient } from "@/components/admin/unit-hub-client";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { addDaysToDateString, dateInTimeZone, todayInTimeZone } from "@/lib/utils/date-timezone";
@@ -23,39 +24,28 @@ type AdminClientWithLoan = {
   } | null;
 };
 
-export default async function AdminUnidadHubPage({
-  params
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
+async function fetchHubData(id: string) {
   const adminClient = createAdminClient();
 
-  const { data: unit } = await adminClient
-    .from("units")
-    .select(
-      "id, username, nombre_unidad, encargado, telefono, pais, estado, ciudad, zona_horaria, capital_inicial, activo, intereses, dias_laborales, puede_eliminar_abonos, puede_eliminar_prestamos"
-    )
-    .eq("id", id)
-    .maybeSingle();
-
-  if (!unit) notFound();
-
-  const zonaHoraria = unit.zona_horaria ?? "America/Bogota";
-  const today = todayInTimeZone(zonaHoraria);
-  const tomorrow = addDaysToDateString(today, 1);
-
   const [
+    { data: unitRaw },
     { data: rawClients },
     { data: rawActiveLoans },
     { data: allPaymentsRaw },
     { data: allLoansRaw },
     { data: allExpensesRaw },
     { data: rawCapitalMovements },
-    { data: todayPaymentsRaw },
+    { data: allCapMovRaw },
     { data: pendingExpensesRaw },
     { data: recentExpensesRaw }
   ] = await Promise.all([
+    adminClient
+      .from("units")
+      .select(
+        "id, username, nombre_unidad, encargado, telefono, pais, estado, ciudad, zona_horaria, capital_inicial, activo, intereses, dias_laborales, puede_eliminar_abonos, puede_eliminar_prestamos"
+      )
+      .eq("id", id)
+      .maybeSingle(),
     adminClient
       .from("clients")
       .select("id, alias, nit, telefono1, activo")
@@ -68,17 +58,11 @@ export default async function AdminUnidadHubPage({
       )
       .eq("unit_id", id)
       .eq("estado", "activo"),
-    adminClient
-      .from("payments")
-      .select("monto")
-      .eq("unit_id", id)
-      .eq("eliminado", false),
+    // Aggregate queries — single column only, no unnecessary data transfer
+    adminClient.from("payments").select("monto").eq("unit_id", id).eq("eliminado", false),
     adminClient.from("loans").select("valor_neto").eq("unit_id", id),
-    adminClient
-      .from("expenses")
-      .select("monto")
-      .eq("unit_id", id)
-      .eq("estado", "aprobado"),
+    adminClient.from("expenses").select("monto").eq("unit_id", id).eq("estado", "aprobado"),
+    // Last 15 movements for the UI list
     adminClient
       .from("capital_movements")
       .select("id, tipo, monto, nota, fecha")
@@ -86,12 +70,8 @@ export default async function AdminUnidadHubPage({
       .order("fecha", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(15),
-    adminClient
-      .from("payments")
-      .select("monto, hora_registro")
-      .eq("unit_id", id)
-      .in("fecha_pago", [today, tomorrow])
-      .eq("eliminado", false),
+    // All movements for caja calculation (separate from the limited UI list)
+    adminClient.from("capital_movements").select("tipo, monto").eq("unit_id", id),
     adminClient
       .from("expenses")
       .select("id, categoria, monto, nota, estado, fecha, creado_por")
@@ -106,6 +86,65 @@ export default async function AdminUnidadHubPage({
       .order("fecha", { ascending: false })
       .limit(20)
   ]);
+
+  return {
+    unitRaw,
+    rawClients,
+    rawActiveLoans,
+    allPaymentsRaw,
+    allLoansRaw,
+    allExpensesRaw,
+    rawCapitalMovements,
+    allCapMovRaw,
+    pendingExpensesRaw,
+    recentExpensesRaw
+  };
+}
+
+// Cache keyed per unit, tagged so server actions can invalidate it with revalidateTag
+function getCachedHubData(id: string) {
+  return unstable_cache(fetchHubData, [`admin-unit-hub-${id}`], {
+    revalidate: 30,
+    tags: [`admin-unit-hub-${id}`]
+  })(id);
+}
+
+export default async function AdminUnidadHubPage({
+  params
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+
+  const cached = await getCachedHubData(id);
+  const { unitRaw: unit } = cached;
+
+  if (!unit) notFound();
+
+  const zonaHoraria = unit.zona_horaria ?? "America/Bogota";
+  const today = todayInTimeZone(zonaHoraria);
+  const tomorrow = addDaysToDateString(today, 1);
+
+  // Today's payments are always fresh — change every few minutes during route operations
+  const adminClient = createAdminClient();
+  const { data: todayPaymentsRaw } = await adminClient
+    .from("payments")
+    .select("monto, hora_registro")
+    .eq("unit_id", id)
+    .in("fecha_pago", [today, tomorrow])
+    .eq("eliminado", false);
+
+  const {
+    rawClients,
+    rawActiveLoans,
+    allPaymentsRaw,
+    allLoansRaw,
+    allExpensesRaw,
+    rawCapitalMovements,
+    allCapMovRaw,
+    pendingExpensesRaw,
+    recentExpensesRaw
+  } = cached;
 
   const activeLoansMap = new Map(
     (rawActiveLoans ?? []).map((l) => [l.client_id, l])
@@ -137,18 +176,9 @@ export default async function AdminUnidadHubPage({
   });
 
   const capitalInicial = Number(unit.capital_inicial);
-  const totalCobrado = (allPaymentsRaw ?? []).reduce(
-    (s, p) => s + Number(p.monto),
-    0
-  );
-  const totalPrestado = (allLoansRaw ?? []).reduce(
-    (s, l) => s + Number(l.valor_neto),
-    0
-  );
-  const totalGastos = (allExpensesRaw ?? []).reduce(
-    (s, e) => s + Number(e.monto),
-    0
-  );
+  const totalCobrado = (allPaymentsRaw ?? []).reduce((s, p) => s + Number(p.monto), 0);
+  const totalPrestado = (allLoansRaw ?? []).reduce((s, l) => s + Number(l.valor_neto), 0);
+  const totalGastos = (allExpensesRaw ?? []).reduce((s, e) => s + Number(e.monto), 0);
 
   const movements = (rawCapitalMovements ?? []) as {
     id: string;
@@ -158,20 +188,17 @@ export default async function AdminUnidadHubPage({
     fecha: string;
   }[];
 
-  const totalIngresos = movements
+  // Use all capital movements for caja (not just the 15 shown in the UI list)
+  const allCapMov = (allCapMovRaw ?? []) as { tipo: "ingreso" | "retiro"; monto: number }[];
+  const totalIngresos = allCapMov
     .filter((m) => m.tipo === "ingreso")
     .reduce((s, m) => s + Number(m.monto), 0);
-  const totalRetiros = movements
+  const totalRetiros = allCapMov
     .filter((m) => m.tipo === "retiro")
     .reduce((s, m) => s + Number(m.monto), 0);
 
   const cajaEstimada =
-    capitalInicial +
-    totalCobrado -
-    totalPrestado -
-    totalGastos +
-    totalIngresos -
-    totalRetiros;
+    capitalInicial + totalCobrado - totalPrestado - totalGastos + totalIngresos - totalRetiros;
 
   const activeLoans = rawActiveLoans ?? [];
   const carteraTotal = activeLoans.reduce((s, l) => s + Number(l.saldo), 0);

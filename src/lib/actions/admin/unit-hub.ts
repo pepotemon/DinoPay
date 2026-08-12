@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -60,6 +60,7 @@ export async function decideExpenseFromHubAction(formData: FormData) {
     );
   }
 
+  revalidateTag(`admin-unit-hub-${unitId}`);
   revalidatePath(`/admin/unidades/${unitId}`);
   redirect(
     `/admin/unidades/${unitId}?ok=${decision === "aprobado" ? "Gasto aprobado" : "Gasto rechazado"}`
@@ -111,6 +112,7 @@ export async function changeUnitPasswordAction(formData: FormData) {
     );
   }
 
+  revalidateTag(`admin-unit-hub-${unitId}`);
   revalidatePath(`/admin/unidades/${unitId}`);
   redirect(`/admin/unidades/${unitId}?ok=Contraseña actualizada`);
 }
@@ -166,6 +168,7 @@ export async function cancelLoanFromHubAction(formData: FormData) {
     );
   }
 
+  revalidateTag(`admin-unit-hub-${unitId}`);
   revalidatePath(`/admin/unidades/${unitId}`);
   redirect(`/admin/unidades/${unitId}?ok=${encodeURIComponent("Préstamo cancelado")}`);
 }

@@ -1,7 +1,7 @@
 ---
 tags: [changelog, historial, cambios]
 created: 2026-07-24
-updated: 2026-08-12 (v0.24.0)
+updated: 2026-08-12 (v0.25.0)
 ---
 
 # Changelog — DinoPay
@@ -9,6 +9,31 @@ updated: 2026-08-12 (v0.24.0)
 [[INDEX|← Volver al Index]]
 
 > Solo se registran cambios importantes. No trivialidades.
+
+---
+
+## [0.25.0] — 2026-08-12
+
+### Admin — Rediseño SaaS con sidebar + caché + bug fix caja
+
+**Layout tipo SaaS con sidebar lateral**
+- `AdminSidebar`: sidebar fija en desktop (lg+), w-56, sticky, con brand, nav por secciones, logout. Active state basado en `usePathname`.
+- `AdminTopBar`: top bar mobile con hamburger + drawer deslizable con backdrop blur.
+- Layout `src/app/admin/layout.tsx` reemplaza el header horizontal por el sistema sidebar + columna derecha.
+- El botón "← Unidades" del hub ahora es `lg:hidden` (la sidebar lo hace redundante en desktop).
+
+**Dashboard mejorado**
+- 4 metric cards con íconos, colores y links: Unidades activas, Cartera total, Meta del día, Gastos pendientes.
+- Card adicional con total de gastos aprobados histórico.
+- Query extra de `loans` para cartera y meta en tiempo real.
+
+**Caché en hub de unidad (performance)**
+- `unstable_cache` con TTL 30s y tag `admin-unit-hub-{id}` para las 10 queries estáticas del hub.
+- Query `todayPaymentsRaw` fuera del caché — siempre fresca.
+- Server actions del hub llaman `revalidateTag` + `revalidatePath` al mutar datos.
+
+**Bug fix — caja estimada incorrecta**
+- `totalIngresos`/`totalRetiros` usaban solo los últimos 15 movimientos de capital (el mismo array limitado de la UI). Ahora se hace una query separada sin `.limit()` solo para los aggregados.
 
 ---
 
