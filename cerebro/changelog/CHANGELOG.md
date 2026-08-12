@@ -1,7 +1,7 @@
 ---
 tags: [changelog, historial, cambios]
 created: 2026-07-24
-updated: 2026-08-12 (v0.28.0)
+updated: 2026-08-12 (v0.29.0)
 ---
 
 # Changelog — DinoPay
@@ -9,6 +9,36 @@ updated: 2026-08-12 (v0.28.0)
 [[INDEX|← Volver al Index]]
 
 > Solo se registran cambios importantes. No trivialidades.
+
+---
+
+## [0.29.0] — 2026-08-12
+
+### Unidad — Patrón Aestelix bottom sheet en todas las vistas unidad
+
+**Nuevo primitivo `src/components/ui/bottom-sheet.tsx`**
+- Primitivo ligero exclusivo para mobile bottom sheets (sin variante desktop panel lateral).
+- Portal a `document.body` con `createPortal`.
+- Overlay: `bg-black/40 backdrop-blur-[2px]` con opacidad animada.
+- Panel: `fixed inset-x-0 bottom-0 max-h-[92dvh] rounded-t-[28px]` con `shadow-[0_-8px_32px_rgba(0,0,0,0.14)]`.
+- Handle bar integrado: `h-1.5 w-12 rounded-full bg-muted-foreground/25`.
+- Animación: double rAF → `translate-y-full → translate-y-0`, 280ms, `cubic-bezier(0.32,0.72,0,1)`.
+- Desmontar con 320ms de delay para que la animación de cierre termine.
+- Body scroll lock, Escape key, browser back handler (`history.pushState + popstate`).
+- Prop `zIndex` (default `z-[240]`) para ajustar por nivel de importancia.
+
+**Vistas unidad migradas**
+- `prestamos-client.tsx`: sheet multi-vista completo (main/pay/nopay/info/receipt/delete). Usa `frozenSheet` ref para mantener contenido visible durante animación de cierre.
+- `gastos-client.tsx`: sheet "Nuevo gasto" con form de categoría, monto y nota.
+- `flujo-client.tsx`: sheet "Crear Ajuste" con form de tipo, monto, fecha y descripción.
+- `disponibles-client.tsx`: sheet multi-vista (main/info-details/info-loans). Usa `frozenSheet` ref.
+
+**Mejoras visuales aplicadas en todos los sheets**
+- Header fijo con borde inferior `border-b border-border/50`, separado del scroll.
+- Botón X y botón atrás: `h-8 w-8 rounded-full` (antes `rounded-lg h-9`).
+- Contenido scrollable con `flex-1 min-h-0 overflow-y-auto overscroll-contain`.
+- Safe area inferior: `calc(1.5rem + env(safe-area-inset-bottom))` en padding-bottom.
+- Z-index: `z-[240]` (antes `z-50`).
 
 ---
 

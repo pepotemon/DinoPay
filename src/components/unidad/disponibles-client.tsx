@@ -14,7 +14,8 @@ import {
   X
 } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { formatCurrency } from "@/lib/utils";
 
 export type CompletedLoan = {
@@ -102,6 +103,9 @@ function sheetSubtitle(view: Exclude<SheetState, null>["view"]): string | null {
 export function DisponiblesClient({ clients }: { clients: AvailableClient[] }) {
   const [search, setSearch] = useState("");
   const [sheet, setSheet] = useState<SheetState>(null);
+  // Keep last non-null sheet for render during close animation
+  const frozenSheet = useRef<Exclude<SheetState, null> | null>(null);
+  if (sheet) frozenSheet.current = sheet;
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -157,63 +161,56 @@ export function DisponiblesClient({ clients }: { clients: AvailableClient[] }) {
       </div>
 
       {/* ── Bottom sheet ── */}
-      {sheet ? (
-        <div className="fixed inset-0 z-50">
-          <button
-            aria-label="Cerrar"
-            className="absolute inset-0 bg-foreground/40 backdrop-blur-sm"
-            onClick={() => setSheet(null)}
-            type="button"
-          />
-          <div className="absolute bottom-0 left-0 right-0 max-h-[90vh] overflow-y-auto rounded-t-3xl bg-background shadow-2xl">
-            <div className="mx-auto max-w-md">
-              {/* Drag handle */}
-              <div className="flex justify-center pb-1 pt-3">
-                <div className="h-1 w-10 rounded-full bg-border" />
-              </div>
-
-              {/* Header */}
-              <div className="flex items-center gap-2 px-5 py-3">
-                {sheet.view !== "main" ? (
-                  <button
-                    className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-muted text-muted-foreground"
-                    onClick={() => setSheet(backView(sheet))}
-                    type="button"
-                  >
-                    <ArrowLeft className="h-5 w-5" />
-                  </button>
-                ) : null}
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-xl font-black">{sheet.client.alias}</p>
-                  {sheetSubtitle(sheet.view) ? (
-                    <p className="text-xs font-bold text-muted-foreground">
-                      {sheetSubtitle(sheet.view)}
-                    </p>
-                  ) : null}
-                </div>
+      <BottomSheet open={!!sheet} onClose={() => setSheet(null)}>
+        {frozenSheet.current ? (
+          <>
+            {/* Header */}
+            <div className="relative flex shrink-0 items-center border-b border-border/50 px-5 pb-3 pt-1">
+              {frozenSheet.current.view !== "main" ? (
                 <button
-                  className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-muted text-muted-foreground"
-                  onClick={() => setSheet(null)}
+                  className="absolute left-4 grid h-8 w-8 place-items-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-muted/80"
+                  onClick={() => setSheet(backView(frozenSheet.current!))}
                   type="button"
                 >
-                  <X className="h-5 w-5" />
+                  <ArrowLeft className="h-4 w-4" />
                 </button>
+              ) : null}
+              <div className="min-w-0 flex-1 px-10">
+                <p className="truncate text-xl font-black">{frozenSheet.current.client.alias}</p>
+                {sheetSubtitle(frozenSheet.current.view) ? (
+                  <p className="text-xs font-bold text-muted-foreground">
+                    {sheetSubtitle(frozenSheet.current.view)}
+                  </p>
+                ) : null}
               </div>
+              <button
+                aria-label="Cerrar"
+                className="absolute right-4 grid h-8 w-8 place-items-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-muted/80"
+                onClick={() => setSheet(null)}
+                type="button"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
 
-              {/* Content */}
-              <div className="pb-8">
-                {sheet.view === "main" ? (
-                  <SheetMain client={sheet.client} onSetSheet={setSheet} />
-                ) : sheet.view === "info-details" ? (
-                  <SheetInfoDetails client={sheet.client} />
-                ) : sheet.view === "info-loans" ? (
-                  <SheetInfoLoans client={sheet.client} />
+            {/* Scrollable content */}
+            <div
+              className="flex-1 min-h-0 overflow-y-auto overscroll-contain"
+              style={{ paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom))" }}
+            >
+              <div className="py-3">
+                {frozenSheet.current.view === "main" ? (
+                  <SheetMain client={frozenSheet.current.client} onSetSheet={setSheet} />
+                ) : frozenSheet.current.view === "info-details" ? (
+                  <SheetInfoDetails client={frozenSheet.current.client} />
+                ) : frozenSheet.current.view === "info-loans" ? (
+                  <SheetInfoLoans client={frozenSheet.current.client} />
                 ) : null}
               </div>
             </div>
-          </div>
-        </div>
-      ) : null}
+          </>
+        ) : null}
+      </BottomSheet>
     </>
   );
 }

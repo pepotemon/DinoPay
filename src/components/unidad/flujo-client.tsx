@@ -17,6 +17,7 @@ import {
   Wallet,
   X
 } from "lucide-react";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
 import Link from "next/link";
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
@@ -360,114 +361,107 @@ export function FlujoSemanalClient({ data, today }: { data: FlujoData; today: st
       </div>
 
       {/* ── Crear Ajuste sheet ── */}
-      {showSheet ? (
-        <div className="fixed inset-0 z-50">
+      <BottomSheet open={showSheet} onClose={() => setShowSheet(false)}>
+        {/* Header */}
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border/50 px-5 pb-3 pt-1">
+          <p className="text-xl font-black">Crear Ajuste</p>
           <button
             aria-label="Cerrar"
-            className="absolute inset-0 bg-foreground/40 backdrop-blur-sm"
+            className="grid h-8 w-8 place-items-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-muted/80"
             onClick={() => setShowSheet(false)}
             type="button"
-          />
-          <div className="absolute bottom-0 left-0 right-0 max-h-[90vh] overflow-y-auto rounded-t-3xl bg-background shadow-2xl">
-            <div className="mx-auto max-w-md">
-              <div className="flex justify-center pb-1 pt-3">
-                <div className="h-1 w-10 rounded-full bg-border" />
-              </div>
-              <div className="flex items-center gap-2 px-5 py-3">
-                <p className="flex-1 text-xl font-black">Crear Ajuste</p>
-                <button
-                  className="grid h-9 w-9 place-items-center rounded-xl bg-muted text-muted-foreground"
-                  onClick={() => setShowSheet(false)}
-                  type="button"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <form action={ajusteAction} className="space-y-4 px-5 pb-8">
-                <input name="semanaInicio" type="hidden" value={fechaInicio} />
-
-                <section className="space-y-4 rounded-2xl border bg-background p-5 shadow-sm">
-                  {/* Tipo */}
-                  <label className="block space-y-1.5">
-                    <span className="text-sm font-bold">
-                      Tipo <span className="text-destructive">*</span>
-                    </span>
-                    <div className="relative">
-                      <select
-                        className="h-12 w-full appearance-none rounded-xl bg-green-50 px-4 pr-10 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"
-                        defaultValue="ingreso"
-                        name="tipo"
-                        required
-                      >
-                        <option value="ingreso">Ingreso</option>
-                        <option value="egreso">Egreso</option>
-                      </select>
-                      <ChevronDown className="pointer-events-none absolute right-3 top-4 h-4 w-4 text-muted-foreground" />
-                    </div>
-                  </label>
-
-                  {/* Monto */}
-                  <label className="block space-y-1.5">
-                    <span className="text-sm font-bold">
-                      Monto <span className="text-destructive">*</span>
-                    </span>
-                    <div className="relative">
-                      <Banknote className="pointer-events-none absolute left-3.5 top-3.5 h-4 w-4 text-primary/50" />
-                      <input
-                        className={INPUT}
-                        inputMode="decimal"
-                        min="0.01"
-                        name="monto"
-                        placeholder="0"
-                        required
-                        step="0.01"
-                        type="number"
-                      />
-                    </div>
-                  </label>
-
-                  {/* Fecha */}
-                  <label className="block space-y-1.5">
-                    <span className="text-sm font-bold">
-                      Fecha <span className="text-destructive">*</span>
-                    </span>
-                    <div className="relative">
-                      <CalendarDays className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-muted-foreground/60" />
-                      <input
-                        className="h-12 w-full rounded-xl bg-green-50 pl-9 pr-3 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"
-                        defaultValue={today}
-                        max={today}
-                        name="fecha"
-                        required
-                        type="date"
-                      />
-                    </div>
-                  </label>
-
-                  {/* Descripcion */}
-                  <label className="block space-y-1.5">
-                    <span className="text-sm font-bold">Descripción</span>
-                    <textarea
-                      className="min-h-[72px] w-full resize-none rounded-xl bg-green-50 px-4 py-3 text-sm font-medium outline-none placeholder:text-muted-foreground/50 focus:ring-2 focus:ring-primary/20"
-                      name="descripcion"
-                      placeholder="Opcional…"
-                    />
-                  </label>
-
-                  {ajusteState.message && !ajusteState.ok ? (
-                    <p className="rounded-xl bg-destructive/10 px-3 py-2 text-sm font-bold text-destructive">
-                      {ajusteState.message}
-                    </p>
-                  ) : null}
-                </section>
-
-                <SheetSubmitButton />
-              </form>
-            </div>
-          </div>
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
-      ) : null}
+
+        {/* Scrollable content */}
+        <div
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain"
+          style={{ paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom))" }}
+        >
+          <form action={ajusteAction} className="mx-auto max-w-md space-y-4 px-5 pt-4">
+            <input name="semanaInicio" type="hidden" value={fechaInicio} />
+
+            <section className="space-y-4 rounded-2xl border bg-background p-5 shadow-sm">
+              {/* Tipo */}
+              <label className="block space-y-1.5">
+                <span className="text-sm font-bold">
+                  Tipo <span className="text-destructive">*</span>
+                </span>
+                <div className="relative">
+                  <select
+                    className="h-12 w-full appearance-none rounded-xl bg-green-50 px-4 pr-10 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"
+                    defaultValue="ingreso"
+                    name="tipo"
+                    required
+                  >
+                    <option value="ingreso">Ingreso</option>
+                    <option value="egreso">Egreso</option>
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-3 top-4 h-4 w-4 text-muted-foreground" />
+                </div>
+              </label>
+
+              {/* Monto */}
+              <label className="block space-y-1.5">
+                <span className="text-sm font-bold">
+                  Monto <span className="text-destructive">*</span>
+                </span>
+                <div className="relative">
+                  <Banknote className="pointer-events-none absolute left-3.5 top-3.5 h-4 w-4 text-primary/50" />
+                  <input
+                    className={INPUT}
+                    inputMode="decimal"
+                    min="0.01"
+                    name="monto"
+                    placeholder="0"
+                    required
+                    step="0.01"
+                    type="number"
+                  />
+                </div>
+              </label>
+
+              {/* Fecha */}
+              <label className="block space-y-1.5">
+                <span className="text-sm font-bold">
+                  Fecha <span className="text-destructive">*</span>
+                </span>
+                <div className="relative">
+                  <CalendarDays className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-muted-foreground/60" />
+                  <input
+                    className="h-12 w-full rounded-xl bg-green-50 pl-9 pr-3 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"
+                    defaultValue={today}
+                    max={today}
+                    name="fecha"
+                    required
+                    type="date"
+                  />
+                </div>
+              </label>
+
+              {/* Descripcion */}
+              <label className="block space-y-1.5">
+                <span className="text-sm font-bold">Descripción</span>
+                <textarea
+                  className="min-h-[72px] w-full resize-none rounded-xl bg-green-50 px-4 py-3 text-sm font-medium outline-none placeholder:text-muted-foreground/50 focus:ring-2 focus:ring-primary/20"
+                  name="descripcion"
+                  placeholder="Opcional…"
+                />
+              </label>
+
+              {ajusteState.message && !ajusteState.ok ? (
+                <p className="rounded-xl bg-destructive/10 px-3 py-2 text-sm font-bold text-destructive">
+                  {ajusteState.message}
+                </p>
+              ) : null}
+            </section>
+
+            <SheetSubmitButton />
+          </form>
+        </div>
+      </BottomSheet>
     </>
   );
 }

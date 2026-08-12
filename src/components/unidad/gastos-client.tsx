@@ -12,6 +12,7 @@ import {
   Trash2,
   X
 } from "lucide-react";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
@@ -189,101 +190,94 @@ export function GastosClient({ expenses, today }: { expenses: GastoRow[]; today:
       </div>
 
       {/* ── New expense sheet ── */}
-      {showSheet ? (
-        <div className="fixed inset-0 z-50">
+      <BottomSheet open={showSheet} onClose={() => setShowSheet(false)}>
+        {/* Header */}
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border/50 px-5 pb-3 pt-1">
+          <p className="text-xl font-black">Nuevo gasto</p>
           <button
             aria-label="Cerrar"
-            className="absolute inset-0 bg-foreground/40 backdrop-blur-sm"
+            className="grid h-8 w-8 place-items-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-muted/80"
             onClick={() => setShowSheet(false)}
             type="button"
-          />
-          <div className="absolute bottom-0 left-0 right-0 max-h-[90vh] overflow-y-auto rounded-t-3xl bg-background shadow-2xl">
-            <div className="mx-auto max-w-md">
-              <div className="flex justify-center pb-1 pt-3">
-                <div className="h-1 w-10 rounded-full bg-border" />
-              </div>
-              <div className="flex items-center gap-2 px-5 py-3">
-                <p className="flex-1 text-xl font-black">Nuevo gasto</p>
-                <button
-                  className="grid h-9 w-9 place-items-center rounded-xl bg-muted text-muted-foreground"
-                  onClick={() => setShowSheet(false)}
-                  type="button"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <form action={handleCreate} className="space-y-4 px-5 pb-8">
-                <section className="space-y-4 rounded-2xl border bg-background p-5 shadow-sm">
-                  {/* Category */}
-                  <label className="block space-y-1.5">
-                    <span className="text-sm font-bold">
-                      Categoría <span className="text-destructive">*</span>
-                    </span>
-                    <div className="relative">
-                      <select
-                        className={SELECT}
-                        defaultValue=""
-                        name="categoria"
-                        required
-                      >
-                        <option disabled value="">
-                          Seleccionar
-                        </option>
-                        {CATEGORIES.map((cat) => (
-                          <option key={cat} value={cat}>
-                            {cat}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown className="pointer-events-none absolute right-3 top-4 h-4 w-4 text-muted-foreground" />
-                    </div>
-                  </label>
-
-                  {/* Amount */}
-                  <label className="block space-y-1.5">
-                    <span className="text-sm font-bold">
-                      Monto <span className="text-destructive">*</span>
-                    </span>
-                    <div className="relative">
-                      <Banknote className="pointer-events-none absolute left-3.5 top-3.5 h-4 w-4 text-primary/50" />
-                      <input
-                        className={INPUT}
-                        inputMode="decimal"
-                        min="0.01"
-                        name="monto"
-                        placeholder="0"
-                        required
-                        step="0.01"
-                        type="number"
-                      />
-                    </div>
-                  </label>
-
-                  {/* Note */}
-                  <label className="block space-y-1.5">
-                    <span className="text-sm font-bold">Nota</span>
-                    <textarea
-                      className="min-h-[80px] w-full resize-none rounded-xl bg-green-50 px-4 py-3 text-sm font-medium outline-none placeholder:text-muted-foreground/50 focus:ring-2 focus:ring-primary/20"
-                      name="nota"
-                      placeholder="Opcional…"
-                    />
-                  </label>
-                </section>
-
-                <button
-                  className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-base font-black text-white shadow-lg shadow-primary/25 transition-opacity disabled:opacity-60"
-                  disabled={isCreating}
-                  type="submit"
-                >
-                  {isCreating ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
-                  {isCreating ? "Guardando…" : "Guardar gasto"}
-                </button>
-              </form>
-            </div>
-          </div>
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
-      ) : null}
+
+        {/* Scrollable content */}
+        <div
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain"
+          style={{ paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom))" }}
+        >
+          <form action={handleCreate} className="mx-auto max-w-md space-y-4 px-5 pt-4">
+            <section className="space-y-4 rounded-2xl border bg-background p-5 shadow-sm">
+              {/* Category */}
+              <label className="block space-y-1.5">
+                <span className="text-sm font-bold">
+                  Categoría <span className="text-destructive">*</span>
+                </span>
+                <div className="relative">
+                  <select
+                    className={SELECT}
+                    defaultValue=""
+                    name="categoria"
+                    required
+                  >
+                    <option disabled value="">
+                      Seleccionar
+                    </option>
+                    {CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-3 top-4 h-4 w-4 text-muted-foreground" />
+                </div>
+              </label>
+
+              {/* Amount */}
+              <label className="block space-y-1.5">
+                <span className="text-sm font-bold">
+                  Monto <span className="text-destructive">*</span>
+                </span>
+                <div className="relative">
+                  <Banknote className="pointer-events-none absolute left-3.5 top-3.5 h-4 w-4 text-primary/50" />
+                  <input
+                    className={INPUT}
+                    inputMode="decimal"
+                    min="0.01"
+                    name="monto"
+                    placeholder="0"
+                    required
+                    step="0.01"
+                    type="number"
+                  />
+                </div>
+              </label>
+
+              {/* Note */}
+              <label className="block space-y-1.5">
+                <span className="text-sm font-bold">Nota</span>
+                <textarea
+                  className="min-h-[80px] w-full resize-none rounded-xl bg-green-50 px-4 py-3 text-sm font-medium outline-none placeholder:text-muted-foreground/50 focus:ring-2 focus:ring-primary/20"
+                  name="nota"
+                  placeholder="Opcional…"
+                />
+              </label>
+            </section>
+
+            <button
+              className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-base font-black text-white shadow-lg shadow-primary/25 transition-opacity disabled:opacity-60"
+              disabled={isCreating}
+              type="submit"
+            >
+              {isCreating ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
+              {isCreating ? "Guardando…" : "Guardar gasto"}
+            </button>
+          </form>
+        </div>
+      </BottomSheet>
     </>
   );
 }

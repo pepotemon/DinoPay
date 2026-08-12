@@ -29,6 +29,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PaymentInputs } from "@/components/unidad/payment-inputs";
@@ -267,6 +268,9 @@ export function PrestamosClient({
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"todos" | "pendientes" | "visitados">("pendientes");
   const [sheet, setSheet] = useState<SheetState>(null);
+  // Keep last non-null sheet for render during close animation
+  const frozenSheet = useRef<Exclude<SheetState, null> | null>(null);
+  if (sheet) frozenSheet.current = sheet;
   const [, startTransition] = useTransition();
   const [submittingId, setSubmittingId] = useState<string | null>(null);
 
@@ -521,144 +525,139 @@ export function PrestamosClient({
       </div>
 
       {/* ── Bottom sheet ── */}
-      {sheet ? (
-        <div className="fixed inset-0 z-50">
-          <button
-            aria-label="Cerrar"
-            className="absolute inset-0 bg-foreground/40 backdrop-blur-sm"
-            onClick={() => setSheet(null)}
-            type="button"
-          />
-          <div className="absolute bottom-0 left-0 right-0 max-h-[82vh] overflow-y-auto rounded-t-2xl bg-background shadow-2xl">
-            <div className="mx-auto max-w-lg">
-              <div className="flex justify-center pb-0.5 pt-2">
-                <div className="h-1 w-8 rounded-full bg-border" />
-              </div>
-
-              <div className="relative px-3 pb-2 pt-1">
-                {sheet.view !== "main" ? (
-                  <button
-                    className="absolute left-3 top-1 grid h-8 w-8 place-items-center rounded-lg bg-muted text-muted-foreground"
-                    onClick={() => setSheet(backView(sheet))}
-                    type="button"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                  </button>
-                ) : null}
-                <div className="mx-10 min-w-0 text-center">
-                  <p className="mt-1 truncate text-xl font-black uppercase leading-tight">
-                    {sheet.view === "info-payments" || sheet.view === "delete-payment-confirm" || sheet.view === "delete-loan-confirm"
-                      ? (sheet.clientLoan.clients?.alias ?? "Sin nombre")
-                      : ((sheet.loan as ClientLoan).clients?.alias ?? "Sin nombre")}
-                  </p>
-                  {sheetSubtitle(sheet.view) ? (
-                    <p className="text-[10px] font-medium text-muted-foreground">
-                      {sheetSubtitle(sheet.view)}
-                    </p>
-                  ) : null}
-                </div>
+      <BottomSheet open={!!sheet} onClose={() => setSheet(null)}>
+        {frozenSheet.current ? (
+          <>
+            {/* Header */}
+            <div className="relative flex shrink-0 items-center border-b border-border/50 px-4 pb-3 pt-1">
+              {frozenSheet.current.view !== "main" ? (
                 <button
-                  className="absolute right-3 top-1 grid h-8 w-8 place-items-center rounded-lg bg-muted text-muted-foreground"
-                  onClick={() => setSheet(null)}
+                  className="absolute left-4 grid h-8 w-8 place-items-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-muted/80"
+                  onClick={() => setSheet(backView(frozenSheet.current!))}
                   type="button"
                 >
-                  <X className="h-4 w-4" />
+                  <ArrowLeft className="h-4 w-4" />
                 </button>
+              ) : null}
+              <div className="mx-auto min-w-0 px-10 text-center">
+                <p className="truncate text-xl font-black uppercase leading-tight">
+                  {frozenSheet.current.view === "info-payments" || frozenSheet.current.view === "delete-payment-confirm" || frozenSheet.current.view === "delete-loan-confirm"
+                    ? (frozenSheet.current.clientLoan.clients?.alias ?? "Sin nombre")
+                    : ((frozenSheet.current.loan as ClientLoan).clients?.alias ?? "Sin nombre")}
+                </p>
+                {sheetSubtitle(frozenSheet.current.view) ? (
+                  <p className="text-[10px] font-medium text-muted-foreground">
+                    {sheetSubtitle(frozenSheet.current.view)}
+                  </p>
+                ) : null}
               </div>
+              <button
+                aria-label="Cerrar"
+                className="absolute right-4 grid h-8 w-8 place-items-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-muted/80"
+                onClick={() => setSheet(null)}
+                type="button"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
 
-              <div className="pb-4">
-                {sheet.view === "main" ? (
+            {/* Scrollable content */}
+            <div
+              className="flex-1 min-h-0 overflow-y-auto overscroll-contain"
+              style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
+            >
+              <div className="mx-auto max-w-lg py-3">
+                {frozenSheet.current.view === "main" ? (
                   <SheetMain
-                    loan={sheet.loan}
+                    loan={frozenSheet.current.loan}
                     onSetSheet={setSheet}
                   />
-                ) : sheet.view === "pay" ? (
-                  <SheetPay loan={sheet.loan} onSetSheet={setSheet} />
-                ) : sheet.view === "pay-confirm" ? (
+                ) : frozenSheet.current.view === "pay" ? (
+                  <SheetPay loan={frozenSheet.current.loan} onSetSheet={setSheet} />
+                ) : frozenSheet.current.view === "pay-confirm" ? (
                   <SheetPayConfirm
-                    cuotas={sheet.cuotas}
-                    isPending={submittingId === sheet.loan.id}
-                    loan={sheet.loan}
-                    metodo={sheet.metodo}
-                    monto={sheet.monto}
-                    onBack={() => setSheet(backView(sheet))}
-                    onConfirm={() => handlePayment(sheet.loan.id, sheet.formData)}
+                    cuotas={frozenSheet.current.cuotas}
+                    isPending={submittingId === frozenSheet.current.loan.id}
+                    loan={frozenSheet.current.loan}
+                    metodo={frozenSheet.current.metodo}
+                    monto={frozenSheet.current.monto}
+                    onBack={() => setSheet(backView(frozenSheet.current!))}
+                    onConfirm={() => handlePayment(frozenSheet.current!.loan.id, (frozenSheet.current as Extract<Exclude<SheetState, null>, { view: "pay-confirm" }>).formData)}
                   />
-                ) : sheet.view === "nopay" ? (
-                  <SheetNoPay loan={sheet.loan} onSetSheet={setSheet} />
-                ) : sheet.view === "nopay-confirm" ? (
+                ) : frozenSheet.current.view === "nopay" ? (
+                  <SheetNoPay loan={frozenSheet.current.loan} onSetSheet={setSheet} />
+                ) : frozenSheet.current.view === "nopay-confirm" ? (
                   <SheetNoPayConfirm
-                    isPending={submittingId === sheet.loan.id}
-                    onBack={() => setSheet(backView(sheet))}
-                    onConfirm={() => handleNoPay(sheet.loan.id, sheet.reason)}
-                    reason={sheet.reason}
+                    isPending={submittingId === frozenSheet.current.loan.id}
+                    onBack={() => setSheet(backView(frozenSheet.current!))}
+                    onConfirm={() => handleNoPay(frozenSheet.current!.loan.id, (frozenSheet.current as Extract<Exclude<SheetState, null>, { view: "nopay-confirm" }>).reason)}
+                    reason={(frozenSheet.current as Extract<Exclude<SheetState, null>, { view: "nopay-confirm" }>).reason}
                   />
-                ) : sheet.view === "info-details" ? (
+                ) : frozenSheet.current.view === "info-details" ? (
                   <SheetInfoDetails
-                    lastPayment={paymentHistoryByLoan[sheet.loan.id]?.[0] ?? null}
-                    loan={sheet.loan}
+                    lastPayment={paymentHistoryByLoan[frozenSheet.current.loan.id]?.[0] ?? null}
+                    loan={frozenSheet.current.loan}
                     zonaHoraria={zonaHoraria}
                   />
-                ) : sheet.view === "info-payments" ? (
+                ) : frozenSheet.current.view === "info-payments" ? (
                   <SheetInfoPayments
                     canDeletePayments={canDeletePayments}
-                    loan={sheet.loan}
+                    loan={frozenSheet.current.loan}
                     onDeletePayment={(payment) =>
                       setSheet({
                         view: "delete-payment-confirm",
-                        loan: sheet.loan,
-                        clientLoan: sheet.clientLoan,
+                        loan: (frozenSheet.current as Extract<Exclude<SheetState, null>, { view: "info-payments" }>).loan,
+                        clientLoan: (frozenSheet.current as Extract<Exclude<SheetState, null>, { view: "info-payments" }>).clientLoan,
                         payment
                       })
                     }
-                    payments={paymentHistoryByLoan[sheet.loan.id] ?? []}
+                    payments={paymentHistoryByLoan[frozenSheet.current.loan.id] ?? []}
                     today={today}
                     zonaHoraria={zonaHoraria}
                   />
-
-                ) : sheet.view === "info-loans" ? (
+                ) : frozenSheet.current.view === "info-loans" ? (
                   <SheetInfoLoans
-                    activeLoan={sheet.loan}
-                    loans={loanHistoryByClient[sheet.loan.client_id] ?? []}
-                    overdue={overdueByLoan[sheet.loan.id] ?? 0}
+                    activeLoan={frozenSheet.current.loan}
+                    loans={loanHistoryByClient[frozenSheet.current.loan.client_id] ?? []}
+                    overdue={overdueByLoan[frozenSheet.current.loan.id] ?? 0}
                     paymentHistoryByLoan={paymentHistoryByLoan}
                     canDeleteLoans={canDeleteLoans}
                     onDeleteLoan={(loan) =>
-                      setSheet({ view: "delete-loan-confirm", loan, clientLoan: sheet.loan })
+                      setSheet({ view: "delete-loan-confirm", loan, clientLoan: frozenSheet.current!.loan as ClientLoan })
                     }
                     onViewPayments={(loan) =>
-                      setSheet({ view: "info-payments", loan, clientLoan: sheet.loan })
+                      setSheet({ view: "info-payments", loan, clientLoan: frozenSheet.current!.loan as ClientLoan })
                     }
                     today={today}
                     zonaHoraria={zonaHoraria}
                   />
-                ) : sheet.view === "receipt" ? (
+                ) : frozenSheet.current.view === "receipt" ? (
                   <SheetReceipt
                     countryCode={countryCode}
-                    loan={sheet.loan}
-                    payments={paymentHistoryByLoan[sheet.loan.id] ?? []}
+                    loan={frozenSheet.current.loan}
+                    payments={paymentHistoryByLoan[frozenSheet.current.loan.id] ?? []}
                     zonaHoraria={zonaHoraria}
                   />
-                ) : sheet.view === "delete-payment-confirm" ? (
+                ) : frozenSheet.current.view === "delete-payment-confirm" ? (
                   <SheetDeletePaymentConfirm
-                    isPending={submittingId === sheet.payment.id}
-                    onBack={() => setSheet(backView(sheet))}
-                    onConfirm={() => handleDeletePayment(sheet.payment.id)}
-                    payment={sheet.payment}
+                    isPending={submittingId === (frozenSheet.current as Extract<Exclude<SheetState, null>, { view: "delete-payment-confirm" }>).payment.id}
+                    onBack={() => setSheet(backView(frozenSheet.current!))}
+                    onConfirm={() => handleDeletePayment((frozenSheet.current as Extract<Exclude<SheetState, null>, { view: "delete-payment-confirm" }>).payment.id)}
+                    payment={(frozenSheet.current as Extract<Exclude<SheetState, null>, { view: "delete-payment-confirm" }>).payment}
                   />
-                ) : sheet.view === "delete-loan-confirm" ? (
+                ) : frozenSheet.current.view === "delete-loan-confirm" ? (
                   <SheetDeleteLoanConfirm
-                    isPending={submittingId === sheet.loan.id}
-                    loan={sheet.loan}
-                    onBack={() => setSheet(backView(sheet))}
-                    onConfirm={() => handleDeleteLoan(sheet.loan.id)}
+                    isPending={submittingId === frozenSheet.current.loan.id}
+                    loan={frozenSheet.current.loan}
+                    onBack={() => setSheet(backView(frozenSheet.current!))}
+                    onConfirm={() => handleDeleteLoan(frozenSheet.current!.loan.id)}
                   />
                 ) : null}
               </div>
             </div>
-          </div>
-        </div>
-      ) : null}
+          </>
+        ) : null}
+      </BottomSheet>
     </>
   );
 }
