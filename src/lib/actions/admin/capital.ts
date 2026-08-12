@@ -11,7 +11,8 @@ const capitalSchema = z.object({
   unitId: z.string().uuid(),
   tipo: z.enum(["ingreso", "retiro"]),
   monto: z.coerce.number().positive("El monto debe ser mayor a cero."),
-  nota: z.string().optional()
+  nota: z.string().optional(),
+  redirectTo: z.string().optional()
 });
 
 export async function createCapitalMovementAction(formData: FormData) {
@@ -19,13 +20,15 @@ export async function createCapitalMovementAction(formData: FormData) {
     unitId: formData.get("unitId"),
     tipo: formData.get("tipo"),
     monto: formData.get("monto"),
-    nota: formData.get("nota")
+    nota: formData.get("nota"),
+    redirectTo: formData.get("redirectTo")
   });
 
   if (!parsed.success) {
     const unitId = formData.get("unitId") as string;
+    const redirectTo = (formData.get("redirectTo") as string) || `/admin/unidades/${unitId}`;
     redirect(
-      `/admin/unidades/${unitId}?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Revisa los datos.")}`
+      `${redirectTo}?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Revisa los datos.")}`
     );
   }
 
@@ -52,12 +55,16 @@ export async function createCapitalMovementAction(formData: FormData) {
     fecha: today
   });
 
+  const successRedirect =
+    parsed.data.redirectTo ?? `/admin/unidades/${parsed.data.unitId}`;
+
   if (error) {
     redirect(
-      `/admin/unidades/${parsed.data.unitId}?error=${encodeURIComponent(error.message)}`
+      `${successRedirect}?error=${encodeURIComponent(error.message)}`
     );
   }
 
   revalidatePath(`/admin/unidades/${parsed.data.unitId}`);
-  redirect(`/admin/unidades/${parsed.data.unitId}?ok=Movimiento registrado`);
+  revalidatePath(`/admin/unidades/${parsed.data.unitId}/transacciones`);
+  redirect(`${successRedirect}?ok=Movimiento registrado`);
 }

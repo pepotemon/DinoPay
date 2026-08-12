@@ -1,7 +1,7 @@
 ---
 tags: [changelog, historial, cambios]
 created: 2026-07-24
-updated: 2026-08-12 (v0.25.0)
+updated: 2026-08-12 (v0.26.0)
 ---
 
 # Changelog — DinoPay
@@ -9,6 +9,36 @@ updated: 2026-08-12 (v0.25.0)
 [[INDEX|← Volver al Index]]
 
 > Solo se registran cambios importantes. No trivialidades.
+
+---
+
+## [0.26.0] — 2026-08-12
+
+### Admin — Modal de opciones rápidas + 3 páginas dedicadas por unidad
+
+**Nueva navegación en lista de unidades**
+- Las tarjetas de unidad ya no navegan directamente al hub — abren un modal de opciones rápidas.
+- `UnitQuickModal`: bottom sheet en mobile, modal centrado en desktop. Muestra nombre, estado, 3 métricas (cartera, clientes activos, meta día) y 3 opciones de navegación como cards con icono, título y descripción.
+- `UnitsListClient`: client component que maneja el estado `selectedUnit` para el modal.
+
+**`/admin/unidades/[id]/clientes`** — Clientes y préstamos
+- Buscador en tiempo real (filtra por alias o NIT).
+- Pills de filtro: Todos / Activos / Disponibles / Inactivos.
+- Cards de cliente con badge de estado, info del préstamo, barra de progreso de cuotas, link a historial.
+
+**`/admin/unidades/[id]/transacciones`** — Transacciones
+- Filtros de período: Hoy / Semana / Mes / Año (links, default semana).
+- Form de rango personalizado (input type=date, GET a la misma ruta).
+- 3 metric cards: Total ingresos (verde), Total retiros (rojo), Balance.
+- Form de nuevo movimiento (ingreso/retiro) con `createCapitalMovementAction`.
+- Lista de movimientos con badge de tipo, monto y nota.
+
+**`/admin/unidades/[id]/configuracion`** — Configuración
+- Cards: Información de ruta, Configuración operativa (intereses, días, permisos), Acceso/seguridad (cambio de contraseña colapsable), Acciones rápidas.
+
+**`/admin/unidades/[id]`** → redirect a `/clientes`.
+
+**`createCapitalMovementAction`** actualizado con campo opcional `redirectTo` para redirigir a la página de transacciones en lugar del hub.
 
 ---
 
