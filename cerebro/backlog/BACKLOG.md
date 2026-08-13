@@ -80,8 +80,9 @@ updated: 2026-08-13 (v0.31.0)
 - [x] Congelar préstamo y cliente — estado `'congelado'` en loans, cartera se mantiene, caja sin cambio
 - [x] Reactivar cliente — descongela préstamo, vuelve a la cartera activa
 - [x] Acciones context-aware en modal (inactivo / activo+préstamo / activo+sin préstamo)
-- [ ] Días de atraso en tarjetas de clientes (admin)
-- [ ] Modal "Detalles" de préstamo/cliente desde acciones rápidas (admin)
+- [x] Días de atraso en tarjetas de clientes (admin) — chip rojo basado en `ultima_cuota_fecha`
+- [x] Modal "Detalles" de préstamo/cliente desde acciones rápidas (admin) — anillo progreso + contacto + call/WA
+- [x] Resumen deuda congelada en tab Inactivos (chips: total / congelados / saldo total)
 
 ### Loading / Error States
 - [x] `loading.tsx` en préstamos, gastos y reporte diario

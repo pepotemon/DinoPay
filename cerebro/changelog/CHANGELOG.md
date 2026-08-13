@@ -1,7 +1,7 @@
 ---
 tags: [changelog, historial, cambios]
 created: 2026-07-24
-updated: 2026-08-13 (v0.31.0)
+updated: 2026-08-13 (v0.31.2)
 ---
 
 # Changelog — DinoPay
@@ -9,6 +9,33 @@ updated: 2026-08-13 (v0.31.0)
 [[INDEX|← Volver al Index]]
 
 > Solo se registran cambios importantes. No trivialidades.
+
+---
+
+## [0.31.2] — 2026-08-13
+
+### Admin clientes — días de atraso, modal Detalles y resumen inactivos
+
+**Días de atraso en tarjetas (`ClientCard`)**
+- Helper `calcDiasAtraso(today, ultimaCuotaFecha)`: compara la fecha de hoy (timezone de la unidad) contra `ultima_cuota_fecha` (próxima cuota esperada).
+- Si hay días de atraso: chip rojo `X días de atraso` dentro del bloque del préstamo; saldo también se pone rojo.
+- Solo aplica a préstamos activos con cuotas pendientes. Congelados y completados no muestran atraso.
+
+**Modal "Detalles" en acciones rápidas (`ClientActionsModal`)**
+- Nueva acción `Detalles` (ícono `Eye`) al inicio de todos los menus contextuales.
+- Vista detallada dentro del SlideOver sin queries adicionales — usa datos ya cargados.
+- Contenido: alerta roja de días de atraso (si aplica), tarjeta de préstamo unificada (4 stats + anillo de progreso separado por `border-t`), sección de contacto (NIT, teléfonos, dirección, barrio) con botones Llamar y WhatsApp.
+- Para clientes disponibles (sin préstamo): muestra solo la sección de contacto.
+- Página: query extendida para incluir `total_a_cobrar` y `fecha_inicio` en los préstamos.
+
+**Resumen de deuda congelada en tab Inactivos**
+- Al seleccionar el filtro "Inactivos" (y haber al menos un inactivo), aparece una banda de 3 chips: total inactivos, cuántos con préstamo congelado, y suma del saldo congelado (ámbar).
+- Distinción: `Inactivos` = todos los clientes con `activo = false`; `Congelados` = subconjunto con `loan.estado = 'congelado'`. Todo congelado es inactivo, pero no todo inactivo es congelado.
+- Los valores usan todos los inactivos (no solo los visibles con búsqueda activa).
+
+**Nota técnica — reactivación de préstamos congelados**
+- Al reactivar un préstamo congelado, `ultima_cuota_fecha` no se actualiza: el préstamo vuelve con los días de atraso acumulados durante todo el período congelado.
+- Esto es intencional por ahora: la deuda era real aunque el cliente estuviera "congelado". Si se quiere reiniciar el reloj al reactivar, `reactivateClientAction` debe actualizar `ultima_cuota_fecha = today`.
 
 ---
 
