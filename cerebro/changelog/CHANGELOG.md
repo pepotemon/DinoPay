@@ -1,7 +1,7 @@
 ---
 tags: [changelog, historial, cambios]
 created: 2026-07-24
-updated: 2026-08-12 (v0.29.0)
+updated: 2026-08-13 (v0.30.0)
 ---
 
 # Changelog — DinoPay
@@ -9,6 +9,52 @@ updated: 2026-08-12 (v0.29.0)
 [[INDEX|← Volver al Index]]
 
 > Solo se registran cambios importantes. No trivialidades.
+
+---
+
+## [0.30.0] — 2026-08-13
+
+### Admin — Polish UI, performance y acciones de cliente en modal
+
+**Tarjetas de unidades (`units-list-client.tsx`)**
+- Avatar con iniciales en círculo cuadrado (`rounded-xl`, `bg-primary`) a la izquierda del nombre.
+- Nombre más bold (`font-bold text-base`), sin cambios en datos mostrados.
+- Stats (Cartera, Clientes, Meta día) en chips con `rounded-xl bg-muted/50 text-center`, label en `text-[10px] uppercase tracking-wider`.
+- Hover más visible: `hover:shadow-md hover:border-primary/40 hover:-translate-y-0.5` con micro-lift.
+- Barra de acento superior (verde/gris) añadida y luego eliminada por preferencia del usuario.
+
+**Route selector (`route-selector.tsx`)**
+- Hover de ítems: de `hover:bg-muted` (muy suave) a `hover:bg-primary/10 hover:text-primary`.
+- Ítem seleccionado: `bg-primary/10 text-primary font-medium` en lugar de `bg-muted/60`.
+- Botón trigger: `hover:bg-primary/10 hover:text-primary hover:border-primary/30`.
+
+**Acciones rápidas de cliente — ahora en SlideOver (`unidad-clientes-client.tsx`)**
+- Eliminado el menú dropdown de 3 puntos (`MoreVertical`) de `ClientCard`.
+- Tarjeta cliente ahora es un `<button>` clickeable con `ChevronRight` sutil a la derecha.
+- Nuevo `ClientActionsModal` usando `SlideOver` (patrón consistente con el resto de la app).
+- 5 acciones con íconos: Historial de pagos, Historial de préstamos, Eliminar préstamo, Desactivar cliente, Editar cliente.
+- Acciones destructivas con fondo `bg-destructive/5` e ícono en `bg-destructive/10`.
+- Sticky-last-value ref (`lastActionsClient`) para mantener contenido durante animación de cierre.
+- Texto corregido: "Cancelar préstamo" → "Eliminar préstamo".
+
+**Progreso circular en tarjetas de clientes**
+- Barra de progreso horizontal eliminada del `ClientCard`.
+- Reemplazada por anillo SVG circular (`LoanProgress`) de 52px con `stroke-dasharray/dashoffset`.
+- Porcentaje centrado dentro del anillo; X/Y cuotas debajo en texto `9px`.
+- Ubicado a la derecha de las stats de saldo y cuota, compacto y sin ocupar fila completa.
+- Animación: `transition-all duration-500` en el trazo de progreso.
+
+**Performance — loading.tsx en páginas admin lentas**
+- Creados `loading.tsx` para: `clientes`, `transacciones`, `configuracion` y `gastos`.
+- Antes: pantalla congelada en la vista anterior durante 1-3 s (sin streaming).
+- Después: skeleton animado aparece inmediatamente al navegar (Next.js Suspense automático).
+- Skeletons replican la estructura real de cada página (header, filtros, cards).
+
+**Performance — transacciones: de 2 round trips a 1**
+- Antes: fetch unidad → calcular timezone → fetch movimientos (secuencial).
+- Ahora: timezone por defecto `America/Bogota` permite calcular el rango de fechas antes de cualquier query, lanzando los 3 fetches en un solo `Promise.all`.
+- `params` y `searchParams` también se resuelven en paralelo con `Promise.all([params, searchParams])`.
+- Eliminado el bloque redundante de cálculo de rango post-fetch.
 
 ---
 

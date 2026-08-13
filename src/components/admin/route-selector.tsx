@@ -43,7 +43,7 @@ export function RouteSelector({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 rounded-xl border bg-background px-3 py-1.5 text-sm font-medium shadow-sm hover:bg-muted transition-colors max-w-[200px]"
+        className="flex items-center gap-1.5 rounded-xl border bg-background px-3 py-1.5 text-sm font-medium shadow-sm hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-colors max-w-[200px]"
       >
         <span className="truncate">{currentUnitName}</span>
         <ChevronDown className={cn("h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")} />
@@ -61,8 +61,11 @@ export function RouteSelector({
                   href={`/admin/unidades/${u.id}/${section}`}
                   onClick={() => setOpen(false)}
                   className={cn(
-                    "flex items-center justify-between gap-2 px-3 py-2 text-sm hover:bg-muted transition-colors",
-                    u.id === currentUnitId && "bg-muted/60"
+                    "flex items-center justify-between gap-2 px-3 py-2 text-sm transition-colors",
+                    "hover:bg-primary/10 hover:text-primary",
+                    u.id === currentUnitId
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "text-foreground"
                   )}
                 >
                   <div className="min-w-0">

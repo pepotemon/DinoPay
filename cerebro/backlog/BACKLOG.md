@@ -1,7 +1,7 @@
 ---
 tags: [backlog, pendiente, tareas, prioridades]
 created: 2026-07-24
-updated: 2026-08-12 (v0.28.0)
+updated: 2026-08-13 (v0.30.0)
 ---
 
 # Backlog — DinoPay
@@ -72,12 +72,17 @@ updated: 2026-08-12 (v0.28.0)
 - [x] Ver reportes de cualquier unidad
 - [x] Cancelar préstamos activos
 - [x] Patrón SlideOver en todos los modales admin — desktop right panel + mobile bottom sheet con portal, animación, scroll lock y back handler
+- [x] Acciones de cliente en SlideOver (reemplaza dropdown 3 puntos) — historial pagos/préstamos, eliminar préstamo, desactivar, editar
+- [x] Tarjetas de unidad rediseñadas — avatar con iniciales, hover con micro-lift, stats en chips
+- [x] Hover route selector mejorado con tinte primario
+- [x] Progreso circular SVG en tarjetas de cliente (reemplaza barra horizontal)
 
 ### Loading / Error States
 - [x] `loading.tsx` en préstamos, gastos y reporte diario
 - [x] `error.tsx` en layout de unidad (auto-contenido sin imports UI)
 - [ ] `loading.tsx` en disponibles, enrutar, flujo semanal, reportes
 - [x] `loading.tsx` en flujo semanal y reportes
+- [x] `loading.tsx` en admin: clientes, transacciones, configuracion, gastos
 
 ---
 
@@ -99,6 +104,7 @@ updated: 2026-08-12 (v0.28.0)
 - [x] Service Worker básico (`public/sw.js`) — cachea `_next/static`, manifest e íconos
 
 ### Performance
+- [x] Paralizar queries en transacciones admin (2 round trips → 1)
 - [ ] Paginación en lista de préstamos (si hay 100+)
 - [ ] Paginación en reportes para fechas con muchos registros
 

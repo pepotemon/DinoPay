@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { MoreVertical } from "lucide-react";
+import { ChevronRight, CreditCard, FileText, Trash2, UserMinus, Pencil } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 import { getClientPaymentsAction, getClientLoansAction } from "@/lib/actions/admin/client-history";
 import { deactivateClientAction, updateClientInlineAction } from "@/lib/actions/admin/clients";
@@ -75,7 +75,7 @@ export function UnidadClientesClient({
 }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterKey>("activos");
-  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [actionsClient, setActionsClient] = useState<ClientWithLoan | null>(null);
   const [historyModal, setHistoryModal] = useState<HistoryModal | null>(null);
   const [historyData, setHistoryData] = useState<unknown[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -86,6 +86,8 @@ export function UnidadClientesClient({
   if (historyModal) lastHistoryModal.current = historyModal;
   const lastEditClient = useRef(editClient);
   if (editClient) lastEditClient.current = editClient;
+  const lastActionsClient = useRef(actionsClient);
+  if (actionsClient) lastActionsClient.current = actionsClient;
 
   const activos = clients.filter((c) => c.activo && c.loan !== null);
   const disponibles = clients.filter((c) => c.activo && c.loan === null);
@@ -117,7 +119,7 @@ export function UnidadClientesClient({
   ];
 
   async function openPaymentHistory(client: ClientWithLoan) {
-    setMenuOpenId(null);
+    setActionsClient(null);
     setHistoryModal({ type: "pagos", client });
     setHistoryLoading(true);
     const data = await getClientPaymentsAction(client.loan!.id);
@@ -126,7 +128,7 @@ export function UnidadClientesClient({
   }
 
   async function openLoanHistory(client: ClientWithLoan) {
-    setMenuOpenId(null);
+    setActionsClient(null);
     setHistoryModal({ type: "prestamos", client });
     setHistoryLoading(true);
     const data = await getClientLoansAction(client.id);
@@ -135,8 +137,8 @@ export function UnidadClientesClient({
   }
 
   async function handleCancelLoan(client: ClientWithLoan) {
-    setMenuOpenId(null);
-    if (!confirm("¿Cancelar el préstamo activo de este cliente?")) return;
+    setActionsClient(null);
+    if (!confirm("¿Eliminar el préstamo activo de este cliente?")) return;
     const formData = new FormData();
     formData.set("loanId", client.loan!.id);
     formData.set("unitId", unitId);
@@ -144,12 +146,12 @@ export function UnidadClientesClient({
   }
 
   function openEditClient(client: ClientWithLoan) {
-    setMenuOpenId(null);
+    setActionsClient(null);
     setEditClient(client);
   }
 
   async function handleDeactivateClient(client: ClientWithLoan) {
-    setMenuOpenId(null);
+    setActionsClient(null);
     if (!confirm("¿Desactivar este cliente?")) return;
     const formData = new FormData();
     formData.set("clientId", client.id);
@@ -219,19 +221,23 @@ export function UnidadClientesClient({
               key={client.id}
               client={client}
               unitId={unitId}
-              menuOpen={menuOpenId === client.id}
-              onMenuToggle={(id) =>
-                setMenuOpenId((prev) => (prev === id ? null : id))
-              }
-              onPaymentHistory={() => openPaymentHistory(client)}
-              onLoanHistory={() => openLoanHistory(client)}
-              onCancelLoan={() => handleCancelLoan(client)}
-              onDeactivateClient={() => handleDeactivateClient(client)}
-              onEditClient={() => openEditClient(client)}
+              onOpenActions={() => setActionsClient(client)}
             />
           ))
         )}
       </div>
+
+      {/* Quick actions modal */}
+      <ClientActionsModal
+        open={actionsClient !== null}
+        client={lastActionsClient.current}
+        onClose={() => setActionsClient(null)}
+        onPaymentHistory={() => lastActionsClient.current && openPaymentHistory(lastActionsClient.current)}
+        onLoanHistory={() => lastActionsClient.current && openLoanHistory(lastActionsClient.current)}
+        onCancelLoan={() => lastActionsClient.current && handleCancelLoan(lastActionsClient.current)}
+        onDeactivateClient={() => lastActionsClient.current && handleDeactivateClient(lastActionsClient.current)}
+        onEditClient={() => lastActionsClient.current && openEditClient(lastActionsClient.current)}
+      />
 
       {/* Edit client slide-over */}
       <EditClientModal
@@ -255,32 +261,65 @@ export function UnidadClientesClient({
 }
 
 // ---------------------------------------------------------------------------
+// LoanProgress — circular SVG progress ring
+// ---------------------------------------------------------------------------
+
+function LoanProgress({ value, paid, total }: { value: number; paid: number; total: number }) {
+  const size = 52;
+  const strokeWidth = 4;
+  const r = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * r;
+  const offset = circumference * (1 - value / 100);
+
+  return (
+    <div className="shrink-0 flex flex-col items-center gap-0.5">
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg width={size} height={size} className="-rotate-90" aria-hidden="true">
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={r}
+            fill="none"
+            strokeWidth={strokeWidth}
+            className="stroke-muted"
+          />
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={r}
+            fill="none"
+            strokeWidth={strokeWidth}
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            strokeLinecap="round"
+            className="stroke-primary transition-all duration-500"
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-[10px] font-bold leading-none tabular-nums">{value}%</span>
+        </div>
+      </div>
+      <p className="text-[9px] text-muted-foreground leading-none tabular-nums">
+        {paid}/{total}
+      </p>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // ClientCard
 // ---------------------------------------------------------------------------
 
 function ClientCard({
   client,
   unitId,
-  menuOpen,
-  onMenuToggle,
-  onPaymentHistory,
-  onLoanHistory,
-  onCancelLoan,
-  onDeactivateClient,
-  onEditClient
+  onOpenActions
 }: {
   client: ClientWithLoan;
   unitId: string;
-  menuOpen: boolean;
-  onMenuToggle: (id: string) => void;
-  onPaymentHistory: () => void;
-  onLoanHistory: () => void;
-  onCancelLoan: () => void;
-  onDeactivateClient: () => void;
-  onEditClient: () => void;
+  onOpenActions: () => void;
 }) {
   const loan = client.loan;
-  const menuRef = useRef<HTMLDivElement>(null);
 
   const statusBadge =
     client.activo && loan
@@ -290,36 +329,20 @@ function ClientCard({
       : { label: "Inactivo", cls: "bg-muted text-muted-foreground" };
 
   const progress = loan
-    ? Math.min(
-        100,
-        Math.round((loan.cuotas_pagadas / loan.numero_cuotas) * 100)
-      )
+    ? Math.min(100, Math.round((loan.cuotas_pagadas / loan.numero_cuotas) * 100))
     : 0;
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    if (!menuOpen) return;
-    function handleClickOutside(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        onMenuToggle(client.id);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [menuOpen, client.id, onMenuToggle]);
-
   return (
-    <div className="relative rounded-2xl border bg-background p-4 shadow-sm space-y-3">
+    <button
+      type="button"
+      onClick={onOpenActions}
+      className="w-full text-left rounded-2xl border bg-background p-4 shadow-sm space-y-3 transition-all duration-150 hover:shadow-md hover:border-primary/30 hover:-translate-y-0.5 active:translate-y-0 active:shadow-sm cursor-pointer"
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <p className="font-semibold uppercase leading-tight">{client.alias}</p>
-            <span
-              className={cn(
-                "rounded-full px-2 py-0.5 text-xs font-medium",
-                statusBadge.cls
-              )}
-            >
+            <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", statusBadge.cls)}>
               {statusBadge.label}
             </span>
           </div>
@@ -327,127 +350,159 @@ function ClientCard({
             <p className="mt-0.5 text-xs text-muted-foreground">NIT: {client.nit}</p>
           ) : null}
         </div>
-
-        {/* Actions row */}
-        <div className="shrink-0 flex items-center gap-1">
-          {/* 3-dot menu */}
-          <div ref={menuRef} className="relative">
-            <button
-              type="button"
-              aria-label="Más opciones"
-              className="rounded-md p-1.5 text-muted-foreground hover:bg-muted transition-colors"
-              onClick={(e) => {
-                e.stopPropagation();
-                onMenuToggle(client.id);
-              }}
-            >
-              <MoreVertical className="h-4 w-4" />
-            </button>
-
-            {menuOpen && (
-              <div className="absolute right-0 top-full mt-1 z-30 w-52 rounded-xl border bg-background shadow-lg overflow-hidden">
-                {/* Historial de pagos */}
-                <button
-                  type="button"
-                  disabled={!loan}
-                  className={cn(
-                    "w-full text-left px-4 py-2.5 text-sm transition-colors",
-                    loan
-                      ? "hover:bg-muted"
-                      : "opacity-50 cursor-not-allowed"
-                  )}
-                  onClick={onPaymentHistory}
-                >
-                  Historial de pagos
-                </button>
-
-                {/* Historial de préstamos */}
-                <button
-                  type="button"
-                  className="w-full text-left px-4 py-2.5 text-sm hover:bg-muted transition-colors"
-                  onClick={onLoanHistory}
-                >
-                  Historial de préstamos
-                </button>
-
-                <div className="border-t my-0.5" />
-
-                {/* Cancelar préstamo */}
-                <button
-                  type="button"
-                  disabled={!loan}
-                  className={cn(
-                    "w-full text-left px-4 py-2.5 text-sm text-destructive transition-colors",
-                    loan
-                      ? "hover:bg-muted"
-                      : "opacity-50 cursor-not-allowed"
-                  )}
-                  onClick={onCancelLoan}
-                >
-                  Cancelar préstamo
-                </button>
-
-                {/* Desactivar cliente */}
-                <button
-                  type="button"
-                  className="w-full text-left px-4 py-2.5 text-sm text-destructive hover:bg-muted transition-colors"
-                  onClick={onDeactivateClient}
-                >
-                  Desactivar cliente
-                </button>
-
-                <div className="border-t my-0.5" />
-
-                {/* Editar cliente */}
-                <button
-                  type="button"
-                  className="w-full text-left px-4 py-2.5 text-sm hover:bg-muted transition-colors"
-                  onClick={onEditClient}
-                >
-                  Editar cliente
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/50 mt-0.5" />
       </div>
 
       {loan ? (
-        <div className="space-y-2 rounded-xl bg-muted/40 p-3">
+        <div className="rounded-xl bg-muted/40 p-3 space-y-2">
+          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary capitalize">
+            {loan.modalidad} · {loan.interes}%
+          </span>
           <div className="flex items-center gap-2">
-            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary capitalize">
-              {loan.modalidad} · {loan.interes}%
-            </span>
-          </div>
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div>
-              <p className="text-xs text-muted-foreground">Saldo</p>
-              <p className="text-lg font-bold leading-tight">
-                {formatCurrency(loan.saldo)}
-              </p>
+            <div className="flex-1 grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <p className="text-xs text-muted-foreground">Saldo</p>
+                <p className="text-lg font-bold leading-tight">{formatCurrency(loan.saldo)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Por cuota</p>
+                <p className="font-semibold">{formatCurrency(loan.valor_cuota)}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Por cuota</p>
-              <p className="font-semibold">{formatCurrency(loan.valor_cuota)}</p>
-            </div>
-          </div>
-          <div className="space-y-1">
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>
-                {loan.cuotas_pagadas}/{loan.numero_cuotas} cuotas
-              </span>
-              <span>{progress}%</span>
-            </div>
-            <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-              <div
-                className="h-full rounded-full bg-primary transition-all"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
+            <LoanProgress
+              value={progress}
+              paid={loan.cuotas_pagadas}
+              total={loan.numero_cuotas}
+            />
           </div>
         </div>
       ) : null}
-    </div>
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ClientActionsModal
+// ---------------------------------------------------------------------------
+
+function ClientActionsModal({
+  open,
+  client,
+  onClose,
+  onPaymentHistory,
+  onLoanHistory,
+  onCancelLoan,
+  onDeactivateClient,
+  onEditClient
+}: {
+  open: boolean;
+  client: ClientWithLoan | null;
+  onClose: () => void;
+  onPaymentHistory: () => void;
+  onLoanHistory: () => void;
+  onCancelLoan: () => void;
+  onDeactivateClient: () => void;
+  onEditClient: () => void;
+}) {
+  const loan = client?.loan ?? null;
+
+  const statusBadge = client
+    ? client.activo && loan
+      ? { label: "Activo", cls: "bg-green-100 text-green-800" }
+      : client.activo
+      ? { label: "Disponible", cls: "bg-blue-100 text-blue-800" }
+      : { label: "Inactivo", cls: "bg-muted text-muted-foreground" }
+    : null;
+
+  const actions = [
+    {
+      label: "Historial de pagos",
+      icon: CreditCard,
+      onClick: onPaymentHistory,
+      disabled: !loan,
+      destructive: false
+    },
+    {
+      label: "Historial de préstamos",
+      icon: FileText,
+      onClick: onLoanHistory,
+      disabled: false,
+      destructive: false
+    },
+    {
+      label: "Eliminar préstamo",
+      icon: Trash2,
+      onClick: onCancelLoan,
+      disabled: !loan,
+      destructive: true
+    },
+    {
+      label: "Desactivar cliente",
+      icon: UserMinus,
+      onClick: onDeactivateClient,
+      disabled: false,
+      destructive: true
+    },
+    {
+      label: "Editar cliente",
+      icon: Pencil,
+      onClick: onEditClient,
+      disabled: false,
+      destructive: false
+    }
+  ];
+
+  return (
+    <SlideOver
+      open={open}
+      onClose={onClose}
+      title={client?.alias ?? ""}
+      description={
+        client && statusBadge ? (
+          <span className="flex flex-wrap items-center gap-2">
+            {client.nit ? <span>NIT: {client.nit}</span> : null}
+            <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", statusBadge.cls)}>
+              {statusBadge.label}
+            </span>
+          </span>
+        ) : undefined
+      }
+    >
+      <div className="p-4 lg:p-5 space-y-2">
+        {actions.map((action, i) => {
+          const Icon = action.icon;
+          return (
+            <button
+              key={i}
+              type="button"
+              disabled={action.disabled}
+              onClick={action.onClick}
+              className={cn(
+                "flex w-full items-center gap-3 rounded-2xl border border-transparent p-4 transition-all group",
+                action.disabled
+                  ? "opacity-40 cursor-not-allowed bg-muted/20"
+                  : action.destructive
+                  ? "bg-destructive/5 hover:bg-destructive/10 hover:border-destructive/20 text-destructive"
+                  : "bg-muted/30 hover:bg-muted/60 hover:border-border/50"
+              )}
+            >
+              <div className={cn(
+                "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors",
+                action.destructive
+                  ? "bg-destructive/10 text-destructive group-hover:bg-destructive/20"
+                  : "bg-primary/10 text-primary group-hover:bg-primary/20"
+              )}>
+                <Icon className="h-4 w-4" />
+              </div>
+              <span className="font-semibold text-sm">{action.label}</span>
+              {!action.disabled && (
+                <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-muted-foreground/30 group-hover:text-muted-foreground/60 transition-colors" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </SlideOver>
   );
 }
 

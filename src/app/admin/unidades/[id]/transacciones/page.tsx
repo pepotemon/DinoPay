@@ -28,6 +28,22 @@ function getYearRange(today: string): { desde: string; hasta: string } {
   return { desde: `${year}-01-01`, hasta: `${year}-12-31` };
 }
 
+function buildDateRange(
+  modo: "dia" | "semana" | "mes" | "año" | "custom",
+  today: string,
+  sp: Record<string, string | string[] | undefined>
+): { rangoDesde: string; rangoHasta: string } {
+  if (modo === "dia") return { rangoDesde: today, rangoHasta: today };
+  if (modo === "semana") { const r = getWeekRange(today); return { rangoDesde: r.desde, rangoHasta: r.hasta }; }
+  if (modo === "mes") { const r = getMonthRange(today); return { rangoDesde: r.desde, rangoHasta: r.hasta }; }
+  if (modo === "año") { const r = getYearRange(today); return { rangoDesde: r.desde, rangoHasta: r.hasta }; }
+  // custom
+  return {
+    rangoDesde: typeof sp.desde === "string" && sp.desde ? sp.desde : today,
+    rangoHasta: typeof sp.hasta === "string" && sp.hasta ? sp.hasta : today
+  };
+}
+
 export default async function AdminUnidadTransaccionesPage({
   params,
   searchParams
@@ -35,27 +51,9 @@ export default async function AdminUnidadTransaccionesPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { id } = await params;
-  const sp = await searchParams;
+  const [{ id }, sp] = await Promise.all([params, searchParams]);
 
   const adminClient = createAdminClient();
-
-  const [{ data: unitRaw }, { data: unitsRaw }] = await Promise.all([
-    adminClient
-      .from("units")
-      .select("id, nombre_unidad, zona_horaria")
-      .eq("id", id)
-      .maybeSingle(),
-    adminClient
-      .from("units")
-      .select("id, nombre_unidad, activo")
-      .order("nombre_unidad", { ascending: true })
-  ]);
-
-  if (!unitRaw) notFound();
-
-  const unit = unitRaw as { id: string; nombre_unidad: string; zona_horaria: string };
-  const today = todayInTimeZone(unit.zona_horaria ?? "America/Bogota");
 
   const modo = (typeof sp.modo === "string" ? sp.modo : "semana") as
     | "dia"
@@ -64,40 +62,33 @@ export default async function AdminUnidadTransaccionesPage({
     | "año"
     | "custom";
 
-  let rangoDesde: string;
-  let rangoHasta: string;
+  // Use default tz to compute date range before knowing the unit's tz,
+  // so we can fire all 3 queries in a single round trip.
+  const defaultToday = todayInTimeZone("America/Bogota");
+  const { rangoDesde, rangoHasta } = buildDateRange(modo, defaultToday, sp);
 
-  if (modo === "dia") {
-    rangoDesde = today;
-    rangoHasta = today;
-  } else if (modo === "semana") {
-    const range = getWeekRange(today);
-    rangoDesde = range.desde;
-    rangoHasta = range.hasta;
-  } else if (modo === "mes") {
-    const range = getMonthRange(today);
-    rangoDesde = range.desde;
-    rangoHasta = range.hasta;
-  } else if (modo === "año") {
-    const range = getYearRange(today);
-    rangoDesde = range.desde;
-    rangoHasta = range.hasta;
-  } else {
-    // custom
-    rangoDesde =
-      typeof sp.desde === "string" && sp.desde ? sp.desde : today;
-    rangoHasta =
-      typeof sp.hasta === "string" && sp.hasta ? sp.hasta : today;
-  }
+  const [{ data: unitRaw }, { data: unitsRaw }, { data: movementsRaw }] = await Promise.all([
+    adminClient
+      .from("units")
+      .select("id, nombre_unidad, zona_horaria")
+      .eq("id", id)
+      .maybeSingle(),
+    adminClient
+      .from("units")
+      .select("id, nombre_unidad, activo")
+      .order("nombre_unidad", { ascending: true }),
+    adminClient
+      .from("capital_movements")
+      .select("id, tipo, monto, nota, fecha, created_at")
+      .eq("unit_id", id)
+      .gte("fecha", rangoDesde)
+      .lte("fecha", rangoHasta)
+      .order("fecha", { ascending: false })
+      .order("created_at", { ascending: false })
+  ]);
 
-  const { data: movementsRaw } = await adminClient
-    .from("capital_movements")
-    .select("id, tipo, monto, nota, fecha, created_at")
-    .eq("unit_id", id)
-    .gte("fecha", rangoDesde)
-    .lte("fecha", rangoHasta)
-    .order("fecha", { ascending: false })
-    .order("created_at", { ascending: false });
+  if (!unitRaw) notFound();
+  const unit = unitRaw as { id: string; nombre_unidad: string; zona_horaria: string };
 
   type MovRow = {
     id: string;
