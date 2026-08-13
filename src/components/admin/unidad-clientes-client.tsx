@@ -541,15 +541,9 @@ function ClientActionsModal({
       loan && loan.estado === "activo" && loan.cuotas_pagadas < loan.numero_cuotas
         ? calcDiasAtraso(today, loan.ultima_cuota_fecha)
         : 0;
-    const paidPct =
-      loan && Number(loan.total_a_cobrar) > 0
-        ? Math.min(
-            100,
-            Math.round(
-              ((Number(loan.total_a_cobrar) - Number(loan.saldo)) / Number(loan.total_a_cobrar)) * 100
-            )
-          )
-        : 0;
+    const progress = loan
+      ? Math.min(100, Math.round((loan.cuotas_pagadas / loan.numero_cuotas) * 100))
+      : 0;
 
     return (
       <SlideOver
@@ -610,16 +604,23 @@ function ClientActionsModal({
                 </div>
               </div>
 
-              <div className="rounded-xl bg-muted/40 px-3 py-2.5 space-y-1.5">
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{loan.cuotas_pagadas} de {loan.numero_cuotas} cuotas</span>
-                  <span>{paidPct}% pagado</span>
-                </div>
-                <div className="h-1.5 rounded-full bg-muted">
-                  <div
-                    className="h-1.5 rounded-full bg-primary transition-all"
-                    style={{ width: `${paidPct}%` }}
-                  />
+              <div className="rounded-xl bg-muted/40 p-4 flex items-center gap-4">
+                <LoanProgress
+                  value={progress}
+                  paid={loan.cuotas_pagadas}
+                  total={loan.numero_cuotas}
+                  size={68}
+                />
+                <div className="flex-1 space-y-1">
+                  <p className="text-sm font-semibold">{progress}% completado</p>
+                  <p className="text-xs text-muted-foreground">
+                    {loan.numero_cuotas - loan.cuotas_pagadas} cuota{loan.numero_cuotas - loan.cuotas_pagadas !== 1 ? "s" : ""} pendiente{loan.numero_cuotas - loan.cuotas_pagadas !== 1 ? "s" : ""}
+                  </p>
+                  {loan.ultima_cuota_fecha && (
+                    <p className="text-xs text-muted-foreground">
+                      Próxima: {loan.ultima_cuota_fecha}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
