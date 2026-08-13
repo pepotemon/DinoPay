@@ -88,3 +88,67 @@ export async function deactivateClientAction(formData: FormData) {
   revalidatePath(`/admin/unidades/${unitId}/clientes`);
   redirect(`/admin/unidades/${unitId}/clientes?ok=Cliente desactivado`);
 }
+
+export async function freezeClientLoanAction(formData: FormData) {
+  const clientId = formData.get("clientId") as string;
+  const unitId = formData.get("unitId") as string;
+  if (!clientId || !unitId)
+    redirect(`/admin/unidades/${unitId}/clientes?error=Datos inválidos`);
+
+  const adminClient = createAdminClient();
+
+  // Freeze active loan first (cartera stays, caja unchanged)
+  await adminClient
+    .from("loans")
+    .update({ estado: "congelado" })
+    .eq("client_id", clientId)
+    .eq("unit_id", unitId)
+    .eq("estado", "activo");
+
+  // Deactivate client
+  const { error } = await adminClient
+    .from("clients")
+    .update({ activo: false })
+    .eq("id", clientId)
+    .eq("unit_id", unitId);
+
+  if (error)
+    redirect(
+      `/admin/unidades/${unitId}/clientes?error=${encodeURIComponent(error.message)}`
+    );
+
+  revalidatePath(`/admin/unidades/${unitId}/clientes`);
+  redirect(`/admin/unidades/${unitId}/clientes?ok=${encodeURIComponent("Cliente y préstamo congelados")}`);
+}
+
+export async function reactivateClientAction(formData: FormData) {
+  const clientId = formData.get("clientId") as string;
+  const unitId = formData.get("unitId") as string;
+  if (!clientId || !unitId)
+    redirect(`/admin/unidades/${unitId}/clientes?error=Datos inválidos`);
+
+  const adminClient = createAdminClient();
+
+  // Reactivate client
+  await adminClient
+    .from("clients")
+    .update({ activo: true })
+    .eq("id", clientId)
+    .eq("unit_id", unitId);
+
+  // Unfreeze loan (returns saldo to active cartera)
+  const { error } = await adminClient
+    .from("loans")
+    .update({ estado: "activo" })
+    .eq("client_id", clientId)
+    .eq("unit_id", unitId)
+    .eq("estado", "congelado");
+
+  if (error)
+    redirect(
+      `/admin/unidades/${unitId}/clientes?error=${encodeURIComponent(error.message)}`
+    );
+
+  revalidatePath(`/admin/unidades/${unitId}/clientes`);
+  redirect(`/admin/unidades/${unitId}/clientes?ok=${encodeURIComponent("Cliente reactivado")}`);
+}

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { todayInTimeZone } from "@/lib/utils/date-timezone";
 
 // ---------------------------------------------------------------------------
 // Inline config actions (return data, no redirect)
@@ -238,20 +239,53 @@ export async function cancelLoanFromHubAction(formData: FormData) {
   }
 
   const { loanId, unitId } = parsed.data;
-  const { error } = await adminClient
+
+  // Fetch loan to capture valor_neto before cancelling
+  const { data: loan, error: fetchError } = await adminClient
     .from("loans")
-    .update({ estado: "cancelado" })
+    .select("id, valor_neto")
     .eq("id", loanId)
     .eq("unit_id", unitId)
-    .eq("estado", "activo");
+    .eq("estado", "activo")
+    .maybeSingle();
 
-  if (error) {
+  if (fetchError || !loan) {
     redirect(
-      `/admin/unidades/${unitId}?error=${encodeURIComponent(error.message)}`
+      `/admin/unidades/${unitId}?error=${encodeURIComponent("Préstamo no encontrado o ya cancelado")}`
+    );
+  }
+
+  const { error: cancelError } = await adminClient
+    .from("loans")
+    .update({ estado: "cancelado" })
+    .eq("id", loanId);
+
+  if (cancelError) {
+    redirect(
+      `/admin/unidades/${unitId}?error=${encodeURIComponent(cancelError.message)}`
+    );
+  }
+
+  // Return valor_neto to caja — the amount that physically left the unit
+  const today = todayInTimeZone("America/Bogota");
+  const { error: movError } = await adminClient
+    .from("capital_movements")
+    .insert({
+      unit_id: unitId,
+      admin_id: admin.id,
+      tipo: "ingreso",
+      monto: Number(loan.valor_neto),
+      nota: "Reversión préstamo eliminado",
+      fecha: today
+    });
+
+  if (movError) {
+    redirect(
+      `/admin/unidades/${unitId}?error=${encodeURIComponent(movError.message)}`
     );
   }
 
   revalidateTag(`admin-unit-hub-${unitId}`);
   revalidatePath(`/admin/unidades/${unitId}`);
-  redirect(`/admin/unidades/${unitId}?ok=${encodeURIComponent("Préstamo cancelado")}`);
+  redirect(`/admin/unidades/${unitId}?ok=${encodeURIComponent("Préstamo eliminado — capital devuelto a la caja")}`);
 }

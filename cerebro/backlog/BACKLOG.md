@@ -1,7 +1,7 @@
 ---
 tags: [backlog, pendiente, tareas, prioridades]
 created: 2026-07-24
-updated: 2026-08-13 (v0.30.0)
+updated: 2026-08-13 (v0.31.0)
 ---
 
 # Backlog — DinoPay
@@ -76,6 +76,12 @@ updated: 2026-08-13 (v0.30.0)
 - [x] Tarjetas de unidad rediseñadas — avatar con iniciales, hover con micro-lift, stats en chips
 - [x] Hover route selector mejorado con tinte primario
 - [x] Progreso circular SVG en tarjetas de cliente (reemplaza barra horizontal)
+- [x] Eliminar préstamo con retorno de `valor_neto` a caja vía `capital_movements`
+- [x] Congelar préstamo y cliente — estado `'congelado'` en loans, cartera se mantiene, caja sin cambio
+- [x] Reactivar cliente — descongela préstamo, vuelve a la cartera activa
+- [x] Acciones context-aware en modal (inactivo / activo+préstamo / activo+sin préstamo)
+- [ ] Días de atraso en tarjetas de clientes (admin)
+- [ ] Modal "Detalles" de préstamo/cliente desde acciones rápidas (admin)
 
 ### Loading / Error States
 - [x] `loading.tsx` en préstamos, gastos y reporte diario
@@ -140,6 +146,7 @@ updated: 2026-08-13 (v0.30.0)
 ## Migraciones Pendientes de Ejecutar en Supabase
 - [x] **`012_fix_ultima_cuota_fecha.sql`** — corrige `ultima_cuota_fecha` para que almacene la PRÓXIMA cuota; backfill de préstamos activos sin fecha ✅ ejecutada
 - [x] **`013_partial_payments.sql`** — soporte para pagos parciales en `register_payment`: `cuotas_pagadas` y `ultima_cuota_fecha` solo avanzan por cuotas completas ✅ ejecutada
+- [ ] **`023_frozen_loans.sql`** — extiende `loans.estado` con valor `'congelado'`; ejecutar en Supabase
 
 ---
 

@@ -25,6 +25,7 @@ type LoanRow = {
   numero_cuotas: number;
   cuotas_pagadas: number;
   ultima_cuota_fecha: string | null;
+  estado: "activo" | "congelado";
 };
 
 export default async function AdminUnidadClientesPage({
@@ -50,10 +51,10 @@ export default async function AdminUnidadClientesPage({
       adminClient
         .from("loans")
         .select(
-          "id, client_id, modalidad, interes, valor_neto, valor_cuota, saldo, numero_cuotas, cuotas_pagadas, ultima_cuota_fecha"
+          "id, client_id, modalidad, interes, valor_neto, valor_cuota, saldo, numero_cuotas, cuotas_pagadas, ultima_cuota_fecha, estado"
         )
         .eq("unit_id", id)
-        .eq("estado", "activo"),
+        .in("estado", ["activo", "congelado"]),
       adminClient
         .from("units")
         .select("id, nombre_unidad, activo")
@@ -64,18 +65,18 @@ export default async function AdminUnidadClientesPage({
 
   const unit = unitRaw as { id: string; nombre_unidad: string; zona_horaria: string };
   const clients = (clientsRaw ?? []) as ClientRow[];
-  const activeLoans = (loansRaw ?? []) as LoanRow[];
+  const loans = (loansRaw ?? []) as LoanRow[];
   const allUnits = (unitsRaw ?? []) as { id: string; nombre_unidad: string; activo: boolean }[];
 
   const today = todayInTimeZone(unit.zona_horaria ?? "America/Bogota");
 
   const loanByClient = new Map<string, LoanRow>();
-  for (const loan of activeLoans) {
+  for (const loan of loans) {
     loanByClient.set(loan.client_id, loan);
   }
 
   const clientsWithLoans = clients.map((c) => {
-    const activeLoan = loanByClient.get(c.id) ?? null;
+    const clientLoan = loanByClient.get(c.id) ?? null;
     return {
       id: c.id,
       alias: c.alias,
@@ -85,17 +86,18 @@ export default async function AdminUnidadClientesPage({
       direccion1: c.direccion1,
       barrio: c.barrio,
       activo: c.activo,
-      loan: activeLoan
+      loan: clientLoan
         ? {
-            id: activeLoan.id,
-            modalidad: activeLoan.modalidad,
-            interes: Number(activeLoan.interes),
-            valor_neto: Number(activeLoan.valor_neto),
-            valor_cuota: Number(activeLoan.valor_cuota),
-            saldo: Number(activeLoan.saldo),
-            numero_cuotas: activeLoan.numero_cuotas,
-            cuotas_pagadas: activeLoan.cuotas_pagadas,
-            ultima_cuota_fecha: activeLoan.ultima_cuota_fecha
+            id: clientLoan.id,
+            modalidad: clientLoan.modalidad,
+            interes: Number(clientLoan.interes),
+            valor_neto: Number(clientLoan.valor_neto),
+            valor_cuota: Number(clientLoan.valor_cuota),
+            saldo: Number(clientLoan.saldo),
+            numero_cuotas: clientLoan.numero_cuotas,
+            cuotas_pagadas: clientLoan.cuotas_pagadas,
+            ultima_cuota_fecha: clientLoan.ultima_cuota_fecha,
+            estado: clientLoan.estado
           }
         : null
     };

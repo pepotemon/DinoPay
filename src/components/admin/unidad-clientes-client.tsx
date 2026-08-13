@@ -2,10 +2,21 @@
 
 import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { ChevronRight, CreditCard, FileText, Trash2, UserMinus, Pencil } from "lucide-react";
+import {
+  ChevronRight, CreditCard, FileText, Trash2, UserMinus, UserCheck,
+  Pencil, AlertTriangle, ArrowLeft, Snowflake
+} from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
+
+function toTitleCase(str: string) {
+  return str.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 import { getClientPaymentsAction, getClientLoansAction } from "@/lib/actions/admin/client-history";
-import { deactivateClientAction, updateClientInlineAction } from "@/lib/actions/admin/clients";
+import {
+  deactivateClientAction, updateClientInlineAction,
+  freezeClientLoanAction, reactivateClientAction
+} from "@/lib/actions/admin/clients";
 import { cancelLoanFromHubAction } from "@/lib/actions/admin/unit-hub";
 import { RouteSelector } from "@/components/admin/route-selector";
 import { SlideOver } from "@/components/admin/slide-over";
@@ -29,6 +40,7 @@ type ClientWithLoan = {
     numero_cuotas: number;
     cuotas_pagadas: number;
     ultima_cuota_fecha: string | null;
+    estado: "activo" | "congelado";
   } | null;
 };
 
@@ -81,7 +93,6 @@ export function UnidadClientesClient({
   const [historyLoading, setHistoryLoading] = useState(false);
   const [editClient, setEditClient] = useState<ClientWithLoan | null>(null);
 
-  // Sticky refs — keep last non-null value so SlideOver content stays during close animation
   const lastHistoryModal = useRef(historyModal);
   if (historyModal) lastHistoryModal.current = historyModal;
   const lastEditClient = useRef(editClient);
@@ -89,7 +100,7 @@ export function UnidadClientesClient({
   const lastActionsClient = useRef(actionsClient);
   if (actionsClient) lastActionsClient.current = actionsClient;
 
-  const activos = clients.filter((c) => c.activo && c.loan !== null);
+  const activos = clients.filter((c) => c.activo && c.loan?.estado === "activo");
   const disponibles = clients.filter((c) => c.activo && c.loan === null);
   const inactivos = clients.filter((c) => !c.activo);
 
@@ -137,26 +148,36 @@ export function UnidadClientesClient({
   }
 
   async function handleCancelLoan(client: ClientWithLoan) {
-    setActionsClient(null);
-    if (!confirm("¿Eliminar el préstamo activo de este cliente?")) return;
     const formData = new FormData();
     formData.set("loanId", client.loan!.id);
     formData.set("unitId", unitId);
     await cancelLoanFromHubAction(formData);
   }
 
-  function openEditClient(client: ClientWithLoan) {
-    setActionsClient(null);
-    setEditClient(client);
+  async function handleFreezeClientLoan(client: ClientWithLoan) {
+    const formData = new FormData();
+    formData.set("clientId", client.id);
+    formData.set("unitId", unitId);
+    await freezeClientLoanAction(formData);
   }
 
   async function handleDeactivateClient(client: ClientWithLoan) {
-    setActionsClient(null);
-    if (!confirm("¿Desactivar este cliente?")) return;
     const formData = new FormData();
     formData.set("clientId", client.id);
     formData.set("unitId", unitId);
     await deactivateClientAction(formData);
+  }
+
+  async function handleReactivateClient(client: ClientWithLoan) {
+    const formData = new FormData();
+    formData.set("clientId", client.id);
+    formData.set("unitId", unitId);
+    await reactivateClientAction(formData);
+  }
+
+  function openEditClient(client: ClientWithLoan) {
+    setActionsClient(null);
+    setEditClient(client);
   }
 
   return (
@@ -235,7 +256,9 @@ export function UnidadClientesClient({
         onPaymentHistory={() => lastActionsClient.current && openPaymentHistory(lastActionsClient.current)}
         onLoanHistory={() => lastActionsClient.current && openLoanHistory(lastActionsClient.current)}
         onCancelLoan={() => lastActionsClient.current && handleCancelLoan(lastActionsClient.current)}
+        onFreezeClientLoan={() => lastActionsClient.current && handleFreezeClientLoan(lastActionsClient.current)}
         onDeactivateClient={() => lastActionsClient.current && handleDeactivateClient(lastActionsClient.current)}
+        onReactivateClient={() => lastActionsClient.current && handleReactivateClient(lastActionsClient.current)}
         onEditClient={() => lastActionsClient.current && openEditClient(lastActionsClient.current)}
       />
 
@@ -251,7 +274,7 @@ export function UnidadClientesClient({
       <ClientHistoryModal
         open={historyModal !== null}
         type={lastHistoryModal.current?.type ?? "pagos"}
-        clientName={lastHistoryModal.current?.client.alias ?? ""}
+        client={lastHistoryModal.current?.client ?? null}
         loading={historyLoading}
         data={historyData}
         onClose={() => { setHistoryModal(null); setHistoryData([]); }}
@@ -264,30 +287,31 @@ export function UnidadClientesClient({
 // LoanProgress — circular SVG progress ring
 // ---------------------------------------------------------------------------
 
-function LoanProgress({ value, paid, total }: { value: number; paid: number; total: number }) {
-  const size = 52;
-  const strokeWidth = 4;
+function LoanProgress({
+  value,
+  paid,
+  total,
+  size = 52
+}: {
+  value: number;
+  paid: number;
+  total: number;
+  size?: number;
+}) {
+  const strokeWidth = size <= 40 ? 3 : 4;
   const r = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * r;
   const offset = circumference * (1 - value / 100);
+  const fontSize = size <= 40 ? "text-[9px]" : "text-[10px]";
+  const subFontSize = size <= 40 ? "text-[8px]" : "text-[9px]";
 
   return (
     <div className="shrink-0 flex flex-col items-center gap-0.5">
       <div className="relative" style={{ width: size, height: size }}>
         <svg width={size} height={size} className="-rotate-90" aria-hidden="true">
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={strokeWidth} className="stroke-muted" />
           <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={r}
-            fill="none"
-            strokeWidth={strokeWidth}
-            className="stroke-muted"
-          />
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={r}
-            fill="none"
+            cx={size / 2} cy={size / 2} r={r} fill="none"
             strokeWidth={strokeWidth}
             strokeDasharray={circumference}
             strokeDashoffset={offset}
@@ -296,10 +320,10 @@ function LoanProgress({ value, paid, total }: { value: number; paid: number; tot
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-[10px] font-bold leading-none tabular-nums">{value}%</span>
+          <span className={cn("font-bold leading-none tabular-nums", fontSize)}>{value}%</span>
         </div>
       </div>
-      <p className="text-[9px] text-muted-foreground leading-none tabular-nums">
+      <p className={cn("text-muted-foreground leading-none tabular-nums", subFontSize)}>
         {paid}/{total}
       </p>
     </div>
@@ -319,13 +343,17 @@ function ClientCard({
   unitId: string;
   onOpenActions: () => void;
 }) {
+  void unitId;
   const loan = client.loan;
+  const isFrozen = !client.activo && loan?.estado === "congelado";
 
   const statusBadge =
-    client.activo && loan
-      ? { label: "Activo", cls: "bg-green-100 text-green-800" }
+    client.activo && loan?.estado === "activo"
+      ? { label: "Activo", cls: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" }
       : client.activo
-      ? { label: "Disponible", cls: "bg-blue-100 text-blue-800" }
+      ? { label: "Disponible", cls: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" }
+      : isFrozen
+      ? { label: "Congelado", cls: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400" }
       : { label: "Inactivo", cls: "bg-muted text-muted-foreground" };
 
   const progress = loan
@@ -341,7 +369,7 @@ function ClientCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="font-semibold uppercase leading-tight">{client.alias}</p>
+            <p className="font-semibold leading-tight">{toTitleCase(client.alias)}</p>
             <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", statusBadge.cls)}>
               {statusBadge.label}
             </span>
@@ -354,10 +382,23 @@ function ClientCard({
       </div>
 
       {loan ? (
-        <div className="rounded-xl bg-muted/40 p-3 space-y-2">
-          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary capitalize">
-            {loan.modalidad} · {loan.interes}%
-          </span>
+        <div className={cn(
+          "rounded-xl p-3 space-y-2",
+          isFrozen
+            ? "bg-amber-50/60 dark:bg-amber-900/10 border border-amber-200/60 dark:border-amber-700/30"
+            : "bg-muted/40"
+        )}>
+          <div className="flex items-center justify-between gap-2">
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary capitalize">
+              {loan.modalidad} · {loan.interes}%
+            </span>
+            {isFrozen && (
+              <span className="flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+                <Snowflake className="h-3 w-3" />
+                Congelado
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <div className="flex-1 grid grid-cols-2 gap-3 text-sm">
               <div>
@@ -385,6 +426,8 @@ function ClientCard({
 // ClientActionsModal
 // ---------------------------------------------------------------------------
 
+type ConfirmView = "delete-loan" | "freeze" | "deactivate" | "reactivate" | null;
+
 function ClientActionsModal({
   open,
   client,
@@ -392,7 +435,9 @@ function ClientActionsModal({
   onPaymentHistory,
   onLoanHistory,
   onCancelLoan,
+  onFreezeClientLoan,
   onDeactivateClient,
+  onReactivateClient,
   onEditClient
 }: {
   open: boolean;
@@ -401,76 +446,454 @@ function ClientActionsModal({
   onPaymentHistory: () => void;
   onLoanHistory: () => void;
   onCancelLoan: () => void;
+  onFreezeClientLoan: () => void;
   onDeactivateClient: () => void;
+  onReactivateClient: () => void;
   onEditClient: () => void;
 }) {
+  const [confirming, setConfirming] = useState<ConfirmView>(null);
+  const [pending, setPending] = useState(false);
+
   const loan = client?.loan ?? null;
 
+  function handleClose() {
+    setConfirming(null);
+    setPending(false);
+    onClose();
+  }
+
+  async function handleConfirmDeleteLoan() {
+    setPending(true);
+    await onCancelLoan();
+  }
+
+  async function handleConfirmFreeze() {
+    setPending(true);
+    await onFreezeClientLoan();
+  }
+
+  async function handleConfirmDeactivate() {
+    setPending(true);
+    await onDeactivateClient();
+  }
+
+  async function handleConfirmReactivate() {
+    setPending(true);
+    await onReactivateClient();
+  }
+
   const statusBadge = client
-    ? client.activo && loan
+    ? client.activo && loan?.estado === "activo"
       ? { label: "Activo", cls: "bg-green-100 text-green-800" }
       : client.activo
       ? { label: "Disponible", cls: "bg-blue-100 text-blue-800" }
+      : loan?.estado === "congelado"
+      ? { label: "Congelado", cls: "bg-amber-100 text-amber-800" }
       : { label: "Inactivo", cls: "bg-muted text-muted-foreground" }
     : null;
 
-  const actions = [
-    {
-      label: "Historial de pagos",
-      icon: CreditCard,
-      onClick: onPaymentHistory,
-      disabled: !loan,
-      destructive: false
-    },
-    {
-      label: "Historial de préstamos",
-      icon: FileText,
-      onClick: onLoanHistory,
-      disabled: false,
-      destructive: false
-    },
-    {
-      label: "Eliminar préstamo",
-      icon: Trash2,
-      onClick: onCancelLoan,
-      disabled: !loan,
-      destructive: true
-    },
-    {
-      label: "Desactivar cliente",
-      icon: UserMinus,
-      onClick: onDeactivateClient,
-      disabled: false,
-      destructive: true
-    },
-    {
-      label: "Editar cliente",
-      icon: Pencil,
-      onClick: onEditClient,
-      disabled: false,
-      destructive: false
-    }
-  ];
+  const slideOverDescription = client && statusBadge ? (
+    <span className="flex flex-wrap items-center gap-2">
+      {client.nit ? <span>NIT: {client.nit}</span> : null}
+      <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", statusBadge.cls)}>
+        {statusBadge.label}
+      </span>
+    </span>
+  ) : undefined;
+
+  // — Confirmation: Eliminar préstamo —
+  if (confirming === "delete-loan") {
+    return (
+      <SlideOver
+        open={open}
+        onClose={handleClose}
+        title="Eliminar préstamo"
+        description={slideOverDescription}
+      >
+        <div className="px-5 py-5 lg:px-7 space-y-5">
+          <div className="flex flex-col items-center gap-3 text-center py-2">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10">
+              <AlertTriangle className="h-7 w-7 text-destructive" />
+            </div>
+            <div>
+              <p className="font-bold text-base">¿Eliminar este préstamo?</p>
+              <p className="text-sm text-muted-foreground mt-0.5">Esta acción no se puede deshacer</p>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 space-y-2.5">
+            <p className="text-xs font-semibold uppercase tracking-wider text-destructive/80">Lo que pasará</p>
+            <ul className="space-y-2 text-sm text-foreground/80">
+              <li className="flex gap-2">
+                <span className="text-green-600 dark:text-green-400 shrink-0">↑</span>
+                La caja recupera <strong>{formatCurrency(Number(loan?.valor_neto ?? 0))}</strong> (capital prestado)
+              </li>
+              <li className="flex gap-2">
+                <span className="text-destructive shrink-0">↓</span>
+                La cartera pierde el saldo de <strong>{formatCurrency(Number(loan?.saldo ?? 0))}</strong>
+              </li>
+              <li className="flex gap-2">
+                <span className="text-muted-foreground shrink-0">•</span>
+                El cliente queda disponible para un nuevo préstamo
+              </li>
+            </ul>
+          </div>
+
+          {loan ? (
+            <div className="rounded-xl bg-muted/50 p-3 grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <p className="text-xs text-muted-foreground">Capital prestado</p>
+                <p className="font-bold text-base">{formatCurrency(Number(loan.valor_neto))}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Saldo pendiente</p>
+                <p className="font-bold text-base">{formatCurrency(Number(loan.saldo))}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Modalidad</p>
+                <p className="font-semibold capitalize">{loan.modalidad} · {loan.interes}%</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Cuotas pagadas</p>
+                <p className="font-semibold">{loan.cuotas_pagadas}/{loan.numero_cuotas}</p>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => setConfirming(null)}
+              disabled={pending}
+              className="h-11 rounded-xl border text-sm font-semibold hover:bg-muted transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Volver
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmDeleteLoan}
+              disabled={pending}
+              className="h-11 rounded-xl bg-destructive text-sm font-bold text-white hover:bg-destructive/90 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+            >
+              {pending ? (
+                <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+              {pending ? "Eliminando…" : "Eliminar"}
+            </button>
+          </div>
+        </div>
+      </SlideOver>
+    );
+  }
+
+  // — Confirmation: Congelar préstamo y cliente —
+  if (confirming === "freeze") {
+    return (
+      <SlideOver
+        open={open}
+        onClose={handleClose}
+        title="Congelar préstamo"
+        description={slideOverDescription}
+      >
+        <div className="px-5 py-5 lg:px-7 space-y-5">
+          <div className="flex flex-col items-center gap-3 text-center py-2">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-100 dark:bg-amber-900/30">
+              <Snowflake className="h-7 w-7 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div>
+              <p className="font-bold text-base">¿Congelar préstamo y cliente?</p>
+              <p className="text-sm text-muted-foreground mt-0.5">El cliente pasará a inactivos</p>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800 p-4 space-y-2.5">
+            <p className="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">Lo que pasará</p>
+            <ul className="space-y-2 text-sm text-amber-800 dark:text-amber-300">
+              <li className="flex gap-2">
+                <span className="shrink-0">•</span>
+                El saldo de <strong>{formatCurrency(Number(loan?.saldo ?? 0))}</strong> queda congelado en la cartera
+              </li>
+              <li className="flex gap-2">
+                <span className="shrink-0">•</span>
+                La caja <strong>no recibe nada</strong>
+              </li>
+              <li className="flex gap-2">
+                <span className="shrink-0">•</span>
+                Se puede reactivar el cliente después para retomar la deuda
+              </li>
+            </ul>
+          </div>
+
+          {loan ? (
+            <div className="rounded-xl bg-muted/50 p-3 grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <p className="text-xs text-muted-foreground">Saldo a congelar</p>
+                <p className="font-bold text-base">{formatCurrency(Number(loan.saldo))}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Modalidad</p>
+                <p className="font-semibold capitalize">{loan.modalidad} · {loan.interes}%</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Cuotas pagadas</p>
+                <p className="font-semibold">{loan.cuotas_pagadas}/{loan.numero_cuotas}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Por cuota</p>
+                <p className="font-semibold">{formatCurrency(Number(loan.valor_cuota))}</p>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => setConfirming(null)}
+              disabled={pending}
+              className="h-11 rounded-xl border text-sm font-semibold hover:bg-muted transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Volver
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmFreeze}
+              disabled={pending}
+              className="h-11 rounded-xl bg-amber-600 text-sm font-bold text-white hover:bg-amber-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+            >
+              {pending ? (
+                <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+              ) : (
+                <Snowflake className="h-4 w-4" />
+              )}
+              {pending ? "Congelando…" : "Congelar"}
+            </button>
+          </div>
+        </div>
+      </SlideOver>
+    );
+  }
+
+  // — Confirmation: Desactivar cliente (sin préstamo) —
+  if (confirming === "deactivate") {
+    return (
+      <SlideOver
+        open={open}
+        onClose={handleClose}
+        title="Desactivar cliente"
+        description={slideOverDescription}
+      >
+        <div className="px-5 py-5 lg:px-7 space-y-5">
+          <div className="flex flex-col items-center gap-3 text-center py-2">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-100 dark:bg-amber-900/30">
+              <UserMinus className="h-7 w-7 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div>
+              <p className="font-bold text-base">¿Desactivar a {client ? toTitleCase(client.alias) : ""}?</p>
+              <p className="text-sm text-muted-foreground mt-0.5">El cliente pasará a inactivos</p>
+            </div>
+          </div>
+
+          <div className="rounded-xl border bg-muted/40 p-4 space-y-2">
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li className="flex gap-2">
+                <span className="shrink-0">•</span>
+                El cliente no tiene préstamo activo
+              </li>
+              <li className="flex gap-2">
+                <span className="shrink-0">•</span>
+                La cartera y la caja no se ven afectadas
+              </li>
+              <li className="flex gap-2">
+                <span className="shrink-0">•</span>
+                Quedará en la lista de clientes inactivos
+              </li>
+            </ul>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => setConfirming(null)}
+              disabled={pending}
+              className="h-11 rounded-xl border text-sm font-semibold hover:bg-muted transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Volver
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmDeactivate}
+              disabled={pending}
+              className="h-11 rounded-xl bg-amber-600 text-sm font-bold text-white hover:bg-amber-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+            >
+              {pending ? (
+                <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+              ) : (
+                <UserMinus className="h-4 w-4" />
+              )}
+              {pending ? "Desactivando…" : "Desactivar"}
+            </button>
+          </div>
+        </div>
+      </SlideOver>
+    );
+  }
+
+  // — Confirmation: Reactivar cliente —
+  if (confirming === "reactivate") {
+    return (
+      <SlideOver
+        open={open}
+        onClose={handleClose}
+        title="Reactivar cliente"
+        description={slideOverDescription}
+      >
+        <div className="px-5 py-5 lg:px-7 space-y-5">
+          <div className="flex flex-col items-center gap-3 text-center py-2">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-green-100 dark:bg-green-900/30">
+              <UserCheck className="h-7 w-7 text-green-600 dark:text-green-400" />
+            </div>
+            <div>
+              <p className="font-bold text-base">¿Reactivar a {client ? toTitleCase(client.alias) : ""}?</p>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {loan ? "El cliente y su préstamo volverán a activos" : "El cliente volverá a la lista de disponibles"}
+              </p>
+            </div>
+          </div>
+
+          {loan ? (
+            <div className="rounded-xl border border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800 p-4 space-y-2.5">
+              <p className="text-xs font-semibold uppercase tracking-wider text-green-700 dark:text-green-400">Lo que pasará</p>
+              <ul className="space-y-2 text-sm text-green-800 dark:text-green-300">
+                <li className="flex gap-2">
+                  <span className="shrink-0">•</span>
+                  El préstamo congelado de <strong>{formatCurrency(Number(loan.saldo))}</strong> vuelve a la cartera activa
+                </li>
+                <li className="flex gap-2">
+                  <span className="shrink-0">•</span>
+                  El cliente puede volver a realizar pagos
+                </li>
+              </ul>
+            </div>
+          ) : (
+            <div className="rounded-xl border bg-muted/40 p-4 space-y-2">
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex gap-2">
+                  <span className="shrink-0">•</span>
+                  El cliente volverá a la lista de disponibles
+                </li>
+                <li className="flex gap-2">
+                  <span className="shrink-0">•</span>
+                  La cartera y la caja no se ven afectadas
+                </li>
+              </ul>
+            </div>
+          )}
+
+          {loan ? (
+            <div className="rounded-xl bg-muted/50 p-3 grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <p className="text-xs text-muted-foreground">Saldo a reactivar</p>
+                <p className="font-bold text-base">{formatCurrency(Number(loan.saldo))}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Modalidad</p>
+                <p className="font-semibold capitalize">{loan.modalidad} · {loan.interes}%</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Cuotas pagadas</p>
+                <p className="font-semibold">{loan.cuotas_pagadas}/{loan.numero_cuotas}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Por cuota</p>
+                <p className="font-semibold">{formatCurrency(Number(loan.valor_cuota))}</p>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => setConfirming(null)}
+              disabled={pending}
+              className="h-11 rounded-xl border text-sm font-semibold hover:bg-muted transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Volver
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmReactivate}
+              disabled={pending}
+              className="h-11 rounded-xl bg-green-600 text-sm font-bold text-white hover:bg-green-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+            >
+              {pending ? (
+                <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+              ) : (
+                <UserCheck className="h-4 w-4" />
+              )}
+              {pending ? "Reactivando…" : "Reactivar"}
+            </button>
+          </div>
+        </div>
+      </SlideOver>
+    );
+  }
+
+  // — Vista principal: lista de acciones (context-aware) —
+  type Action = {
+    label: string;
+    icon: React.ElementType;
+    onClick: () => void;
+    disabled: boolean;
+    color: "default" | "amber" | "destructive" | "green";
+  };
+
+  let actions: Action[];
+
+  if (!client?.activo) {
+    // Inactive client — show reactivate + history + edit
+    actions = [
+      { label: "Reactivar cliente", icon: UserCheck, onClick: () => setConfirming("reactivate"), disabled: false, color: "green" },
+      { label: "Historial de préstamos", icon: FileText, onClick: onLoanHistory, disabled: false, color: "default" },
+      ...(loan ? [{ label: "Historial de pagos", icon: CreditCard, onClick: onPaymentHistory, disabled: false, color: "default" as const }] : []),
+      { label: "Editar cliente", icon: Pencil, onClick: onEditClient, disabled: false, color: "default" }
+    ];
+  } else if (loan) {
+    // Active client with active loan
+    actions = [
+      { label: "Historial de pagos", icon: CreditCard, onClick: onPaymentHistory, disabled: false, color: "default" },
+      { label: "Historial de préstamos", icon: FileText, onClick: onLoanHistory, disabled: false, color: "default" },
+      { label: "Congelar préstamo y cliente", icon: Snowflake, onClick: () => setConfirming("freeze"), disabled: false, color: "amber" },
+      { label: "Eliminar préstamo", icon: Trash2, onClick: () => setConfirming("delete-loan"), disabled: false, color: "destructive" },
+      { label: "Editar cliente", icon: Pencil, onClick: onEditClient, disabled: false, color: "default" }
+    ];
+  } else {
+    // Active client without loan
+    actions = [
+      { label: "Historial de préstamos", icon: FileText, onClick: onLoanHistory, disabled: false, color: "default" },
+      { label: "Desactivar cliente", icon: UserMinus, onClick: () => setConfirming("deactivate"), disabled: false, color: "amber" },
+      { label: "Editar cliente", icon: Pencil, onClick: onEditClient, disabled: false, color: "default" }
+    ];
+  }
 
   return (
     <SlideOver
       open={open}
-      onClose={onClose}
-      title={client?.alias ?? ""}
-      description={
-        client && statusBadge ? (
-          <span className="flex flex-wrap items-center gap-2">
-            {client.nit ? <span>NIT: {client.nit}</span> : null}
-            <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", statusBadge.cls)}>
-              {statusBadge.label}
-            </span>
-          </span>
-        ) : undefined
-      }
+      onClose={handleClose}
+      title={client ? toTitleCase(client.alias) : ""}
+      description={slideOverDescription}
     >
       <div className="p-4 lg:p-5 space-y-2">
         {actions.map((action, i) => {
           const Icon = action.icon;
+          const isDestructive = action.color === "destructive";
+          const isAmber = action.color === "amber";
+          const isGreen = action.color === "green";
           return (
             <button
               key={i}
@@ -481,15 +904,23 @@ function ClientActionsModal({
                 "flex w-full items-center gap-3 rounded-2xl border border-transparent p-4 transition-all group",
                 action.disabled
                   ? "opacity-40 cursor-not-allowed bg-muted/20"
-                  : action.destructive
+                  : isDestructive
                   ? "bg-destructive/5 hover:bg-destructive/10 hover:border-destructive/20 text-destructive"
+                  : isAmber
+                  ? "bg-amber-50 dark:bg-amber-900/10 hover:bg-amber-100 dark:hover:bg-amber-900/20 hover:border-amber-200 dark:hover:border-amber-700 text-amber-700 dark:text-amber-400"
+                  : isGreen
+                  ? "bg-green-50 dark:bg-green-900/10 hover:bg-green-100 dark:hover:bg-green-900/20 hover:border-green-200 dark:hover:border-green-700 text-green-700 dark:text-green-400"
                   : "bg-muted/30 hover:bg-muted/60 hover:border-border/50"
               )}
             >
               <div className={cn(
                 "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors",
-                action.destructive
+                isDestructive
                   ? "bg-destructive/10 text-destructive group-hover:bg-destructive/20"
+                  : isAmber
+                  ? "bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 group-hover:bg-amber-200 dark:group-hover:bg-amber-900/50"
+                  : isGreen
+                  ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 group-hover:bg-green-200 dark:group-hover:bg-green-900/50"
                   : "bg-primary/10 text-primary group-hover:bg-primary/20"
               )}>
                 <Icon className="h-4 w-4" />
@@ -513,26 +944,37 @@ function ClientActionsModal({
 function ClientHistoryModal({
   open,
   type,
-  clientName,
+  client,
   loading,
   data,
   onClose
 }: {
   open: boolean;
   type: "pagos" | "prestamos";
-  clientName: string;
+  client: ClientWithLoan | null;
   loading: boolean;
   data: unknown[];
   onClose: () => void;
 }) {
   const title = type === "pagos" ? "Historial de pagos" : "Historial de préstamos";
+  const name = client ? toTitleCase(client.alias) : "";
+  const loan = client?.loan;
 
   return (
     <SlideOver
       open={open}
       onClose={onClose}
       title={title}
-      description={<span className="uppercase">{clientName}</span>}
+      description={
+        <span className="flex flex-wrap items-center gap-2">
+          <span className="font-medium text-foreground">{name}</span>
+          {loan && type === "pagos" ? (
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary capitalize">
+              {loan.modalidad} · {loan.interes}%
+            </span>
+          ) : null}
+        </span>
+      }
     >
       <div className="px-5 py-4 lg:px-7">
         {loading ? (
@@ -540,7 +982,7 @@ function ClientHistoryModal({
             <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
           </div>
         ) : type === "pagos" ? (
-          <PaymentsList rows={data as PaymentRow[]} />
+          <PaymentsList rows={data as PaymentRow[]} loan={loan ?? null} />
         ) : (
           <LoansList rows={data as LoanRow[]} />
         )}
@@ -553,7 +995,13 @@ function ClientHistoryModal({
 // PaymentsList
 // ---------------------------------------------------------------------------
 
-function PaymentsList({ rows }: { rows: PaymentRow[] }) {
+function PaymentsList({
+  rows,
+  loan
+}: {
+  rows: PaymentRow[];
+  loan: ClientWithLoan["loan"] | null;
+}) {
   if (rows.length === 0) {
     return (
       <p className="text-sm text-muted-foreground text-center py-8">
@@ -562,29 +1010,58 @@ function PaymentsList({ rows }: { rows: PaymentRow[] }) {
     );
   }
 
-  const total = rows.reduce((acc, r) => acc + r.monto, 0);
+  const total = rows.reduce((acc, r) => acc + Number(r.monto), 0);
+  const cuotasTotales = rows.reduce((acc, r) => acc + r.numero_cuotas, 0);
 
   return (
-    <div className="space-y-2">
-      {rows.map((r) => (
-        <div
-          key={r.id}
-          className="flex items-center justify-between gap-3 rounded-xl border bg-background px-4 py-3"
-        >
-          <div className="min-w-0">
-            <p className="text-sm font-medium">{r.fecha_pago}</p>
-            <p className="text-xs text-muted-foreground capitalize">
-              {r.metodo_pago} · {r.numero_cuotas} cuota{r.numero_cuotas !== 1 ? "s" : ""}
+    <div className="space-y-4">
+      {/* Totalizadores */}
+      <div className="grid grid-cols-3 gap-2">
+        <div className="rounded-xl bg-muted/50 px-3 py-2.5 text-center">
+          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Pagos</p>
+          <p className="mt-0.5 text-lg font-bold leading-tight">{rows.length}</p>
+        </div>
+        <div className="rounded-xl bg-muted/50 px-3 py-2.5 text-center">
+          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Cuotas</p>
+          <p className="mt-0.5 text-lg font-bold leading-tight">{cuotasTotales}</p>
+        </div>
+        <div className="rounded-xl bg-primary/10 px-3 py-2.5 text-center">
+          <p className="text-[10px] font-medium text-primary/80 uppercase tracking-wider">Total</p>
+          <p className="mt-0.5 text-sm font-bold leading-tight text-primary">{formatCurrency(total)}</p>
+        </div>
+      </div>
+
+      {/* Saldo restante si hay préstamo */}
+      {loan ? (
+        <div className="flex items-center justify-between rounded-xl border border-border/60 px-4 py-2.5">
+          <p className="text-sm text-muted-foreground">Saldo pendiente</p>
+          <p className="text-sm font-bold">{formatCurrency(Number(loan.saldo))}</p>
+        </div>
+      ) : null}
+
+      {/* Lista de pagos */}
+      <div className="space-y-2">
+        {rows.map((r, i) => (
+          <div
+            key={r.id}
+            className="flex items-center justify-between gap-3 rounded-xl border bg-background px-4 py-3"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted text-xs font-semibold text-muted-foreground">
+                {rows.length - i}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">{r.fecha_pago}</p>
+                <p className="text-xs text-muted-foreground capitalize">
+                  {r.metodo_pago} · {r.numero_cuotas} cuota{r.numero_cuotas !== 1 ? "s" : ""}
+                </p>
+              </div>
+            </div>
+            <p className="text-sm font-bold text-green-700 dark:text-green-400 shrink-0">
+              {formatCurrency(Number(r.monto))}
             </p>
           </div>
-          <p className="text-green-700 font-semibold shrink-0">
-            {formatCurrency(r.monto)}
-          </p>
-        </div>
-      ))}
-      <div className="flex items-center justify-between px-1 pt-3 border-t">
-        <p className="text-sm font-bold">Total cobrado</p>
-        <p className="text-sm font-bold text-green-700">{formatCurrency(total)}</p>
+        ))}
       </div>
     </div>
   );
@@ -603,54 +1080,79 @@ function LoansList({ rows }: { rows: LoanRow[] }) {
     );
   }
 
+  const totalPrestado = rows.reduce((acc, r) => acc + Number(r.valor_neto), 0);
+  const activos = rows.filter((r) => r.estado === "activo").length;
+
   function estadoBadge(estado: string) {
-    if (estado === "activo") return "bg-green-100 text-green-800";
-    if (estado === "completado") return "bg-muted text-muted-foreground";
-    return "bg-red-100 text-red-800"; // cancelado u otros
+    if (estado === "activo") return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
+    if (estado === "completado") return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
+    if (estado === "congelado") return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400";
+    return "bg-muted text-muted-foreground";
   }
 
   return (
-    <div className="space-y-3">
-      {rows.map((r) => (
-        <div
-          key={r.id}
-          className="rounded-xl border bg-background p-4 space-y-2"
-        >
-          <div className="flex items-center gap-2 flex-wrap">
-            <span
-              className={cn(
-                "rounded-full px-2 py-0.5 text-xs font-medium capitalize",
-                estadoBadge(r.estado)
-              )}
-            >
-              {r.estado}
-            </span>
-            <span className="text-xs text-muted-foreground capitalize">
-              {r.modalidad} · {r.interes}%
-            </span>
-          </div>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div>
-              <p className="text-xs text-muted-foreground">Valor neto</p>
-              <p className="font-semibold">{formatCurrency(r.valor_neto)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Saldo</p>
-              <p className="font-semibold">{formatCurrency(r.saldo)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Cuotas</p>
-              <p className="font-semibold">
-                {r.cuotas_pagadas}/{r.numero_cuotas}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Por cuota</p>
-              <p className="font-semibold">{formatCurrency(r.valor_cuota)}</p>
-            </div>
-          </div>
+    <div className="space-y-4">
+      {/* Totalizadores */}
+      <div className="grid grid-cols-3 gap-2">
+        <div className="rounded-xl bg-muted/50 px-3 py-2.5 text-center">
+          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Total</p>
+          <p className="mt-0.5 text-lg font-bold leading-tight">{rows.length}</p>
         </div>
-      ))}
+        <div className="rounded-xl bg-muted/50 px-3 py-2.5 text-center">
+          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Activos</p>
+          <p className="mt-0.5 text-lg font-bold leading-tight">{activos}</p>
+        </div>
+        <div className="rounded-xl bg-primary/10 px-3 py-2.5 text-center">
+          <p className="text-[10px] font-medium text-primary/80 uppercase tracking-wider">Prestado</p>
+          <p className="mt-0.5 text-sm font-bold leading-tight text-primary">{formatCurrency(totalPrestado)}</p>
+        </div>
+      </div>
+
+      {/* Lista */}
+      <div className="space-y-2">
+        {rows.map((r) => {
+          const progress = Math.min(100, Math.round((r.cuotas_pagadas / r.numero_cuotas) * 100));
+          const fecha = r.created_at.slice(0, 10);
+          return (
+            <div key={r.id} className="rounded-xl border bg-background p-3 space-y-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 flex-wrap min-w-0">
+                  <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize shrink-0", estadoBadge(r.estado))}>
+                    {r.estado}
+                  </span>
+                  <span className="text-xs text-muted-foreground capitalize truncate">
+                    {r.modalidad} · {r.interes}%
+                  </span>
+                </div>
+                <span className="text-[10px] text-muted-foreground shrink-0">{fecha}</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div className="flex-1 grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Prestado</p>
+                    <p className="font-bold">{formatCurrency(Number(r.valor_neto))}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Saldo</p>
+                    <p className="font-bold">{formatCurrency(Number(r.saldo))}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Por cuota</p>
+                    <p className="font-semibold text-sm">{formatCurrency(Number(r.valor_cuota))}</p>
+                  </div>
+                </div>
+                <LoanProgress
+                  value={progress}
+                  paid={r.cuotas_pagadas}
+                  total={r.numero_cuotas}
+                  size={44}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -692,7 +1194,7 @@ function EditClientModal({
       open={open}
       onClose={onClose}
       title="Editar cliente"
-      description={client ? <span className="uppercase">{client.alias}</span> : undefined}
+      description={client ? toTitleCase(client.alias) : undefined}
       footer={
         client ? (
           <div className="flex gap-2">

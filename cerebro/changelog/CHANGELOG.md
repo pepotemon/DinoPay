@@ -1,7 +1,7 @@
 ---
 tags: [changelog, historial, cambios]
 created: 2026-07-24
-updated: 2026-08-13 (v0.30.0)
+updated: 2026-08-13 (v0.31.0)
 ---
 
 # Changelog — DinoPay
@@ -9,6 +9,48 @@ updated: 2026-08-13 (v0.30.0)
 [[INDEX|← Volver al Index]]
 
 > Solo se registran cambios importantes. No trivialidades.
+
+---
+
+## [0.31.0] — 2026-08-13
+
+### Lógica de negocio — Eliminar préstamo, Congelar y Reactivar cliente
+
+**Migración `023_frozen_loans.sql`**
+- Añadido estado `'congelado'` al check constraint de `loans.estado`.
+- Permite marcar un préstamo como congelado sin perder la deuda de la cartera.
+
+**Eliminar préstamo — `cancelLoanFromHubAction` (`unit-hub.ts`)**
+- Antes: solo marcaba `estado = 'cancelado'` (caja no se recuperaba).
+- Ahora: también inserta un `capital_movements { tipo: 'ingreso', monto: loan.valor_neto }`.
+- El `valor_neto` (capital físicamente prestado, sin intereses) regresa a la caja.
+- Nota: el saldo pendiente (con intereses) simplemente desaparece de la cartera; la caja no recibe el interés que ya nunca llegó.
+
+**Congelar préstamo y cliente — `freezeClientLoanAction` (`clients.ts`, nuevo)**
+- Nuevo Server Action: marca `loans.estado = 'congelado'` (cartera sigue contando el saldo) y `clients.activo = false`.
+- La caja NO recibe nada — la deuda queda pendiente, el cliente pasa a inactivos.
+- Revertible: el cliente puede reactivarse desde la lista de inactivos.
+
+**Reactivar cliente — `reactivateClientAction` (`clients.ts`, nuevo)**
+- Nuevo Server Action: marca `clients.activo = true` y `loans.estado = 'activo'` donde `estado = 'congelado'`.
+- El saldo congelado vuelve a la cartera activa y el cliente puede volver a pagar.
+
+**UI — `unidad-clientes-client.tsx`**
+- `ClientWithLoan.loan` ahora incluye `estado: "activo" | "congelado"`.
+- Filtro "Activos" ahora verifica `loan.estado === "activo"` (excluye préstamos congelados).
+- `ClientCard`: badge "Congelado" (ámbar) para clientes inactivos con préstamo congelado; fondo ámbar sutil con ícono `Snowflake` en el bloque del préstamo.
+- Acciones context-aware en `ClientActionsModal`:
+  - **Cliente inactivo**: Reactivar (verde), Historial de préstamos, (Historial de pagos si tiene préstamo), Editar.
+  - **Cliente activo + préstamo**: Historial pagos, Historial préstamos, Congelar (ámbar), Eliminar (rojo), Editar.
+  - **Cliente activo sin préstamo**: Historial préstamos, Desactivar (ámbar), Editar.
+- Nuevas vistas de confirmación: "Congelar préstamo" (ámbar) y "Reactivar cliente" (verde) con detalles del impacto.
+- Confirmación "Eliminar préstamo" actualizada: muestra `valor_neto` que regresa a caja y saldo que desaparece de cartera.
+- `LoansList.estadoBadge`: añadido caso `'congelado'` (ámbar).
+
+**Página `clientes/page.tsx`**
+- Query de préstamos cambiada de `.eq("estado", "activo")` a `.in("estado", ["activo", "congelado"])`.
+- Tipo `LoanRow` incluye campo `estado`.
+- El `loanByClient` ahora mapea tanto préstamos activos como congelados.
 
 ---
 
