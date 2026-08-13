@@ -114,6 +114,9 @@ export function UnidadClientesClient({
   const disponibles = clients.filter((c) => c.activo && c.loan === null);
   const inactivos = clients.filter((c) => !c.activo);
 
+  const congelados = inactivos.filter((c) => c.loan?.estado === "congelado");
+  const totalSaldoCongelado = congelados.reduce((sum, c) => sum + Number(c.loan!.saldo), 0);
+
   const baseFiltered =
     filter === "todos"
       ? clients
@@ -239,6 +242,26 @@ export function UnidadClientesClient({
       <p className="text-sm text-muted-foreground">
         {filtered.length} cliente{filtered.length !== 1 ? "s" : ""}
       </p>
+
+      {/* Frozen debt summary — visible only on Inactivos tab */}
+      {filter === "inactivos" && inactivos.length > 0 && (
+        <div className="grid grid-cols-3 gap-2">
+          <div className="rounded-xl bg-muted/50 px-3 py-2.5 text-center">
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Inactivos</p>
+            <p className="mt-0.5 text-lg font-bold leading-tight">{inactivos.length}</p>
+          </div>
+          <div className="rounded-xl bg-muted/50 px-3 py-2.5 text-center">
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Congelados</p>
+            <p className="mt-0.5 text-lg font-bold leading-tight">{congelados.length}</p>
+          </div>
+          <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200/50 dark:border-amber-700/30 px-3 py-2.5 text-center">
+            <p className="text-[10px] font-medium text-amber-700 dark:text-amber-400 uppercase tracking-wider">Deuda congelada</p>
+            <p className="mt-0.5 text-sm font-bold leading-tight text-amber-700 dark:text-amber-400">
+              {formatCurrency(totalSaldoCongelado)}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Grid */}
       <div className="grid gap-3 lg:grid-cols-2">
