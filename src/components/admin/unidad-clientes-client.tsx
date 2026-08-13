@@ -4,12 +4,19 @@ import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   ChevronRight, CreditCard, FileText, Trash2, UserMinus, UserCheck,
-  Pencil, AlertTriangle, ArrowLeft, Snowflake
+  Pencil, AlertTriangle, ArrowLeft, Snowflake, Phone, MessageCircle, Clock, Eye
 } from "lucide-react";
 import { cn, formatCurrency } from "@/lib/utils";
 
 function toTitleCase(str: string) {
   return str.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function calcDiasAtraso(today: string, ultimaCuotaFecha: string | null): number {
+  if (!ultimaCuotaFecha) return 0;
+  const todayMs = new Date(today + "T12:00:00Z").getTime();
+  const dueMs = new Date(ultimaCuotaFecha + "T12:00:00Z").getTime();
+  return Math.max(0, Math.floor((todayMs - dueMs) / 86_400_000));
 }
 
 import { getClientPaymentsAction, getClientLoansAction } from "@/lib/actions/admin/client-history";
@@ -36,10 +43,12 @@ type ClientWithLoan = {
     interes: number;
     valor_neto: number;
     valor_cuota: number;
+    total_a_cobrar: number;
     saldo: number;
     numero_cuotas: number;
     cuotas_pagadas: number;
     ultima_cuota_fecha: string | null;
+    fecha_inicio: string | null;
     estado: "activo" | "congelado";
   } | null;
 };
@@ -77,6 +86,7 @@ export function UnidadClientesClient({
   clients,
   unitId,
   unitName,
+  today,
   units
 }: {
   clients: ClientWithLoan[];
@@ -241,7 +251,7 @@ export function UnidadClientesClient({
             <ClientCard
               key={client.id}
               client={client}
-              unitId={unitId}
+              today={today}
               onOpenActions={() => setActionsClient(client)}
             />
           ))
@@ -252,6 +262,7 @@ export function UnidadClientesClient({
       <ClientActionsModal
         open={actionsClient !== null}
         client={lastActionsClient.current}
+        today={today}
         onClose={() => setActionsClient(null)}
         onPaymentHistory={() => lastActionsClient.current && openPaymentHistory(lastActionsClient.current)}
         onLoanHistory={() => lastActionsClient.current && openLoanHistory(lastActionsClient.current)}
@@ -336,14 +347,13 @@ function LoanProgress({
 
 function ClientCard({
   client,
-  unitId,
+  today,
   onOpenActions
 }: {
   client: ClientWithLoan;
-  unitId: string;
+  today: string;
   onOpenActions: () => void;
 }) {
-  void unitId;
   const loan = client.loan;
   const isFrozen = !client.activo && loan?.estado === "congelado";
 
@@ -359,6 +369,11 @@ function ClientCard({
   const progress = loan
     ? Math.min(100, Math.round((loan.cuotas_pagadas / loan.numero_cuotas) * 100))
     : 0;
+
+  const diasAtraso =
+    loan && loan.estado === "activo" && loan.cuotas_pagadas < loan.numero_cuotas
+      ? calcDiasAtraso(today, loan.ultima_cuota_fecha)
+      : 0;
 
   return (
     <button
@@ -403,7 +418,9 @@ function ClientCard({
             <div className="flex-1 grid grid-cols-2 gap-3 text-sm">
               <div>
                 <p className="text-xs text-muted-foreground">Saldo</p>
-                <p className="text-lg font-bold leading-tight">{formatCurrency(loan.saldo)}</p>
+                <p className={cn("text-lg font-bold leading-tight", diasAtraso > 0 ? "text-red-600 dark:text-red-400" : "")}>
+                  {formatCurrency(loan.saldo)}
+                </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Por cuota</p>
@@ -416,6 +433,15 @@ function ClientCard({
               total={loan.numero_cuotas}
             />
           </div>
+
+          {diasAtraso > 0 && (
+            <div className="flex items-center gap-1.5 rounded-lg border border-red-200/60 dark:border-red-700/30 bg-red-50 dark:bg-red-900/10 px-2.5 py-1.5">
+              <Clock className="h-3.5 w-3.5 text-red-600 dark:text-red-400 shrink-0" />
+              <span className="text-xs font-semibold text-red-700 dark:text-red-400">
+                {diasAtraso} {diasAtraso === 1 ? "día" : "días"} de atraso
+              </span>
+            </div>
+          )}
         </div>
       ) : null}
     </button>
@@ -426,11 +452,12 @@ function ClientCard({
 // ClientActionsModal
 // ---------------------------------------------------------------------------
 
-type ConfirmView = "delete-loan" | "freeze" | "deactivate" | "reactivate" | null;
+type ConfirmView = "details" | "delete-loan" | "freeze" | "deactivate" | "reactivate" | null;
 
 function ClientActionsModal({
   open,
   client,
+  today,
   onClose,
   onPaymentHistory,
   onLoanHistory,
@@ -442,6 +469,7 @@ function ClientActionsModal({
 }: {
   open: boolean;
   client: ClientWithLoan | null;
+  today: string;
   onClose: () => void;
   onPaymentHistory: () => void;
   onLoanHistory: () => void;
@@ -500,6 +528,177 @@ function ClientActionsModal({
       </span>
     </span>
   ) : undefined;
+
+  // — Details view —
+  if (confirming === "details") {
+    const phone = client?.telefono1 || client?.telefono2 || "";
+    const hasPhone = phone.length > 0;
+    const digitsOnly = (v: string) => v.replace(/\D/g, "");
+    const wa = `https://wa.me/${digitsOnly(phone)}?text=${encodeURIComponent(
+      `Hola ${client ? toTitleCase(client.alias) : ""}, te escribimos de DinoPay sobre tu préstamo.`
+    )}`;
+    const diasAtraso =
+      loan && loan.estado === "activo" && loan.cuotas_pagadas < loan.numero_cuotas
+        ? calcDiasAtraso(today, loan.ultima_cuota_fecha)
+        : 0;
+    const paidPct =
+      loan && Number(loan.total_a_cobrar) > 0
+        ? Math.min(
+            100,
+            Math.round(
+              ((Number(loan.total_a_cobrar) - Number(loan.saldo)) / Number(loan.total_a_cobrar)) * 100
+            )
+          )
+        : 0;
+
+    return (
+      <SlideOver
+        open={open}
+        onClose={handleClose}
+        title="Detalles"
+        description={slideOverDescription}
+      >
+        <div className="px-5 py-4 lg:px-7 space-y-5">
+          {/* Días de atraso */}
+          {diasAtraso > 0 && (
+            <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 dark:bg-red-900/15 dark:border-red-700/30 px-4 py-3">
+              <Clock className="h-5 w-5 text-red-600 dark:text-red-400 shrink-0" />
+              <div>
+                <p className="text-sm font-bold text-red-700 dark:text-red-400">
+                  {diasAtraso} {diasAtraso === 1 ? "día" : "días"} de atraso
+                </p>
+                <p className="text-xs text-red-600/80 dark:text-red-400/70">
+                  Próxima cuota vencida: {loan?.ultima_cuota_fecha}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Loan info */}
+          {loan && (
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Préstamo</p>
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary capitalize">
+                    {loan.modalidad} · {loan.interes}%
+                  </span>
+                  {loan.fecha_inicio && (
+                    <span className="text-xs text-muted-foreground">{loan.fecha_inicio}</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-xl border bg-background p-3 grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-xs text-muted-foreground">Capital prestado</p>
+                  <p className="font-bold text-base">{formatCurrency(Number(loan.valor_neto))}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Total a cobrar</p>
+                  <p className="font-bold text-base">{formatCurrency(Number(loan.total_a_cobrar))}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Saldo pendiente</p>
+                  <p className={cn("font-bold text-base", diasAtraso > 0 ? "text-red-600 dark:text-red-400" : "")}>
+                    {formatCurrency(Number(loan.saldo))}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Por cuota</p>
+                  <p className="font-semibold">{formatCurrency(Number(loan.valor_cuota))}</p>
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-muted/40 px-3 py-2.5 space-y-1.5">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{loan.cuotas_pagadas} de {loan.numero_cuotas} cuotas</span>
+                  <span>{paidPct}% pagado</span>
+                </div>
+                <div className="h-1.5 rounded-full bg-muted">
+                  <div
+                    className="h-1.5 rounded-full bg-primary transition-all"
+                    style={{ width: `${paidPct}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Contact info */}
+          <div className="space-y-2.5">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Contacto</p>
+
+            <div className="rounded-xl border bg-background divide-y divide-border/50 overflow-hidden">
+              {client?.nit && (
+                <div className="flex items-center justify-between px-3 py-2.5 text-sm">
+                  <span className="text-muted-foreground">NIT</span>
+                  <span className="font-medium">{client.nit}</span>
+                </div>
+              )}
+              {client?.telefono1 && (
+                <div className="flex items-center justify-between px-3 py-2.5 text-sm">
+                  <span className="text-muted-foreground">Teléfono</span>
+                  <span className="font-medium">{client.telefono1}</span>
+                </div>
+              )}
+              {client?.telefono2 && (
+                <div className="flex items-center justify-between px-3 py-2.5 text-sm">
+                  <span className="text-muted-foreground">Teléfono 2</span>
+                  <span className="font-medium">{client.telefono2}</span>
+                </div>
+              )}
+              {client?.direccion1 && (
+                <div className="flex items-start justify-between gap-4 px-3 py-2.5 text-sm">
+                  <span className="text-muted-foreground shrink-0">Dirección</span>
+                  <span className="font-medium text-right">{client.direccion1}</span>
+                </div>
+              )}
+              {client?.barrio && (
+                <div className="flex items-center justify-between px-3 py-2.5 text-sm">
+                  <span className="text-muted-foreground">Barrio</span>
+                  <span className="font-medium">{client.barrio}</span>
+                </div>
+              )}
+              {!client?.nit && !client?.telefono1 && !client?.telefono2 && !client?.direccion1 && !client?.barrio && (
+                <p className="px-3 py-4 text-sm text-muted-foreground text-center">Sin información de contacto</p>
+              )}
+            </div>
+
+            {hasPhone && (
+              <div className="grid grid-cols-2 gap-2">
+                <a
+                  href={`tel:${digitsOnly(phone)}`}
+                  className="flex h-10 items-center justify-center gap-2 rounded-xl border text-sm font-semibold hover:bg-muted transition-colors"
+                >
+                  <Phone className="h-4 w-4" />
+                  Llamar
+                </a>
+                <a
+                  href={wa}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex h-10 items-center justify-center gap-2 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700 transition-colors"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  WhatsApp
+                </a>
+              </div>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setConfirming(null)}
+            className="flex w-full items-center justify-center gap-2 h-10 rounded-xl border text-sm font-semibold hover:bg-muted transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Volver
+          </button>
+        </div>
+      </SlideOver>
+    );
+  }
 
   // — Confirmation: Eliminar préstamo —
   if (confirming === "delete-loan") {
@@ -856,8 +1055,9 @@ function ClientActionsModal({
   let actions: Action[];
 
   if (!client?.activo) {
-    // Inactive client — show reactivate + history + edit
+    // Inactive client
     actions = [
+      { label: "Detalles", icon: Eye, onClick: () => setConfirming("details"), disabled: false, color: "default" },
       { label: "Reactivar cliente", icon: UserCheck, onClick: () => setConfirming("reactivate"), disabled: false, color: "green" },
       { label: "Historial de préstamos", icon: FileText, onClick: onLoanHistory, disabled: false, color: "default" },
       ...(loan ? [{ label: "Historial de pagos", icon: CreditCard, onClick: onPaymentHistory, disabled: false, color: "default" as const }] : []),
@@ -866,6 +1066,7 @@ function ClientActionsModal({
   } else if (loan) {
     // Active client with active loan
     actions = [
+      { label: "Detalles", icon: Eye, onClick: () => setConfirming("details"), disabled: false, color: "default" },
       { label: "Historial de pagos", icon: CreditCard, onClick: onPaymentHistory, disabled: false, color: "default" },
       { label: "Historial de préstamos", icon: FileText, onClick: onLoanHistory, disabled: false, color: "default" },
       { label: "Congelar préstamo y cliente", icon: Snowflake, onClick: () => setConfirming("freeze"), disabled: false, color: "amber" },
@@ -875,6 +1076,7 @@ function ClientActionsModal({
   } else {
     // Active client without loan
     actions = [
+      { label: "Detalles", icon: Eye, onClick: () => setConfirming("details"), disabled: false, color: "default" },
       { label: "Historial de préstamos", icon: FileText, onClick: onLoanHistory, disabled: false, color: "default" },
       { label: "Desactivar cliente", icon: UserMinus, onClick: () => setConfirming("deactivate"), disabled: false, color: "amber" },
       { label: "Editar cliente", icon: Pencil, onClick: onEditClient, disabled: false, color: "default" }
@@ -1015,7 +1217,6 @@ function PaymentsList({
 
   return (
     <div className="space-y-4">
-      {/* Totalizadores */}
       <div className="grid grid-cols-3 gap-2">
         <div className="rounded-xl bg-muted/50 px-3 py-2.5 text-center">
           <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Pagos</p>
@@ -1031,7 +1232,6 @@ function PaymentsList({
         </div>
       </div>
 
-      {/* Saldo restante si hay préstamo */}
       {loan ? (
         <div className="flex items-center justify-between rounded-xl border border-border/60 px-4 py-2.5">
           <p className="text-sm text-muted-foreground">Saldo pendiente</p>
@@ -1039,7 +1239,6 @@ function PaymentsList({
         </div>
       ) : null}
 
-      {/* Lista de pagos */}
       <div className="space-y-2">
         {rows.map((r, i) => (
           <div
@@ -1092,7 +1291,6 @@ function LoansList({ rows }: { rows: LoanRow[] }) {
 
   return (
     <div className="space-y-4">
-      {/* Totalizadores */}
       <div className="grid grid-cols-3 gap-2">
         <div className="rounded-xl bg-muted/50 px-3 py-2.5 text-center">
           <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Total</p>
@@ -1108,7 +1306,6 @@ function LoansList({ rows }: { rows: LoanRow[] }) {
         </div>
       </div>
 
-      {/* Lista */}
       <div className="space-y-2">
         {rows.map((r) => {
           const progress = Math.min(100, Math.round((r.cuotas_pagadas / r.numero_cuotas) * 100));

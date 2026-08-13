@@ -21,10 +21,12 @@ type LoanRow = {
   interes: number;
   valor_neto: number;
   valor_cuota: number;
+  total_a_cobrar: number;
   saldo: number;
   numero_cuotas: number;
   cuotas_pagadas: number;
   ultima_cuota_fecha: string | null;
+  fecha_inicio: string | null;
   estado: "activo" | "congelado";
 };
 
@@ -51,7 +53,7 @@ export default async function AdminUnidadClientesPage({
       adminClient
         .from("loans")
         .select(
-          "id, client_id, modalidad, interes, valor_neto, valor_cuota, saldo, numero_cuotas, cuotas_pagadas, ultima_cuota_fecha, estado"
+          "id, client_id, modalidad, interes, valor_neto, valor_cuota, total_a_cobrar, saldo, numero_cuotas, cuotas_pagadas, ultima_cuota_fecha, fecha_inicio, estado"
         )
         .eq("unit_id", id)
         .in("estado", ["activo", "congelado"]),
@@ -93,10 +95,12 @@ export default async function AdminUnidadClientesPage({
             interes: Number(clientLoan.interes),
             valor_neto: Number(clientLoan.valor_neto),
             valor_cuota: Number(clientLoan.valor_cuota),
+            total_a_cobrar: Number(clientLoan.total_a_cobrar),
             saldo: Number(clientLoan.saldo),
             numero_cuotas: clientLoan.numero_cuotas,
             cuotas_pagadas: clientLoan.cuotas_pagadas,
             ultima_cuota_fecha: clientLoan.ultima_cuota_fecha,
+            fecha_inicio: clientLoan.fecha_inicio,
             estado: clientLoan.estado
           }
         : null
